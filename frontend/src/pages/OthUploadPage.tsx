@@ -1,15 +1,13 @@
+import UploadForm from "../components/upload/UploadForm";
+
 function OthUploadPage() {
   return (
-    <div className="page">
-      <section className="section">
-        <div className="section-header">
-          <p className="section-tag">OTH Data</p>
-          <h2 className="section-title">Upload OTH Data</h2>
-          <p className="section-description">
-            This is a dedicated page for OTH data upload and validation.
-          </p>
-        </div>
-      </section>
+    <div className="page-container">
+      <h1>Upload OTH Data</h1>
+      <p>Upload the CSV file required for OTH data configuration.</p>
+      <div className="matrix-form">
+        <UploadForm label="oth_data" title="OTH Data CSV" />
+      </div>
     </div>
   );
 }

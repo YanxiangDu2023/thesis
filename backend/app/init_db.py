@@ -82,11 +82,23 @@ def init_db():
 )
 """)
     
-
-
-
-
-
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS oth_data_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        year TEXT,
+        source TEXT,
+        brand_name TEXT,
+        machine_line TEXT,
+        empty_col_1 TEXT,
+        country TEXT,
+        empty_col_2 TEXT,
+        size_class TEXT,
+        quantity TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
 
     conn.commit()
     conn.close()
