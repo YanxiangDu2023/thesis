@@ -81,6 +81,32 @@ def init_db():
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS group_country_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        country_code TEXT,
+        country_name TEXT,
+        country_grouping TEXT,
+        region TEXT,
+        market_area TEXT,
+        change_indicator TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS machine_line_mapping_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        machine_line_name TEXT,
+        machine_line_code TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
     
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS oth_data_rows (

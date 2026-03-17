@@ -5,6 +5,7 @@ import PipelineViewerPage from "./pages/PipelineViewerPage";
 import MatrixSubmissionPage from "./pages/MatrixSubmissionPage";
 import OthUploadPage from "./pages/OthUploadPage";
 import CrpUploadPage from "./pages/CrpUploadPage";
+import UploadResultPage from "./pages/UploadResultPage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/pipeline" element={<PipelineViewerPage />} />
             <Route path="/upload/oth" element={<OthUploadPage />} />
             <Route path="/upload/crp" element={<CrpUploadPage />} />
+            <Route path="/uploads/:uploadRunId/result" element={<UploadResultPage />} />
           </Routes>
         </main>
       </div>

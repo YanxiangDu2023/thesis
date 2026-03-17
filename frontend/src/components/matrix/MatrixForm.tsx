@@ -24,6 +24,16 @@ function MatrixForm() {
         title="Brand Mapping CSV"
       />
 
+      <UploadForm
+        label="group_country"
+        title="Group Country CSV"
+      />
+
+      <UploadForm
+        label="machine_line_mapping"
+        title="Machine Line Mapping CSV"
+      />
+
     </div>
   );
 }
