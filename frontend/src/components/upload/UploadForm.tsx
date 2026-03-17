@@ -1,10 +1,25 @@
 import { useMemo, useState } from "react";
 import { getLatestUploadByMatrixType, uploadCsv } from "../../api/uploads";
 import type { UploadRow, UploadRun, UploadStatus } from "../../types/upload";
+import FilterableTable from "../table/FilterableTable";
 
 type UploadFormProps = {
   label: string;
   title: string;
+};
+
+const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
+  group_country: [
+    "year",
+    "country_grouping",
+    "group_code",
+    "country_code",
+    "country_name",
+    "market_area",
+    "market_area_code",
+    "region",
+    "change_indicator",
+  ],
 };
 
 function UploadForm({ label, title }: UploadFormProps) {
@@ -18,10 +33,18 @@ function UploadForm({ label, title }: UploadFormProps) {
   const [latestError, setLatestError] = useState("");
   const [showLatestPanel, setShowLatestPanel] = useState(false);
 
-  const latestColumns = useMemo(
-    () => (latestRows.length > 0 ? Object.keys(latestRows[0]) : []),
-    [latestRows]
-  );
+  const latestColumns = useMemo(() => {
+    if (latestRows.length === 0) {
+      return [];
+    }
+
+    const rowKeys = Object.keys(latestRows[0]);
+    const preferredOrder = PREFERRED_COLUMN_ORDER[label] ?? [];
+    const orderedPreferred = preferredOrder.filter((column) => rowKeys.includes(column));
+    const remainingColumns = rowKeys.filter((column) => !orderedPreferred.includes(column));
+
+    return [...orderedPreferred, ...remainingColumns];
+  }, [label, latestRows]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -122,26 +145,11 @@ function UploadForm({ label, title }: UploadFormProps) {
               {latestRows.length === 0 ? (
                 <p>No row data found in SQL for this upload.</p>
               ) : (
-                <div className="table-wrapper" style={{ maxHeight: "360px" }}>
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        {latestColumns.map((column) => (
-                          <th key={column}>{column}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {latestRows.map((row, rowIndex) => (
-                        <tr key={`${String(row.id ?? rowIndex)}-${rowIndex}`}>
-                          {latestColumns.map((column) => (
-                            <td key={`${rowIndex}-${column}`}>{row[column] ?? ""}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <FilterableTable
+                  columns={latestColumns.map((column) => ({ key: column, label: column }))}
+                  rows={latestRows}
+                  maxHeight="360px"
+                />
               )}
             </>
           )}

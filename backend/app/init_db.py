@@ -1,5 +1,12 @@
 from app.database import get_connection
 
+def _ensure_column(cursor, table_name: str, column_name: str, column_type: str):
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    if column_name not in existing_columns:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+
+
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
@@ -87,15 +94,23 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         upload_run_id INTEGER NOT NULL,
         row_index INTEGER,
+        year TEXT,
+        group_code TEXT,
         country_code TEXT,
         country_name TEXT,
         country_grouping TEXT,
         region TEXT,
         market_area TEXT,
+        market_area_code TEXT,
         change_indicator TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+
+    # Backward-compatible migration for existing local DBs.
+    _ensure_column(cursor, "group_country_rows", "year", "TEXT")
+    _ensure_column(cursor, "group_country_rows", "group_code", "TEXT")
+    _ensure_column(cursor, "group_country_rows", "market_area_code", "TEXT")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS machine_line_mapping_rows (
@@ -123,6 +138,47 @@ def init_db():
         size_class TEXT,
         quantity TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS control_report_clean_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        oth_upload_run_id INTEGER NOT NULL,
+        group_country_upload_run_id INTEGER NOT NULL,
+        machine_line_mapping_upload_run_id INTEGER NOT NULL,
+        brand_mapping_upload_run_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        row_count INTEGER,
+        status TEXT,
+        message TEXT,
+        FOREIGN KEY (oth_upload_run_id) REFERENCES upload_runs(id),
+        FOREIGN KEY (group_country_upload_run_id) REFERENCES upload_runs(id),
+        FOREIGN KEY (machine_line_mapping_upload_run_id) REFERENCES upload_runs(id),
+        FOREIGN KEY (brand_mapping_upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS control_report_clean_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        control_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        year TEXT,
+        source TEXT,
+        country_code TEXT,
+        country TEXT,
+        country_grouping TEXT,
+        region TEXT,
+        market_area TEXT,
+        machine_line_name TEXT,
+        machine_line_code TEXT,
+        brand_name TEXT,
+        brand_code TEXT,
+        size_class_flag TEXT,
+        fid TEXT,
+        ms_percent TEXT,
+        FOREIGN KEY (control_run_id) REFERENCES control_report_clean_runs(id)
 )
 """)
 

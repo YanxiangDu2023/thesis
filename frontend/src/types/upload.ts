@@ -40,3 +40,46 @@ export type UploadCompletenessResponse = {
   missing_types: string[];
   items: UploadCompletenessItem[];
 };
+
+export type ControlReportCleanRun = {
+  id: number;
+  oth_upload_run_id: number;
+  group_country_upload_run_id: number;
+  machine_line_mapping_upload_run_id: number;
+  brand_mapping_upload_run_id: number;
+  created_at: string;
+  row_count: number | null;
+  status: string | null;
+  message: string | null;
+};
+
+export type ControlReportCleanRow = {
+  id: number;
+  control_run_id: number;
+  row_index: number;
+  year: string;
+  source: string;
+  country_code: string;
+  country: string;
+  country_grouping: string;
+  region: string;
+  market_area: string;
+  machine_line_name: string;
+  machine_line_code: string;
+  brand_name: string;
+  brand_code: string;
+  size_class_flag: string;
+  fid: string;
+  ms_percent: string | null;
+};
+
+export type RunControlReportCleanDataResponse = {
+  message: string;
+  control_run_id: number;
+  row_count: number;
+};
+
+export type LatestControlReportCleanDataResponse = {
+  run: ControlReportCleanRun;
+  rows: ControlReportCleanRow[];
+};

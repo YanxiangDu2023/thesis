@@ -1,0 +1,250 @@
+﻿Calendar Year,Country Grouping,group code,Country Code,Country,Market Area,market area code,Region,KEY COUNTRY GROUP AND MARKET AREA,VLOOKUP,KEY COUNTRY AND COUNTRY GROUP
+2024,Rest of Middle-East,MEA,AF,Afghanistan,MA East,ITRMEA,Region International,MEAITRMEA,,AFMEA
+2024,Rest of Europe South,EUC,AL,Albania,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,ALEUC
+2024,Algeria,GDZ,DZ,Algeria,MA Africa,ITRAFR,Region International,GDZITRAFR,,DZGDZ
+2024,Rest of Oceania,ROC,AS,American Samoa,MA Oceania,ITROCE,Region International,ROCITROCE,,ASROC
+2024,Spain + Andorra,GEA,AD,Andorra,MA Ascendum EU & Others,EURASC,Region Europe,GEAEURASC,,ADGEA
+2024,Rest of Africa,RAF,AO,Angola,MA Africa,ITRAFR,Region International,RAFITRAFR,,AORAF
+2024,Rest of Latin America,RLA,AI,Anguilla,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,AIRLA
+2024,Rest of Latin America,RLA,AQ,Antarctica,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,AQRLA
+2024,Rest of Latin America,RLA,AG,Antigua/Barbuda,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,AGRLA
+2024,Argentina,GAR,AR,Argentina,MA Argentina,LARARG,Region Latin America,GARLARARG,,ARGAR
+2024,Rest of Middle-East,MEA,AM,Armenia,MA East,ITRMEA,Region International,MEAITRMEA,,AMMEA
+2024,Rest of Latin America,RLA,AW,Aruba,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,AWRLA
+2024,Australia,GAU,AU,Australia,MA Oceania,ITROCE,Region International,GAUITROCE,,AUGAU
+2024,Austria,GAT,AT,Austria,MA Ascendum EU & Others,EURASC,Region Europe,GATEURASC,,ATGAT
+2024,Rest of Middle-East,MEA,AZ,Azerbaijan,MA East,ITRMEA,Region International,MEAITRMEA,,AZMEA
+2024,Rest of Latin America,RLA,BS,Bahamas,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BSRLA
+2024,Rest of Middle-East,MEA,BH,Bahrain,MA East,ITRMEA,Region International,MEAITRMEA,,BHMEA
+2024,Bangladesh,GBD,BD,Bangladesh,MA India Exports,INRINE,Region India,GBDINRINE,,BDGBD
+2024,Rest of Latin America,RLA,BB,Barbados,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BBRLA
+2024,Rest of Belarus,RBR,BY,Belarus,MA Russia & Belarus,ITRRUC,Region International,RBRITRRUC,,BYRBR
+2024,Belgium,GBE,BE,Belgium,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GBEEURSMP,,BEGBE
+2024,Rest of Latin America,RLA,BZ,Belize,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BZRLA
+2024,Rest of Africa,RAF,BJ,Benin,MA Africa,ITRAFR,Region International,RAFITRAFR,,BJRAF
+2024,Rest of Latin America,RLA,BM,Bermuda,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BMRLA
+2024,Rest of India,GRI,BT,Bhutan,MA India Exports,INRINE,Region India,GRIINRINE,,BTGRI
+2024,Bolivia,GBO,BO,Bolivia,MA Hispanic,LARHIN,Region Latin America,GBOLARHIN,,BOGBO
+2024,Rest of Latin America,RLA,BQ,Bonaire St Eust,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BQRLA
+2024,Rest of Europe Central,EUC,BA,Bosnia Herz,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,BAEUC
+2024,Rest of Southern Africa,ZAR,BW,Botswana,MA Africa,ITRAFR,Region International,ZARITRAFR,,BWZAR
+2024,Rest of Latin America,RLA,BV,Bouvet Island,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,BVRLA
+2024,Brazil,GBR,BR,Brazil,MA Brazil,LARBRA,Region Latin America,GBRLARBRA,,BRGBR
+2024,Rest of Latin America,RLA,VG,Brit Virgin Isl,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,VGRLA
+2024,Rest of Africa,RAF,IO,British Ind O T,MA Africa,ITRAFR,Region International,RAFITRAFR,,IORAF
+2024,Brunei Darussa,GBN,BN,Brunei Darussa,MA Asia East,ASREA,Region Asia,GBNASREA,,BNGBN
+2024,Rest of Europe South,EUS,BG,Bulgaria,MA Ascendum EU & Others,EURASC,Region Europe,EUSEURASC,,BGEUS
+2024,Rest of Africa,RAF,BF,Burkina Faso,MA Africa,ITRAFR,Region International,RAFITRAFR,,BFRAF
+2024,Rest of Africa,RAF,BI,Burundi,MA Africa,ITRAFR,Region International,RAFITRAFR,,BIRAF
+2024,Rest of Africa,RAF,CF,C African Rep,MA Africa,ITRAFR,Region International,RAFITRAFR,,CFRAF
+2024,Rest of Latin America,RLA,TC,Caicos Isl,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,TCRLA
+2024,Malaysia,GMY,MY,Malaysia,MA Asia East,ASREA,Region Asia,GMYASREA,,MYGMY
+2024,Rest of Africa,RAF,CM,Cameroon,MA Africa,ITRAFR,Region International,RAFITRAFR,,CMRAF
+2024,Canada,GCA,CA,Canada,MA Canada,NARCAN,Region North America,GCANARCAN,,CAGCA
+2024,Rest of Africa,RAF,CV,Cape Verde,MA Africa,ITRAFR,Region International,RAFITRAFR,,CVRAF
+2024,Rest of Latin America,RLA,KY,Cayman Islands,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,KYRLA
+2024,Rest of Africa,RAF,TD,Chad,MA Africa,ITRAFR,Region International,RAFITRAFR,,TDRAF
+2024,Chile,GCL,CL,Chile,MA Hispanic,LARHIN,Region Latin America,GCLLARHIN,,CLGCL
+2024,China,GCN,CN,China,MA China,CNRCHN,Region China,GCNCNRCHN,,CNGCN
+2024,Rest of Oceania,ROC,CX,Christmas Isl,MA Oceania,ITROCE,Region International,ROCITROCE,,CXROC
+2024,Rest of Oceania,ROC,CC,Cocos Islands,MA Oceania,ITROCE,Region International,ROCITROCE,,CCROC
+2024,Colombia,GCO,CO,Colombia,MA Hispanic,LARHIN,Region Latin America,GCOLARHIN,,COGCO
+2024,Rest of Africa,RAF,KM,Comoros,MA Africa,ITRAFR,Region International,RAFITRAFR,,KMRAF
+2024,Rest of Africa,RAF,CG,Congo,MA Africa,ITRAFR,Region International,RAFITRAFR,,CGRAF
+2024,Rest of Africa,RAF,CD,Congo Dem Rep,MA Africa,ITRAFR,Region International,RAFITRAFR,,CDRAF
+2024,Rest of Oceania,ROC,CK,Cook Islands,MA Oceania,ITROCE,Region International,ROCITROCE,,CKROC
+2024,Costa Rica,GCR,CR,Costa Rica,MA Hispanic,LARHIN,Region Latin America,GCRLARHIN,,CRGCR
+2024,Rest of Africa,RAF,CI,Côte D'Ivoire,MA Africa,ITRAFR,Region International,RAFITRAFR,,CIRAF
+2024,Rest of Europe Central,EUC,HR,Croatia,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,HREUC
+2024,Rest of Middle-East,MEA,CU,Cuba,MA East,ITRMEA,Region International,MEAITRMEA,,CUMEA
+2024,Rest of Latin America,RLA,CW,Curacao,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,CWRLA
+2024,Rest of Europe South,EUS,CY,Cyprus,MA Ascendum EU & Others,EURASC,Region Europe,EUSEURASC,,CYEUS
+2024,Czech Republic,GCZ,CZ,Czech Republic,MA Ascendum EU & Others,EURASC,Region Europe,GCZEURASC,,CZGCZ
+2024,Denmark,GDK,DK,Denmark,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GDKEUROWD,,DKGDK
+2024,Rest of Africa,RAF,DJ,Djibouti,MA Africa,ITRAFR,Region International,RAFITRAFR,,DJRAF
+2024,Rest of Latin America,RLA,DM,Dominica,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,DMRLA
+2024,Rest of Latin America,RLA,DO,Dominican Rep,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,DORLA
+2024,Ecuador,GEC,EC,Ecuador,MA Hispanic,LARHIN,Region Latin America,GECLARHIN,,ECGEC
+2024,Rest of Northern Africa,NAF,EG,Egypt,MA Africa,ITRAFR,Region International,NAFITRAFR,,EGNAF
+2024,Rest of Latin America,RLA,SV,El Salvador,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,SVRLA
+2024,Rest of Africa,RAF,GQ,Equat Guinea,MA Africa,ITRAFR,Region International,RAFITRAFR,,GQRAF
+2024,Rest of Africa,RAF,ER,Eritrea,MA Africa,ITRAFR,Region International,RAFITRAFR,,ERRAF
+2024,Rest of Swecon,ROS,EE,Estonia,MA Swecon & Robert Aebi,EURSRA,Region Europe,ROSEURSRA,,EEROS
+2024,Rest of Africa,RAF,ET,Ethiopia,MA Africa,ITRAFR,Region International,RAFITRAFR,,ETRAF
+2024,Rest of Latin America,RLA,FK,Falkland Isl,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,FKRLA
+2024,Rest of Denmark,RDR,FO,Faroe Islands,MA Swecon & Robert Aebi,EURSRA,Region Europe,RDREURSRA,,FORDR
+2024,Rest of Oceania,ROC,FJ,Fiji,MA Oceania,ITROCE,Region International,ROCITROCE,,FJROC
+2024,Finland,GFI,FI,Finland,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GFIEUROWD,,FIGFI
+2024,Rest of France,GFO,PF,Fr Polynesia,MA France,EURFRA,Region Europe,GFOEURFRA,,PFGFO
+2024,France,GFR,FR,France,MA France,EURFRA,Region Europe,GFREURFRA,,FRGFR
+2024,Rest of France,GFO,GF,French Guiana,MA France,EURFRA,Region Europe,GFOEURFRA,,GFGFO
+2024,Rest of Latin America,RLA,TF,French S Terr,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,TFRLA
+2024,Rest of Africa,RAF,GA,Gabon,MA Africa,ITRAFR,Region International,RAFITRAFR,,GARAF
+2024,Rest of Africa,RAF,GM,Gambia,MA Africa,ITRAFR,Region International,RAFITRAFR,,GMRAF
+2024,Rest of Middle-East,MEA,GE,Georgia,MA East,ITRMEA,Region International,MEAITRMEA,,GEMEA
+2024,Germany,GDE,DE,Germany,MA Swecon & Robert Aebi,EURSRA,Region Europe,GDEEURSRA,,DEGDE
+2024,Rest of Africa,RAF,GH,Ghana,MA Africa,ITRAFR,Region International,RAFITRAFR,,GHRAF
+2024,Rest of Europe South,EUS,GI,Gibraltar,MA Ascendum EU & Others,EURASC,Region Europe,EUSEURASC,,GIEUS
+2024,Greece,GGR,GR,Greece,MA Ascendum EU & Others,EURASC,Region Europe,GGREURASC,,GRGGR
+2024,Rest of Denmark,RDR,GL,Greenland,MA Volvo EU Owned Dealers,EUROWD,Region Europe,RDREUROWD,,GLRDR
+2024,Rest of Latin America,RLA,GD,Grenada,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,GDRLA
+2024,Rest of France,GFO,GP,Guadeloupe,MA France,EURFRA,Region Europe,GFOEURFRA,,GPGFO
+2024,Rest of Oceania,ROC,GU,Guam,MA Oceania,ITROCE,Region International,ROCITROCE,,GUROC
+2024,Guatemala,GGT,GT,Guatemala,MA Hispanic,LARHIN,Region Latin America,GGTLARHIN,,GTGGT
+2024,Rest of UK,RUK,GG,Guernsey,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,RUKEURSMP,,GGRUK
+2024,Rest of Africa,RAF,GN,Guinea,MA Africa,ITRAFR,Region International,RAFITRAFR,,GNRAF
+2024,Rest of Africa,RAF,GW,Guinea-Bissau,MA Africa,ITRAFR,Region International,RAFITRAFR,,GWRAF
+2024,Rest of Latin America,RLA,GY,Guyana,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,GYRLA
+2024,Rest of Latin America,RLA,HT,Haiti,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,HTRLA
+2024,Rest of Oceania,ROC,HM,Heard/McDonald,MA Oceania,ITROCE,Region International,ROCITROCE,,HMROC
+2024,Honduras,GHN,HN,Honduras,MA Hispanic,LARHIN,Region Latin America,GHNLARHIN,,HNGHN
+2024,Rest of China,RCN,HK,Hong Kong,MA Hong Kong & Macao,CNRMHK,Region China,RCNCNRMHK,,HKRCN
+2024,Rest of Europe Central,EUC,HU,Hungary,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,HUEUC
+2024,Iceland,GIS,IS,Iceland,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GISEURSMP,,ISGIS
+2024,India,GIN,IN,India,MA India,INRIND,Region India,GININRIND,,INGIN
+2024,Rest of South-East Asia,RSA,MV,Maldives,MA Asia East,ASREA,Region Asia,RSAASREA,,MVRSA
+2024,Rest of Middle-East,MEA,IR,Iran,MA East,ITRMEA,Region International,MEAITRMEA,,IRMEA
+2024,Rest of Middle-East,MEA,IQ,Iraq,MA East,ITRMEA,Region International,MEAITRMEA,,IQMEA
+2024,Ireland,GIE,IE,Ireland,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GIEEURSMP,,IEGIE
+2024,Rest of UK,RUK,IM,Isle of Man,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,RUKEURSMP,,IMRUK
+2024,Israel,GIL,IL,Israel,MA Ascendum EU & Others,EURASC,Region Europe,GILEURASC,,ILGIL
+2024,Italy,GIT,IT,Italy,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GITEUROWD,,ITGIT
+2024,Rest of Latin America,RLA,JM,Jamaica,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,JMRLA
+2024,Rest of South-East Asia,RSA,KP,North Korea,MA Asia East,ASREA,Region Asia,RSAASREA,,KPRSA
+2024,Rest of UK,RUK,JE,Jersey,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,RUKEURSMP,,JERUK
+2024,Rest of Middle-East,MEA,JO,Jordan,MA East,ITRMEA,Region International,MEAITRMEA,,JOMEA
+2024,Kazakhstan,GKZ,KZ,Kazakhstan,MA East,ITRMEA,Region International,GKZITRMEA,,KZGKZ
+2024,Kenya,GKE,KE,Kenya,MA Africa,ITRAFR,Region International,GKEITRAFR,,KEGKE
+2024,Rest of Oceania,ROC,KI,Kiribati,MA Oceania,ITROCE,Region International,ROCITROCE,,KIROC
+2024,Rest of Middle-East,MEA,KW,Kuwait,MA East,ITRMEA,Region International,MEAITRMEA,,KWMEA
+2024,Rest of Middle-East,MEA,KG,Kyrgyzstan,MA East,ITRMEA,Region International,MEAITRMEA,,KGMEA
+2024,Philippines,GPH,PH,Philippines,MA Asia East,ASREA,Region Asia,GPHASREA,,PHGPH
+2024,Rest of Swecon,ROS,LV,Latvia,MA Swecon & Robert Aebi,EURSRA,Region Europe,ROSEURSRA,,LVROS
+2024,Rest of Middle-East,MEA,LB,Lebanon,MA East,ITRMEA,Region International,MEAITRMEA,,LBMEA
+2024,Rest of Southern Africa,ZAR,LS,Lesotho,MA Africa,ITRAFR,Region International,ZARITRAFR,,LSZAR
+2024,Rest of Africa,RAF,LR,Liberia,MA Africa,ITRAFR,Region International,RAFITRAFR,,LRRAF
+2024,Rest of Northern Africa,NAF,LY,Libya,MA Africa,ITRAFR,Region International,NAFITRAFR,,LYNAF
+2024,Switzerland+Lichtensteain,GSL,LI,Liechtenstein,MA Swecon & Robert Aebi,EURSRA,Region Europe,GSLEURSRA,,LIGSL
+2024,Rest of Swecon,ROS,LT,Lithuania,MA Swecon & Robert Aebi,EURSRA,Region Europe,ROSEURSRA,,LTROS
+2024,Belgium + Luxembourg,GBL,LU,Luxembourg,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GBLEURSMP,,LUGBL
+2024,Rest of China,RCN,MO,Macao,MA Hong Kong & Macao,CNRMHK,Region China,RCNCNRMHK,,MORCN
+2024,Rest of Europe South,EUC,MK,Macedonia,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,MKEUC
+2024,Rest of Africa,RAF,MG,Madagascar,MA Africa,ITRAFR,Region International,RAFITRAFR,,MGRAF
+2024,Rest of Southern Africa,ZAR,MW,Malawi,MA Africa,ITRAFR,Region International,ZARITRAFR,,MWZAR
+2024,Singapore,GSG,SG,Singapore,MA Asia East,ASREA,Region Asia,GSGASREA,,SGGSG
+2024,Taiwan,GTW,TW,Taiwan,MA Asia East,ASREA,Region Asia,GTWASREA,,TWGTW
+2024,Rest of Africa,RAF,ML,Mali,MA Africa,ITRAFR,Region International,RAFITRAFR,,MLRAF
+2024,Rest of Volvo EU Own Dealers,RVC,MT,Malta,MA Volvo EU Owned Dealers,EUROWD,Region Europe,RVCEUROWD,,MTRVC
+2024,Rest of Oceania,ROC,MH,Marshall Isl,MA Oceania,ITROCE,Region International,ROCITROCE,,MHROC
+2024,Rest of France,GFO,MQ,Martinique,MA France,EURFRA,Region Europe,GFOEURFRA,,MQGFO
+2024,Rest of Africa,RAF,MR,Mauritania,MA Africa,ITRAFR,Region International,RAFITRAFR,,MRRAF
+2024,Rest of Africa,RAF,MU,Mauritius,MA Africa,ITRAFR,Region International,RAFITRAFR,,MURAF
+2024,Rest of France,GFO,YT,Mayotte,MA France,EURFRA,Region Europe,GFOEURFRA,,YTGFO
+2024,Mexico,GMX,MX,Mexico,MA Hispanic,LARHIN,Region Latin America,GMXLARHIN,,MXGMX
+2024,Rest of Oceania,ROC,FM,Micronesia,MA Oceania,ITROCE,Region International,ROCITROCE,,FMROC
+2024,Rest of Europe Central,EUC,MD,Moldova,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,MDEUC
+2024,Rest of France,GFO,MC,Monaco,MA France,EURFRA,Region Europe,GFOEURFRA,,MCGFO
+2024,Rest of China,RCN,MN,Mongolia,MA Mongolia,CNRMNG,Region China,RCNCNRMNG,,MNRCN
+2024,Rest of Europe South,EUC,ME,Montenegro,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,MEEUC
+2024,Rest of Latin America,RLA,MS,Montserrat,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,MSRLA
+2024,Morocco,GMA,MA,Morocco,MA Africa,ITRAFR,Region International,GMAITRAFR,,MAGMA
+2024,Rest of Southern Africa,ZAR,MZ,Mozambique,MA Africa,ITRAFR,Region International,ZARITRAFR,,MZZAR
+2024,Japan,GJP,JP,Japan,MA Asia East,ASRJPN,Region Asia,GJPASRJPN,,JPGJP
+2024,Rest of Oceania,ROC,MP,N Mariana Isl,MA Oceania,ITROCE,Region International,ROCITROCE,,MPROC
+2024,Rest of Southern Africa,ZAR,NA,Namibia,MA Africa,ITRAFR,Region International,ZARITRAFR,,NAZAR
+2024,Rest of Oceania,ROC,NR,Nauru,MA Oceania,ITROCE,Region International,ROCITROCE,,NRROC
+2024,Rest of India,GRI,NP,Nepal,MA India Exports,INRINE,Region India,GRIINRINE,,NPGRI
+2024,Netherlands,GNL,NL,Netherlands,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GNLEURSMP,,NLGNL
+2024,Rest of Oceania,ROC,NC,New Caledonia,MA Oceania,ITROCE,Region International,ROCITROCE,,NCROC
+2024,New Zealand,GNZ,NZ,New Zealand,MA Oceania,ITROCE,Region International,GNZITROCE,,NZGNZ
+2024,Nicaragua,GNI,NI,Nicaragua,MA Hispanic,LARHIN,Region Latin America,GNILARHIN,,NIGNI
+2024,Rest of Africa,RAF,NE,Niger,MA Africa,ITRAFR,Region International,RAFITRAFR,,NERAF
+2024,Rest of Africa,RAF,NG,Nigeria,MA Africa,ITRAFR,Region International,RAFITRAFR,,NGRAF
+2024,Rest of Oceania,ROC,NU,Niue,MA Oceania,ITROCE,Region International,ROCITROCE,,NUROC
+2024,Rest of Oceania,ROC,NF,Norfolk Island,MA Oceania,ITROCE,Region International,ROCITROCE,,NFROC
+2024,South Korea,GKR,KR,South Korea,MA Korea,ASRKOR,Region Asia,GKRASRKOR,,KRGKR
+2024,Norway,GNO,NO,Norway,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GNOEUROWD,,NOGNO
+2024,Oman,GOM,OM,Oman,MA East,ITRMEA,Region International,GOMITRMEA,,OMGOM
+2024,Pakistan,GPK,PK,Pakistan,MA East,ITRMEA,Region International,GPKITRMEA,,PKGPK
+2024,Rest of Oceania,ROC,PW,Palau,MA Oceania,ITROCE,Region International,ROCITROCE,,PWROC
+2024,Rest of Middle-East,MEA,PS,Palestina,MA East,ITRMEA,Region International,MEAITRMEA,,PSMEA
+2024,Panama,GPA,PA,Panama,MA Hispanic,LARHIN,Region Latin America,GPALARHIN,,PAGPA
+2024,Rest of Oceania,ROC,PG,Papua N Guinea,MA Oceania,ITROCE,Region International,ROCITROCE,,PGROC
+2024,Paraguay,GPY,PY,Paraguay,MA Hispanic,LARHIN,Region Latin America,GPYLARHIN,,PYGPY
+2024,Peru,GPE,PE,Peru,MA Peru,LARPER,Region Latin America,GPELARPER,,PEGPE
+2024,Cambodia,GKH,KH,Cambodia,MA Asia West,ASRWA,Region Asia,GKHASRWA,,KHGKH
+2024,Rest of Oceania,ROC,PN,Pitcairn,MA Oceania,ITROCE,Region International,ROCITROCE,,PNROC
+2024,Poland,GPL,PL,Poland,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GPLEUROWD,,PLGPL
+2024,Portugal,GPT,PT,Portugal,MA Ascendum EU & Others,EURASC,Region Europe,GPTEURASC,,PTGPT
+2024,North America,NAM,PR,Puerto Rico,MA United States,NARUSA,Region North America,NAMNARUSA,,PRNAM
+2024,Qatar,GQA,QA,Qatar,MA East,ITRMEA,Region International,GQAITRMEA,,QAGQA
+2024,Rest of France,GFO,RE,Réunion,MA France,EURFRA,Region Europe,GFOEURFRA,,REGFO
+2024,Rest of Europe Central,EUC,RO,Romania,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,ROEUC
+2024,Russia,GRU,RU,Russia,MA Russia & Belarus,ITRRUC,Region International,GRUITRRUC,,RUGRU
+2024,Rest of Africa,RAF,RW,Rwanda,MA Africa,ITRAFR,Region International,RAFITRAFR,,RWRAF
+2024,Rest of Latin America,RLA,GS,S Sandw Isl,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,GSRLA
+2024,Rest of France,GFO,BL,Saint Barthéle,MA France,EURFRA,Region Europe,GFOEURFRA,,BLGFO
+2024,Rest of Africa,RAF,SH,Saint Helena,MA Africa,ITRAFR,Region International,RAFITRAFR,,SHRAF
+2024,Rest of Latin America,RLA,LC,Saint Lucia,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,LCRLA
+2024,Rest of France,GFO,MF,Saint Martin,MA France,EURFRA,Region Europe,GFOEURFRA,,MFGFO
+2024,Rest of Oceania,ROC,WS,Samoa,MA Oceania,ITROCE,Region International,ROCITROCE,,WSROC
+2024,Italy + territories,GIO,SM,San Marino,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GIOEUROWD,,SMGIO
+2024,Rest of Africa,RAF,ST,Sao Tome/Princ,MA Africa,ITRAFR,Region International,RAFITRAFR,,STRAF
+2024,Saudi Arabia,GSA,SA,Saudi Arabia,MA East,ITRMEA,Region International,GSAITRMEA,,SAGSA
+2024,Rest of Africa,RAF,SN,Senegal,MA Africa,ITRAFR,Region International,RAFITRAFR,,SNRAF
+2024,Rest of Europe South,EUC,RS,Serbia,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,RSEUC
+2024,Rest of Africa,RAF,SC,Seychelles,MA Africa,ITRAFR,Region International,RAFITRAFR,,SCRAF
+2024,Rest of Africa,RAF,SL,Sierra Leone,MA Africa,ITRAFR,Region International,RAFITRAFR,,SLRAF
+2024,Indonesia,GID,ID,Indonesia,MA Asia West,ASRWA,Region Asia,GIDASRWA,,IDGID
+2024,Rest of Latin America,RLA,SX,Sint Maarten,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,SXRLA
+2024,Rest of Europe Central,EUC,SK,Slovakia,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,SKEUC
+2024,Rest of Europe Central,EUC,SI,Slovenia,MA Ascendum EU & Others,EURASC,Region Europe,EUCEURASC,,SIEUC
+2024,Rest of Oceania,ROC,SB,Solomon Islands,MA Oceania,ITROCE,Region International,ROCITROCE,,SBROC
+2024,Rest of Africa,RAF,SO,Somalia,MA Africa,ITRAFR,Region International,RAFITRAFR,,SORAF
+2024,South Africa,GZA,ZA,South Africa,MA Africa,ITRAFR,Region International,GZAITRAFR,,ZAGZA
+2024,Lao,GLA,LA,Lao,MA Asia West,ASRWA,Region Asia,GLAASRWA,,LAGLA
+2024,South Sudan,GSS,SS,South Sudan,MA Africa,ITRAFR,Region International,GSSITRAFR,,SSGSS
+2024,Spain,GES,ES,Spain,MA Ascendum EU & Others,EURASC,Region Europe,GESEURASC,,ESGES
+2024,Rest of India,GRI,LK,Sri Lanka,MA India Exports,INRINE,Region India,GRIINRINE,,LKGRI
+2024,Rest of Latin America,RLA,KN,St Kitts/Nevis,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,KNRLA
+2024,Rest of France,GFO,PM,St Pierre/Miq,MA France,EURFRA,Region Europe,GFOEURFRA,,PMGFO
+2024,Rest of Latin America,RLA,VC,St Vincent,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,VCRLA
+2024,Rest of Africa,RAF,SD,Sudan,MA Africa,ITRAFR,Region International,RAFITRAFR,,SDRAF
+2024,Rest of Latin America,RLA,SR,Suriname,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,SRRLA
+2024,Norway,GNO,SJ,Svalbard/Jan M,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GNOEUROWD,,SJGNO
+2024,Rest of Southern Africa,ZAR,SZ,Swaziland,MA Africa,ITRAFR,Region International,ZARITRAFR,,SZZAR
+2024,Sweden,GSE,SE,Sweden,MA Swecon & Robert Aebi,EURSRA,Region Europe,GSEEURSRA,,SEGSE
+2024,Switzerland,GCH,CH,Switzerland,MA Swecon & Robert Aebi,EURSRA,Region Europe,GCHEURSRA,,CHGCH
+2024,Rest of Middle-East,MEA,SY,Syrian Arab Rep,MA East,ITRMEA,Region International,MEAITRMEA,,SYMEA
+2024,Myanmar,GMM,MM,Myanmar,MA Asia West,ASRWA,Region Asia,GMMASRWA,,MMGMM
+2024,Rest of Middle-East,MEA,TJ,Tajikistan,MA East,ITRMEA,Region International,MEAITRMEA,,TJMEA
+2024,Rest of Africa,RAF,TZ,Tanzania,MA Africa,ITRAFR,Region International,RAFITRAFR,,TZRAF
+2024,Thailand,GTH,TH,Thailand,MA Asia West,ASRWA,Region Asia,GTHASRWA,,THGTH
+2024,Timor-Leste,GTL,TL,Timor-Leste,MA Asia West,ASRWA,Region Asia,GTLASRWA,,TLGTL
+2024,Rest of Africa,RAF,TG,Togo,MA Africa,ITRAFR,Region International,RAFITRAFR,,TGRAF
+2024,Rest of Oceania,ROC,TK,Tokelau,MA Oceania,ITROCE,Region International,ROCITROCE,,TKROC
+2024,Rest of Oceania,ROC,TO,Tonga,MA Oceania,ITROCE,Region International,ROCITROCE,,TOROC
+2024,Rest of Latin America,RLA,TT,Trinidad/Tobago,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,TTRLA
+2024,Tunisia,GTN,TN,Tunisia,MA Africa,ITRAFR,Region International,GTNITRAFR,,TNGTN
+2024,Turkey,GTR,TR,Turkey,MA East,ITRMEA,Region International,GTRITRMEA,,TRGTR
+2024,Rest of Middle-East,MEA,TM,Turkmenistan,MA East,ITRMEA,Region International,MEAITRMEA,,TMMEA
+2024,Rest of Oceania,ROC,TV,Tuvalu,MA Oceania,ITROCE,Region International,ROCITROCE,,TVROC
+2024,UAE,GAE,AE,UAE,MA East,ITRMEA,Region International,GAEITRMEA,,AEGAE
+2024,Uganda,GUG,UG,Uganda,MA Africa,ITRAFR,Region International,GUGITRAFR,,UGGUG
+2024,Rest of Middle-East,MEA,UA,Ukraine,MA East,ITRMEA,Region International,MEAITRMEA,,UAMEA
+2024,United Kingdom,GUK,GB,United Kingdom,MA SMT EU & Pat O'Donnell,EURSMP,Region Europe,GUKEURSMP,,GBGUK
+2024,United States,GUS,US,United States,MA United States,NARUSA,Region North America,GUSNARUSA,,USGUS
+2024,Uruguay,GUY,UY,Uruguay,MA Hispanic,LARHIN,Region Latin America,GUYLARHIN,,UYGUY
+2024,North America,NAM,UM,US Minor O Isl,MA United States,NARUSA,Region North America,NAMNARUSA,,UMNAM
+2024,Rest of Latin America,RLA,VI,US Virgin Isl,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,VIRLA
+2024,Uzbekistan,GUZ,UZ,Uzbekistan,MA East,ITRMEA,Region International,GUZITRMEA,,UZGUZ
+2024,Rest of Oceania,ROC,VU,Vanuatu,MA Oceania,ITROCE,Region International,ROCITROCE,,VUROC
+2024,Italy + territories,GIO,VA,Vatican,MA Volvo EU Owned Dealers,EUROWD,Region Europe,GIOEUROWD,,VAGIO
+2024,Rest of Latin America,RLA,VE,Venezuela,MA Hispanic,LARHIN,Region Latin America,RLALARHIN,,VERLA
+2024,Viet Nam,GVN,VN,Viet Nam,MA Asia West,ASRWA,Region Asia,GVNASRWA,,VNGVN
+2024,Rest of Oceania,ROC,WF,Wallis and Futu,MA Oceania,ITROCE,Region International,ROCITROCE,,WFROC
+2024,Rest of Africa,RAF,EH,Western Sahara,MA Africa,ITRAFR,Region International,RAFITRAFR,,EHRAF
+2024,Rest of Middle-East,MEA,YE,Yemen,MA East,ITRMEA,Region International,MEAITRMEA,,YEMEA
+2024,Rest of Southern Africa,ZAR,ZM,Zambia,MA Africa,ITRAFR,Region International,ZARITRAFR,,ZMZAR
+2024,Rest of Southern Africa,ZAR,ZW,Zimbabwe,MA Africa,ITRAFR,Region International,ZARITRAFR,,ZWZAR
+2024,Rest of Volvo EU Own Dealers,RVC,AX,Åland Islands,MA Volvo EU Owned Dealers,EUROWD,Region Europe,RVCEUROWD,,AXRVC

@@ -1,5 +1,7 @@
 import type {
+  LatestControlReportCleanDataResponse,
   LatestUploadResponse,
+  RunControlReportCleanDataResponse,
   UploadCompletenessResponse,
   UploadCsvResponse,
   UploadRun,
@@ -56,4 +58,28 @@ export async function getUploadCompleteness(): Promise<UploadCompletenessRespons
   }
 
   return result as UploadCompletenessResponse;
+}
+
+export async function runControlReportCleanData(): Promise<RunControlReportCleanDataResponse> {
+  const response = await fetch(`${API_BASE_URL}/reports/control-report-clean-data/run`, {
+    method: "POST",
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to run Control Report - Clean Data");
+  }
+
+  return result as RunControlReportCleanDataResponse;
+}
+
+export async function getLatestControlReportCleanData(): Promise<LatestControlReportCleanDataResponse> {
+  const response = await fetch(`${API_BASE_URL}/reports/control-report-clean-data/latest`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest Control Report - Clean Data");
+  }
+
+  return result as LatestControlReportCleanDataResponse;
 }

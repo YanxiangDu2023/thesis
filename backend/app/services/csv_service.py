@@ -43,6 +43,16 @@ MACHINE_LINE_MAPPING_COLUMN_NAMES = [
     "machine_line_name",
     "machine_line_code",
 ]
+GROUP_COUNTRY_FIXED_COLUMNS = [
+    "year",
+    "country_grouping",
+    "group_code",
+    "country_code",
+    "country_name",
+    "market_area",
+    "market_area_code",
+    "region",
+]
 
 
 def _clean_cell(value) -> str:
@@ -126,6 +136,52 @@ def _load_machine_line_mapping_dataframe(stored_path: str) -> pd.DataFrame:
     machine_line_mapping_df.columns = MACHINE_LINE_MAPPING_COLUMN_NAMES
 
     return machine_line_mapping_df
+
+
+def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
+    group_country_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+
+    if group_country_df.empty:
+        return pd.DataFrame(columns=[*GROUP_COUNTRY_FIXED_COLUMNS, "change_indicator"])
+
+    first_row = [
+        _normalize_header(value)
+        for value in group_country_df.iloc[0].tolist()
+    ]
+    header_flags = [
+        len(first_row) > 0 and ("calendar" in first_row[0] or "year" in first_row[0]),
+        len(first_row) > 1 and "country grouping" in first_row[1],
+        len(first_row) > 2 and "group code" in first_row[2],
+        len(first_row) > 3 and "country code" in first_row[3],
+        len(first_row) > 4 and "country" in first_row[4],
+        len(first_row) > 5 and "market area" in first_row[5],
+        len(first_row) > 6 and "market area code" in first_row[6],
+        len(first_row) > 7 and "region" in first_row[7],
+    ]
+    has_header_row = sum(1 for flag in header_flags if flag) >= 6
+
+    if has_header_row:
+        group_country_df = group_country_df.iloc[1:].reset_index(drop=True)
+
+    if group_country_df.shape[1] < len(GROUP_COUNTRY_FIXED_COLUMNS):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Group Country CSV must follow fixed column order: "
+                "Calendar Year, Country Grouping, group code, Country Code, "
+                "Country, Market Area, market area code, Region."
+            ),
+        )
+
+    normalized_data = group_country_df.iloc[:, :len(GROUP_COUNTRY_FIXED_COLUMNS)].copy()
+    normalized_data.columns = GROUP_COUNTRY_FIXED_COLUMNS
+
+    if group_country_df.shape[1] > len(GROUP_COUNTRY_FIXED_COLUMNS):
+        normalized_data["change_indicator"] = group_country_df.iloc[:, len(GROUP_COUNTRY_FIXED_COLUMNS)]
+    else:
+        normalized_data["change_indicator"] = ""
+
+    return normalized_data
 
 async def handle_csv_upload(matrix_type: str, file: UploadFile):
     if not file.filename.lower().endswith(".csv"):
@@ -276,28 +332,37 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 ))
 
         elif matrix_type == "group_country":
-            row_count = len(df)
-            for idx, row in df.iterrows():
+            group_country_df = _load_group_country_dataframe(stored_path)
+            row_count = len(group_country_df)
+
+            for idx, row in group_country_df.iterrows():
+
                 cursor.execute("""
                     INSERT INTO group_country_rows (
                         upload_run_id,
                         row_index,
+                        year,
+                        group_code,
                         country_code,
                         country_name,
                         country_grouping,
                         region,
                         market_area,
+                        market_area_code,
                         change_indicator
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("Country", row.get("Country Code", ""))),
-                    _clean_cell(row.get("Country Name", row.get("Unnamed: 1", ""))),
-                    _clean_cell(row.get("Country Grouping", "")),
-                    _clean_cell(row.get("Region", "")),
-                    _clean_cell(row.get("Market Area", row.get("Market area", ""))),
-                    _clean_cell(row.get("Change Indicator", ""))
+                    _clean_cell(row.get("year", "")),
+                    _clean_cell(row.get("group_code", "")),
+                    _clean_cell(row.get("country_code", "")),
+                    _clean_cell(row.get("country_name", "")),
+                    _clean_cell(row.get("country_grouping", "")),
+                    _clean_cell(row.get("region", "")),
+                    _clean_cell(row.get("market_area", "")),
+                    _clean_cell(row.get("market_area_code", "")),
+                    _clean_cell(row.get("change_indicator", ""))
                 ))
 
         elif matrix_type == "machine_line_mapping":

@@ -23,6 +23,18 @@ REQUIRED_UPLOAD_TYPES = [
     "oth_data",
 ]
 
+
+def _get_latest_success_upload_id(cursor, matrix_type: str):
+    cursor.execute("""
+        SELECT id
+        FROM upload_runs
+        WHERE matrix_type = ? AND status = 'success'
+        ORDER BY uploaded_at DESC, id DESC
+        LIMIT 1
+    """, (matrix_type,))
+    row = cursor.fetchone()
+    return row["id"] if row else None
+
 @router.post("/uploads/csv")
 async def upload_csv(
     matrix_type: str = Form(...),
@@ -78,6 +90,197 @@ def get_upload_completeness():
         "all_uploaded": len(missing_types) == 0,
         "missing_types": missing_types,
         "items": items,
+    }
+
+
+@router.post("/reports/control-report-clean-data/run")
+def run_control_report_clean_data():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    oth_upload_run_id = _get_latest_success_upload_id(cursor, "oth_data")
+    group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
+    machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+    brand_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "brand_mapping")
+
+    missing_types = []
+    if oth_upload_run_id is None:
+        missing_types.append("oth_data")
+    if group_country_upload_run_id is None:
+        missing_types.append("group_country")
+    if machine_line_mapping_upload_run_id is None:
+        missing_types.append("machine_line_mapping")
+    if brand_mapping_upload_run_id is None:
+        missing_types.append("brand_mapping")
+
+    if missing_types:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing latest successful upload for: {', '.join(missing_types)}"
+        )
+
+    cursor.execute("""
+        INSERT INTO control_report_clean_runs (
+            oth_upload_run_id,
+            group_country_upload_run_id,
+            machine_line_mapping_upload_run_id,
+            brand_mapping_upload_run_id,
+            status,
+            message
+        ) VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        oth_upload_run_id,
+        group_country_upload_run_id,
+        machine_line_mapping_upload_run_id,
+        brand_mapping_upload_run_id,
+        "running",
+        "Control report run started"
+    ))
+    control_run_id = cursor.lastrowid
+    conn.commit()
+
+    try:
+        cursor.execute("""
+            SELECT
+                o.year AS year,
+                o.source AS source,
+                o.country AS country_code,
+                COALESCE(g.country_name, o.country) AS country,
+                g.country_grouping AS country_grouping,
+                g.region AS region,
+                g.market_area AS market_area,
+                COALESCE(m.machine_line_name, o.machine_line) AS machine_line_name,
+                m.machine_line_code AS machine_line_code,
+                COALESCE(b.brand_name, o.brand_name) AS brand_name,
+                b.brand_code AS brand_code,
+                o.size_class AS size_class_flag,
+                o.quantity AS fid,
+                NULL AS ms_percent
+            FROM oth_data_rows o
+            LEFT JOIN group_country_rows g
+                ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
+               AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
+               AND g.upload_run_id = ?
+            LEFT JOIN machine_line_mapping_rows m
+                ON (
+                    UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_name))
+                    OR UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_code))
+                )
+               AND m.upload_run_id = ?
+            LEFT JOIN brand_mapping_rows b
+                ON UPPER(TRIM(o.brand_name)) = UPPER(TRIM(b.brand_name))
+               AND b.upload_run_id = ?
+            WHERE o.upload_run_id = ?
+            ORDER BY o.row_index ASC
+        """, (
+            group_country_upload_run_id,
+            machine_line_mapping_upload_run_id,
+            brand_mapping_upload_run_id,
+            oth_upload_run_id
+        ))
+        rows = cursor.fetchall()
+
+        for index, row in enumerate(rows, start=1):
+            cursor.execute("""
+                INSERT INTO control_report_clean_rows (
+                    control_run_id,
+                    row_index,
+                    year,
+                    source,
+                    country_code,
+                    country,
+                    country_grouping,
+                    region,
+                    market_area,
+                    machine_line_name,
+                    machine_line_code,
+                    brand_name,
+                    brand_code,
+                    size_class_flag,
+                    fid,
+                    ms_percent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                control_run_id,
+                index,
+                row["year"],
+                row["source"],
+                row["country_code"],
+                row["country"],
+                row["country_grouping"],
+                row["region"],
+                row["market_area"],
+                row["machine_line_name"],
+                row["machine_line_code"],
+                row["brand_name"],
+                row["brand_code"],
+                row["size_class_flag"],
+                row["fid"],
+                row["ms_percent"]
+            ))
+
+        cursor.execute("""
+            UPDATE control_report_clean_runs
+            SET row_count = ?, status = ?, message = ?
+            WHERE id = ?
+        """, (
+            len(rows),
+            "success",
+            "Control Report - Clean Data generated successfully",
+            control_run_id
+        ))
+        conn.commit()
+
+        return {
+            "message": "Control Report - Clean Data generated successfully",
+            "control_run_id": control_run_id,
+            "row_count": len(rows)
+        }
+    except Exception as e:
+        cursor.execute("""
+            UPDATE control_report_clean_runs
+            SET status = ?, message = ?
+            WHERE id = ?
+        """, (
+            "failed",
+            str(e),
+            control_run_id
+        ))
+        conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/reports/control-report-clean-data/latest")
+def get_latest_control_report_clean_data():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT *
+        FROM control_report_clean_runs
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    """)
+    latest_run = cursor.fetchone()
+    if latest_run is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="No control report runs found")
+
+    latest_run_dict = dict(latest_run)
+    cursor.execute("""
+        SELECT *
+        FROM control_report_clean_rows
+        WHERE control_run_id = ?
+        ORDER BY row_index ASC, id ASC
+    """, (latest_run_dict["id"],))
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return {
+        "run": latest_run_dict,
+        "rows": rows
     }
 
 @router.get("/uploads/latest/{matrix_type}")
