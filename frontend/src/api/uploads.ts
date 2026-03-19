@@ -1,6 +1,9 @@
 import type {
+  CrpD1CombinedReportResponse,
+  LatestCrpTmaReportCleanDataResponse,
   LatestControlReportCleanDataResponse,
   LatestUploadResponse,
+  RunCrpTmaReportCleanDataResponse,
   RunControlReportCleanDataResponse,
   UploadCompletenessResponse,
   UploadCsvResponse,
@@ -82,4 +85,39 @@ export async function getLatestControlReportCleanData(): Promise<LatestControlRe
   }
 
   return result as LatestControlReportCleanDataResponse;
+}
+
+export async function runCrpTmaReportCleanData(): Promise<RunCrpTmaReportCleanDataResponse> {
+  const response = await fetch(`${API_BASE_URL}/reports/crp-tma-clean-data/run`, {
+    method: "POST",
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to run CRP TMA Report - Clean Data");
+  }
+
+  return result as RunCrpTmaReportCleanDataResponse;
+}
+
+export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaReportCleanDataResponse> {
+  const response = await fetch(`${API_BASE_URL}/reports/crp-tma-clean-data/latest`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest CRP TMA Report - Clean Data");
+  }
+
+  return result as LatestCrpTmaReportCleanDataResponse;
+}
+
+export async function getCrpD1CombinedReport(): Promise<CrpD1CombinedReportResponse> {
+  const response = await fetch(`${API_BASE_URL}/reports/crp-d1-combined`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch CRP D1 Combined Report");
+  }
+
+  return result as CrpD1CombinedReportResponse;
 }

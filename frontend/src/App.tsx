@@ -6,6 +6,7 @@ import MatrixSubmissionPage from "./pages/MatrixSubmissionPage";
 import OthUploadPage from "./pages/OthUploadPage";
 import CrpUploadPage from "./pages/CrpUploadPage";
 import UploadResultPage from "./pages/UploadResultPage";
+import LayerDetailPage from "./pages/LayerDetailPage";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/pipeline" element={<PipelineViewerPage />} />
             <Route path="/upload/oth" element={<OthUploadPage />} />
             <Route path="/upload/crp" element={<CrpUploadPage />} />
+            <Route path="/layers/:layerCode" element={<LayerDetailPage />} />
             <Route path="/uploads/:uploadRunId/result" element={<UploadResultPage />} />
           </Routes>
         </main>

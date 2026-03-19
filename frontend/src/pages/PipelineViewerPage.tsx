@@ -1,10 +1,21 @@
 
+import { useMemo, useState } from "react";
+
+type SampleRow = {
+  countryGroup: string;
+  machineLine: string;
+  brand: string;
+  sales: number;
+  totalMarket: number;
+};
+
 type Step = {
   code: string;
   name: string;
   description: string;
   records: number;
   status: "Ready" | "Pending";
+  sampleRows: SampleRow[];
 };
 
 const steps: Step[] = [
@@ -15,6 +26,12 @@ const steps: Step[] = [
       "Raw source-aligned market and sales records before structural processing.",
     records: 1280,
     status: "Ready",
+    sampleRows: [
+      { countryGroup: "CEE", machineLine: "Excavators", brand: "Volvo", sales: 220, totalMarket: 840 },
+      { countryGroup: "CEE", machineLine: "Wheel Loaders", brand: "CAT", sales: 180, totalMarket: 840 },
+      { countryGroup: "MAC", machineLine: "Excavators", brand: "Komatsu", sales: 145, totalMarket: 510 },
+      { countryGroup: "INA", machineLine: "Haulers", brand: "Volvo", sales: 76, totalMarket: 190 },
+    ],
   },
   {
     code: "P10",
@@ -23,14 +40,26 @@ const steps: Step[] = [
       "Prepared output after initial logic, copy rules, and data structuring.",
     records: 1154,
     status: "Ready",
+    sampleRows: [
+      { countryGroup: "CEE", machineLine: "Excavators", brand: "Volvo", sales: 208, totalMarket: 810 },
+      { countryGroup: "CEE", machineLine: "Wheel Loaders", brand: "CAT", sales: 174, totalMarket: 810 },
+      { countryGroup: "MAC", machineLine: "Excavators", brand: "Komatsu", sales: 139, totalMarket: 498 },
+      { countryGroup: "INA", machineLine: "Haulers", brand: "Volvo", sales: 74, totalMarket: 186 },
+    ],
   },
   {
-    code: "A10",
+    code: "A00",
     name: "Adjustment Layer",
     description:
       "Intermediate adjusted output produced after selected business rules.",
     records: 1092,
     status: "Ready",
+    sampleRows: [
+      { countryGroup: "CEE", machineLine: "Excavators", brand: "Volvo", sales: 210, totalMarket: 808 },
+      { countryGroup: "CEE", machineLine: "Wheel Loaders", brand: "CAT", sales: 170, totalMarket: 808 },
+      { countryGroup: "MAC", machineLine: "Excavators", brand: "Komatsu", sales: 136, totalMarket: 492 },
+      { countryGroup: "INA", machineLine: "Haulers", brand: "Volvo", sales: 72, totalMarket: 182 },
+    ],
   },
   {
     code: "A20",
@@ -39,42 +68,22 @@ const steps: Step[] = [
       "Latest adjusted result prepared for downstream analysis and review.",
     records: 1088,
     status: "Pending",
-  },
-];
-
-const sampleRows = [
-  {
-    countryGroup: "CEE",
-    machineLine: "Excavators",
-    brand: "Volvo",
-    sales: 220,
-    totalMarket: 840,
-  },
-  {
-    countryGroup: "CEE",
-    machineLine: "Wheel Loaders",
-    brand: "CAT",
-    sales: 180,
-    totalMarket: 840,
-  },
-  {
-    countryGroup: "MAC",
-    machineLine: "Excavators",
-    brand: "Komatsu",
-    sales: 145,
-    totalMarket: 510,
-  },
-  {
-    countryGroup: "INA",
-    machineLine: "Haulers",
-    brand: "Volvo",
-    sales: 76,
-    totalMarket: 190,
+    sampleRows: [
+      { countryGroup: "CEE", machineLine: "Excavators", brand: "Volvo", sales: 207, totalMarket: 800 },
+      { countryGroup: "CEE", machineLine: "Wheel Loaders", brand: "CAT", sales: 169, totalMarket: 800 },
+      { countryGroup: "MAC", machineLine: "Excavators", brand: "Komatsu", sales: 134, totalMarket: 488 },
+      { countryGroup: "INA", machineLine: "Haulers", brand: "Volvo", sales: 71, totalMarket: 180 },
+    ],
   },
 ];
 
 function PipelineViewerPage() {
-  const selectedStep = steps[0];
+  const [selectedStepCode, setSelectedStepCode] = useState<string | null>(null);
+
+  const selectedStep = useMemo(
+    () => steps.find((step) => step.code === selectedStepCode) ?? null,
+    [selectedStepCode]
+  );
 
   return (
     <div className="page">
@@ -93,11 +102,13 @@ function PipelineViewerPage() {
             <h3 className="panel__title">Step List</h3>
             <div className="step-list">
               {steps.map((step) => (
-                <div
+                <button
+                  type="button"
                   key={step.code}
                   className={`step-item ${
-                    step.code === selectedStep.code ? "step-item--active" : ""
+                    step.code === selectedStep?.code ? "step-item--active" : ""
                   }`}
+                  onClick={() => setSelectedStepCode(step.code)}
                 >
                   <div className="step-item__top">
                     <span className="step-item__code">{step.code}</span>
@@ -112,33 +123,39 @@ function PipelineViewerPage() {
                     </span>
                   </div>
                   <p className="step-item__name">{step.name}</p>
-                </div>
+                </button>
               ))}
             </div>
           </aside>
 
           <section className="panel">
             <h3 className="panel__title">Step Summary</h3>
-            <div className="summary-card">
-              <div className="summary-row">
-                <span className="summary-label">Step</span>
-                <span className="summary-value">{selectedStep.code}</span>
-              </div>
-              <div className="summary-row">
-                <span className="summary-label">Name</span>
-                <span className="summary-value">{selectedStep.name}</span>
-              </div>
-              <div className="summary-row">
-                <span className="summary-label">Records</span>
-                <span className="summary-value">{selectedStep.records}</span>
-              </div>
-              <div className="summary-row">
-                <span className="summary-label">Status</span>
-                <span className="summary-value">{selectedStep.status}</span>
-              </div>
+            {selectedStep ? (
+              <div className="summary-card">
+                <div className="summary-row">
+                  <span className="summary-label">Step</span>
+                  <span className="summary-value">{selectedStep.code}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Name</span>
+                  <span className="summary-value">{selectedStep.name}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Records</span>
+                  <span className="summary-value">{selectedStep.records}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Status</span>
+                  <span className="summary-value">{selectedStep.status}</span>
+                </div>
 
-              <p className="summary-description">{selectedStep.description}</p>
-            </div>
+                <p className="summary-description">{selectedStep.description}</p>
+              </div>
+            ) : (
+              <p className="summary-description">
+                Select a step from the left list to display its summary.
+              </p>
+            )}
           </section>
         </div>
       </section>
@@ -153,30 +170,34 @@ function PipelineViewerPage() {
           </p>
         </div>
 
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Country Group</th>
-                <th>Machine Line</th>
-                <th>Brand</th>
-                <th>Sales</th>
-                <th>Total Market</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sampleRows.map((row, index) => (
-                <tr key={index}>
-                  <td>{row.countryGroup}</td>
-                  <td>{row.machineLine}</td>
-                  <td>{row.brand}</td>
-                  <td>{row.sales}</td>
-                  <td>{row.totalMarket}</td>
+        {selectedStep ? (
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Country Group</th>
+                  <th>Machine Line</th>
+                  <th>Brand</th>
+                  <th>Sales</th>
+                  <th>Total Market</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {selectedStep.sampleRows.map((row, index) => (
+                  <tr key={index}>
+                    <td>{row.countryGroup}</td>
+                    <td>{row.machineLine}</td>
+                    <td>{row.brand}</td>
+                    <td>{row.sales}</td>
+                    <td>{row.totalMarket}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="summary-description">No data to preview yet. Select a step first.</p>
+        )}
       </section>
     </div>
   );

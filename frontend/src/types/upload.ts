@@ -83,3 +83,64 @@ export type LatestControlReportCleanDataResponse = {
   run: ControlReportCleanRun;
   rows: ControlReportCleanRow[];
 };
+
+export type CrpTmaReportRun = {
+  id: number;
+  tma_upload_run_id: number;
+  created_at: string;
+  row_count: number | null;
+  status: string | null;
+  message: string | null;
+};
+
+export type CrpTmaReportRow = {
+  id: number;
+  report_run_id: number;
+  row_index: number;
+  year: string;
+  geographical_region: string;
+  geographical_market_area: string;
+  end_country_code: string;
+  country: string;
+  machine_line: string;
+  machine_line_code: string;
+  size_class_mapping: string;
+  fid_sum: number | null;
+  source: string;
+};
+
+export type RunCrpTmaReportCleanDataResponse = {
+  message: string;
+  report_run_id: number;
+  row_count: number;
+};
+
+export type LatestCrpTmaReportCleanDataResponse = {
+  run: CrpTmaReportRun;
+  rows: CrpTmaReportRow[];
+};
+
+export type CrpD1CombinedReportRow = {
+  year: string;
+  country_group_code: string;
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line_code: string;
+  machine_line_name: string;
+  size_class: string;
+  brand_code: string;
+  reporter_flag: string;
+  pri_sec: string;
+  source: string;
+  deletion_flag: string;
+  fid: number | null;
+};
+
+export type CrpD1CombinedReportResponse = {
+  row_count: number;
+  rows: CrpD1CombinedReportRow[];
+  tma_upload_run_id: number;
+  volvo_upload_run_id: number;
+  group_country_upload_run_id: number;
+};

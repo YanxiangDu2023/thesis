@@ -142,6 +142,52 @@ def init_db():
 """)
 
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS volvo_sale_data_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        calendar TEXT,
+        region TEXT,
+        market TEXT,
+        country TEXT,
+        machine TEXT,
+        machine_line TEXT,
+        size_class TEXT,
+        brand_owner_code TEXT,
+        brand_owner TEXT,
+        brand TEXT,
+        brand_nationality TEXT,
+        source TEXT,
+        fid TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+    _ensure_column(cursor, "volvo_sale_data_rows", "brand_owner_code", "TEXT")
+    _ensure_column(cursor, "volvo_sale_data_rows", "brand_owner", "TEXT")
+    _ensure_column(cursor, "volvo_sale_data_rows", "brand_nationality", "TEXT")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tma_data_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        year TEXT,
+        geographical_region TEXT,
+        geographical_market_area TEXT,
+        end_country TEXT,
+        end_country_code TEXT,
+        machine_family TEXT,
+        machine_line TEXT,
+        machine_line_code TEXT,
+        size_class TEXT,
+        size_class_mapping TEXT,
+        total_market_fid_sales TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+    _ensure_column(cursor, "tma_data_rows", "machine_line_code", "TEXT")
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS control_report_clean_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         oth_upload_run_id INTEGER NOT NULL,
@@ -181,6 +227,43 @@ def init_db():
         FOREIGN KEY (control_run_id) REFERENCES control_report_clean_runs(id)
 )
 """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS crp_tma_report_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tma_upload_run_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        row_count INTEGER,
+        status TEXT,
+        message TEXT,
+        FOREIGN KEY (tma_upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS crp_tma_report_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        year TEXT,
+        geographical_region TEXT,
+        geographical_market_area TEXT,
+        end_country_code TEXT,
+        country TEXT,
+        machine_line TEXT,
+        machine_line_code TEXT,
+        size_class_mapping TEXT,
+        fid_sum REAL,
+        source TEXT,
+        FOREIGN KEY (report_run_id) REFERENCES crp_tma_report_runs(id)
+)
+""")
+    _ensure_column(cursor, "crp_tma_report_rows", "year", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "geographical_region", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "geographical_market_area", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "end_country_code", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "machine_line_code", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "source", "TEXT")
 
     conn.commit()
     conn.close()

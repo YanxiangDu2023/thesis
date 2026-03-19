@@ -39,24 +39,6 @@ function HomePage() {
             at Volvo CE, with a clearer view of intermediate layers, business
             logic, and step-by-step outputs.
           </p>
-
-          <div className="hero__actions">
-            <Link to="/pipeline" className="btn btn--primary">
-              View Pipeline
-            </Link>
-
-            <Link to="/matrix" className="btn btn--primary">
-              Submit Matrix
-            </Link>
-
-            <Link to="/upload/oth" className="btn btn--secondary">
-              Upload OTH data
-            </Link>
-
-            <Link to="/upload/crp" className="btn btn--secondary">
-              Upload CRP data
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -100,6 +82,33 @@ function HomePage() {
 
       <section className="section">
         <div className="section-header">
+          <p className="section-tag">Master Data</p>
+          <h3 className="section-title">Master Data Maintenance & Upload Entry</h3>
+          <p className="section-description">
+            Jump directly to pipeline review and master data upload pages for maintenance tasks.
+          </p>
+        </div>
+
+        <div className="overview-actions">
+          <div className="overview-actions__buttons">
+            <Link to="/pipeline" className="btn btn--overview">
+              View Pipeline
+            </Link>
+            <Link to="/matrix" className="btn btn--overview">
+              Submit Matrix
+            </Link>
+            <Link to="/upload/oth" className="btn btn--overview">
+              Upload OTH data
+            </Link>
+            <Link to="/upload/crp" className="btn btn--overview">
+              Upload CRP data
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
           <p className="section-tag">Calculation Layers</p>
           <h3 className="section-title">Initial scope for the first prototype</h3>
           <p className="section-description">
@@ -110,11 +119,13 @@ function HomePage() {
 
         <div className="card-grid card-grid--four">
           {layers.map((layer) => (
-            <article key={layer.code} className="card layer-card">
-              <span className="layer-card__code">{layer.code}</span>
-              <h4 className="card__title">{layer.title}</h4>
-              <p className="card__text">{layer.description}</p>
-            </article>
+            <Link key={layer.code} to={`/layers/${layer.code}`} className="layer-card-link">
+              <article className="card layer-card">
+                <span className="layer-card__code">{layer.code}</span>
+                <h4 className="card__title">{layer.title}</h4>
+                <p className="card__text">{layer.description}</p>
+              </article>
+            </Link>
           ))}
         </div>
       </section>

@@ -212,6 +212,35 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.24);
 }
 
+.btn--overview {
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 55%, #60a5fa 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+}
+
+.btn--overview:hover {
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.28);
+}
+
+.btn--tiny {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: #eaf1ff;
+  color: #1d4ed8;
+  border: 1px solid #c7d9ff;
+  box-shadow: none;
+}
+
+.btn--tiny:hover {
+  background: #dbe8ff;
+}
+
 /* Sections */
 .section {
   background: rgba(255, 255, 255, 0.92);
@@ -236,6 +265,16 @@ button {
   margin: 0;
   color: #64748b;
   line-height: 1.7;
+}
+
+.overview-actions {
+  margin: 0;
+}
+
+.overview-actions__buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 320px));
+  gap: 12px;
 }
 
 /* Cards */
@@ -275,6 +314,22 @@ button {
 .layer-card {
   position: relative;
   overflow: hidden;
+}
+
+.layer-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.layer-card-link .layer-card {
+  height: 100%;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.layer-card-link:hover .layer-card {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 28px rgba(29, 78, 216, 0.12);
 }
 
 .layer-card::before {
@@ -354,6 +409,9 @@ button {
 }
 
 .step-item {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
   padding: 16px;
   border-radius: 16px;
   border: 1px solid #e5e7eb;
@@ -430,6 +488,32 @@ button {
   line-height: 1.75;
 }
 
+.sql-guide {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #dbe7ff;
+  background: #f8fbff;
+}
+
+.sql-guide p {
+  margin: 0 0 12px;
+  color: #475569;
+  line-height: 1.65;
+}
+
+.sql-guide pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  max-height: 340px;
+  overflow: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .table-wrapper {
   overflow-x: auto;
   border-radius: 18px;
@@ -457,6 +541,73 @@ button {
 
 .data-table td {
   color: #475569;
+}
+
+/* Upload */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.matrix-form {
+  display: grid;
+  gap: 16px;
+}
+
+.upload-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #e6ecf5;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+.upload-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.upload-card input[type="file"] {
+  margin-bottom: 10px;
+}
+
+.crp-columns {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.crp-columns__title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.crp-columns__description {
+  margin: 0 0 12px;
+  color: #64748b;
+}
+
+.crp-columns__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crp-columns__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eaf1ff;
+  border: 1px solid #c7d9ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* Responsive */
@@ -500,5 +651,9 @@ button {
 
   .hero__text {
     font-size: 15px;
+  }
+
+  .overview-actions__buttons {
+    grid-template-columns: 1fr;
   }
 }

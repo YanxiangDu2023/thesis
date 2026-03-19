@@ -20,6 +20,41 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
     "region",
     "change_indicator",
   ],
+  volvo_sale_data: [
+    "calendar",
+    "region",
+    "market",
+    "country",
+    "machine",
+    "machine_line",
+    "size_class",
+    "brand_owner_code",
+    "brand_owner",
+    "brand",
+    "brand_nationality",
+    "source",
+    "fid",
+  ],
+  tma_data: [
+    "year",
+    "geographical_region",
+    "geographical_market_area",
+    "end_country",
+    "end_country_code",
+    "machine_family",
+    "machine_line",
+    "machine_line_code",
+    "size_class",
+    "size_class_mapping",
+    "total_market_fid_sales",
+  ],
+};
+
+const BASE_HIDDEN_COLUMNS = ["id", "upload_run_id", "row_index"];
+
+const HIDDEN_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
+  volvo_sale_data: [...BASE_HIDDEN_COLUMNS, "brand_code_1", "brand_code_2", "brand_name"],
+  tma_data: [...BASE_HIDDEN_COLUMNS],
 };
 
 function UploadForm({ label, title }: UploadFormProps) {
@@ -38,7 +73,8 @@ function UploadForm({ label, title }: UploadFormProps) {
       return [];
     }
 
-    const rowKeys = Object.keys(latestRows[0]);
+    const hiddenColumns = HIDDEN_COLUMNS_BY_MATRIX_TYPE[label] ?? [];
+    const rowKeys = Object.keys(latestRows[0]).filter((column) => !hiddenColumns.includes(column));
     const preferredOrder = PREFERRED_COLUMN_ORDER[label] ?? [];
     const orderedPreferred = preferredOrder.filter((column) => rowKeys.includes(column));
     const remainingColumns = rowKeys.filter((column) => !orderedPreferred.includes(column));

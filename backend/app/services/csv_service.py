@@ -53,6 +53,34 @@ GROUP_COUNTRY_FIXED_COLUMNS = [
     "market_area_code",
     "region",
 ]
+VOLVO_SALE_COLUMN_NAMES = [
+    "calendar",
+    "region",
+    "market",
+    "country",
+    "machine",
+    "machine_line",
+    "size_class",
+    "brand_owner_code",
+    "brand_owner",
+    "brand",
+    "brand_nationality",
+    "source",
+    "fid",
+]
+TMA_DATA_COLUMN_NAMES = [
+    "year",
+    "geographical_region",
+    "geographical_market_area",
+    "end_country",
+    "end_country_code",
+    "machine_family",
+    "machine_line",
+    "machine_line_code",
+    "size_class",
+    "size_class_mapping",
+    "total_market_fid_sales",
+]
 
 
 def _clean_cell(value) -> str:
@@ -182,6 +210,95 @@ def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
         normalized_data["change_indicator"] = ""
 
     return normalized_data
+
+
+def _looks_like_volvo_sale_header(first_row) -> bool:
+    normalized_row = [_normalize_header(value) for value in first_row]
+    header_flags = [
+        len(normalized_row) > 0 and "calendar" in normalized_row[0],
+        len(normalized_row) > 1 and "region" in normalized_row[1],
+        len(normalized_row) > 2 and "market" in normalized_row[2],
+        len(normalized_row) > 3 and "country" in normalized_row[3],
+        len(normalized_row) > 4 and "machine" in normalized_row[4],
+        len(normalized_row) > 5 and "machine line" in normalized_row[5],
+        len(normalized_row) > 6 and "size class" in normalized_row[6],
+        len(normalized_row) > 7 and "brand owner" in normalized_row[7],
+        len(normalized_row) > 8 and "brand owner" in normalized_row[8],
+        len(normalized_row) > 9 and "brand" in normalized_row[9],
+        len(normalized_row) > 10 and "brand" in normalized_row[10],
+        len(normalized_row) > 11 and "source" in normalized_row[11],
+        len(normalized_row) > 12 and "fid" in normalized_row[12],
+    ]
+    return sum(1 for flag in header_flags if flag) >= 9
+
+
+def _load_volvo_sale_dataframe(stored_path: str) -> pd.DataFrame:
+    volvo_sale_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+
+    if volvo_sale_df.empty:
+        return pd.DataFrame(columns=VOLVO_SALE_COLUMN_NAMES)
+
+    if _looks_like_volvo_sale_header(volvo_sale_df.iloc[0].tolist()):
+        volvo_sale_df = volvo_sale_df.iloc[1:].reset_index(drop=True)
+
+    if volvo_sale_df.shape[1] < len(VOLVO_SALE_COLUMN_NAMES):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Volvo Sale Data CSV must include columns in this order: "
+                "Calendar, Region, Market, Country, Machine, Machine Line, "
+                "Size Class, Brand Owner code, Brand Owner, Brand, Brand Nationality, Source, FID."
+            ),
+        )
+
+    volvo_sale_df = volvo_sale_df.iloc[:, :len(VOLVO_SALE_COLUMN_NAMES)].copy()
+    volvo_sale_df.columns = VOLVO_SALE_COLUMN_NAMES
+
+    return volvo_sale_df
+
+
+def _looks_like_tma_data_header(first_row) -> bool:
+    normalized_row = [_normalize_header(value) for value in first_row]
+    header_flags = [
+        len(normalized_row) > 0 and "year" in normalized_row[0],
+        len(normalized_row) > 1 and "geographical region" in normalized_row[1],
+        len(normalized_row) > 2 and "geographical market area" in normalized_row[2],
+        len(normalized_row) > 3 and "end country" in normalized_row[3],
+        len(normalized_row) > 4 and "end country code" in normalized_row[4],
+        len(normalized_row) > 5 and "machine family" in normalized_row[5],
+        len(normalized_row) > 6 and "machine line" in normalized_row[6],
+        len(normalized_row) > 7 and "machine line code" in normalized_row[7],
+        len(normalized_row) > 8 and "size class" in normalized_row[8],
+        len(normalized_row) > 9 and "size class mapping" in normalized_row[9],
+        len(normalized_row) > 10 and "total market fid sales" in normalized_row[10],
+    ]
+    return sum(1 for flag in header_flags if flag) >= 8
+
+
+def _load_tma_data_dataframe(stored_path: str) -> pd.DataFrame:
+    tma_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+
+    if tma_df.empty:
+        return pd.DataFrame(columns=TMA_DATA_COLUMN_NAMES)
+
+    if _looks_like_tma_data_header(tma_df.iloc[0].tolist()):
+        tma_df = tma_df.iloc[1:].reset_index(drop=True)
+
+    if tma_df.shape[1] < len(TMA_DATA_COLUMN_NAMES):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "TMA Data CSV must include columns in this order: "
+                "Year, Geographical Region, Geographical Market Area, End Country, "
+                "End Country Code, Machine Family, Machine Line, Machine Line Code, Size Class, "
+                "Size Class Mapping, Total Market FID Sales."
+            ),
+        )
+
+    tma_df = tma_df.iloc[:, :len(TMA_DATA_COLUMN_NAMES)].copy()
+    tma_df.columns = TMA_DATA_COLUMN_NAMES
+
+    return tma_df
 
 async def handle_csv_upload(matrix_type: str, file: UploadFile):
     if not file.filename.lower().endswith(".csv"):
@@ -417,6 +534,84 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.iloc[8]) if len(row) > 8 else ""
                 ))
 
+        elif matrix_type == "volvo_sale_data":
+            volvo_sale_df = _load_volvo_sale_dataframe(stored_path)
+            row_count = len(volvo_sale_df)
+
+            for idx, row in volvo_sale_df.iterrows():
+                cursor.execute("""
+                    INSERT INTO volvo_sale_data_rows (
+                        upload_run_id,
+                        row_index,
+                        calendar,
+                        region,
+                        market,
+                        country,
+                        machine,
+                        machine_line,
+                        size_class,
+                        brand_owner_code,
+                        brand_owner,
+                        brand,
+                        brand_nationality,
+                        source,
+                        fid
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    upload_run_id,
+                    idx + 1,
+                    _clean_cell(row.get("calendar", "")),
+                    _clean_cell(row.get("region", "")),
+                    _clean_cell(row.get("market", "")),
+                    _clean_cell(row.get("country", "")),
+                    _clean_cell(row.get("machine", "")),
+                    _clean_cell(row.get("machine_line", "")),
+                    _clean_cell(row.get("size_class", "")),
+                    _clean_cell(row.get("brand_owner_code", "")),
+                    _clean_cell(row.get("brand_owner", "")),
+                    _clean_cell(row.get("brand", "")),
+                    _clean_cell(row.get("brand_nationality", "")),
+                    _clean_cell(row.get("source", "")),
+                    _clean_cell(row.get("fid", ""))
+                ))
+
+        elif matrix_type == "tma_data":
+            tma_df = _load_tma_data_dataframe(stored_path)
+            row_count = len(tma_df)
+
+            for idx, row in tma_df.iterrows():
+                cursor.execute("""
+                    INSERT INTO tma_data_rows (
+                        upload_run_id,
+                        row_index,
+                        year,
+                        geographical_region,
+                        geographical_market_area,
+                        end_country,
+                        end_country_code,
+                        machine_family,
+                        machine_line,
+                        machine_line_code,
+                        size_class,
+                        size_class_mapping,
+                        total_market_fid_sales
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    upload_run_id,
+                    idx + 1,
+                    _clean_cell(row.get("year", "")),
+                    _clean_cell(row.get("geographical_region", "")),
+                    _clean_cell(row.get("geographical_market_area", "")),
+                    _clean_cell(row.get("end_country", "")),
+                    _clean_cell(row.get("end_country_code", "")),
+                    _clean_cell(row.get("machine_family", "")),
+                    _clean_cell(row.get("machine_line", "")),
+                    _clean_cell(row.get("machine_line_code", "")),
+                    _clean_cell(row.get("size_class", "")),
+                    _clean_cell(row.get("size_class_mapping", "")),
+                    _clean_cell(row.get("total_market_fid_sales", ""))
+                ))
+
         else:
             raise HTTPException(status_code=400, detail="Unsupported matrix type.")
 
@@ -440,6 +635,20 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
             "original_file_name": file.filename,
             "status": "success"
         }
+
+    except HTTPException as e:
+        if upload_run_id is not None:
+            cursor.execute("""
+                UPDATE upload_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, (
+                "failed",
+                str(e.detail),
+                upload_run_id
+            ))
+            conn.commit()
+        raise e
 
     except Exception as e:
         if upload_run_id is not None:
