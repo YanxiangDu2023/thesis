@@ -6,6 +6,64 @@ def _ensure_column(cursor, table_name: str, column_name: str, column_type: str):
     if column_name not in existing_columns:
         cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
 
+def _ensure_oth_data_schema(cursor):
+    cursor.execute("PRAGMA table_info(oth_data_rows)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if not columns:
+        return
+
+    has_legacy_placeholders = "empty_col_1" in columns or "empty_col_2" in columns
+    if not has_legacy_placeholders:
+        return
+
+    cursor.execute("DROP TABLE IF EXISTS oth_data_rows__legacy")
+    cursor.execute("ALTER TABLE oth_data_rows RENAME TO oth_data_rows__legacy")
+
+    cursor.execute("""
+    CREATE TABLE oth_data_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        year TEXT,
+        source TEXT,
+        brand_name TEXT,
+        machine_line TEXT,
+        country TEXT,
+        size_class TEXT,
+        quantity TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+    )
+    """)
+
+    cursor.execute("""
+        INSERT INTO oth_data_rows (
+            id,
+            upload_run_id,
+            row_index,
+            year,
+            source,
+            brand_name,
+            machine_line,
+            country,
+            size_class,
+            quantity
+        )
+        SELECT
+            id,
+            upload_run_id,
+            row_index,
+            year,
+            source,
+            brand_name,
+            machine_line,
+            country,
+            size_class,
+            quantity
+        FROM oth_data_rows__legacy
+    """)
+
+    cursor.execute("DROP TABLE oth_data_rows__legacy")
+
 
 def init_db():
     conn = get_connection()
@@ -102,7 +160,6 @@ def init_db():
         region TEXT,
         market_area TEXT,
         market_area_code TEXT,
-        change_indicator TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
@@ -132,14 +189,13 @@ def init_db():
         source TEXT,
         brand_name TEXT,
         machine_line TEXT,
-        empty_col_1 TEXT,
         country TEXT,
-        empty_col_2 TEXT,
         size_class TEXT,
         quantity TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+    _ensure_oth_data_schema(cursor)
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS volvo_sale_data_rows (

@@ -29,6 +29,7 @@ function OthUploadPage() {
   const [showCheckPanel, setShowCheckPanel] = useState(false);
 
   const [runningControlReport, setRunningControlReport] = useState(false);
+  const [downloadingControlReport, setDownloadingControlReport] = useState(false);
   const [controlReportMessage, setControlReportMessage] = useState("");
   const [controlReportError, setControlReportError] = useState("");
   const [controlReportRun, setControlReportRun] = useState<ControlReportCleanRun | null>(null);
@@ -138,6 +139,64 @@ function OthUploadPage() {
     setControlReportRows([]);
   };
 
+  const handleDownloadControlReport = async () => {
+    try {
+      setDownloadingControlReport(true);
+      setControlReportError("");
+
+      let runForDownload = controlReportRun;
+      let rowsForDownload = controlReportRows;
+
+      if (!runForDownload || rowsForDownload.length === 0) {
+        const latestResult = await getLatestControlReportCleanData();
+        runForDownload = latestResult.run;
+        rowsForDownload = latestResult.rows;
+        setControlReportRun(latestResult.run);
+        setControlReportRows(latestResult.rows);
+      }
+
+      if (rowsForDownload.length === 0) {
+        throw new Error("No row data found for Control Report - Clean Data.");
+      }
+
+      const csvHeader = controlReportColumnKeys.join(",");
+      const csvRows = rowsForDownload.map((row) =>
+        controlReportColumnKeys
+          .map((column) => {
+            const value = row[column as keyof ControlReportCleanRow];
+            const text = value === null || value === undefined ? "" : String(value);
+            if (/[",\r\n]/.test(text)) {
+              return `"${text.replace(/"/g, "\"\"")}"`;
+            }
+            return text;
+          })
+          .join(",")
+      );
+      const csvContent = [csvHeader, ...csvRows].join("\r\n");
+
+      const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+      const objectUrl = URL.createObjectURL(blob);
+      const fileName = `control_report_clean_data_${runForDownload?.id ?? "latest"}.csv`;
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = objectUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      console.error(downloadError);
+      setControlReportError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Failed to download Control Report - Clean Data."
+      );
+    } finally {
+      setDownloadingControlReport(false);
+    }
+  };
+
   return (
     <div className="page-container">
       <h1>Upload OTH Data</h1>
@@ -196,6 +255,9 @@ function OthUploadPage() {
         </button>
         <button type="button" onClick={handleShowControlReport}>
           Show Control Report - Clean Data
+        </button>
+        <button type="button" onClick={handleDownloadControlReport} disabled={downloadingControlReport}>
+          {downloadingControlReport ? "Downloading..." : "Download Control Report - Clean Data"}
         </button>
       </div>
 

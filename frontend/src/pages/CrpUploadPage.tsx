@@ -38,6 +38,7 @@ const TMA_DATA_COLUMNS = [
 
 function CrpUploadPage() {
   const [runningCrpTmaReport, setRunningCrpTmaReport] = useState(false);
+  const [downloadingCrpTmaReport, setDownloadingCrpTmaReport] = useState(false);
   const [crpTmaReportMessage, setCrpTmaReportMessage] = useState("");
   const [crpTmaReportError, setCrpTmaReportError] = useState("");
   const [crpTmaReportRun, setCrpTmaReportRun] = useState<CrpTmaReportRun | null>(null);
@@ -107,6 +108,64 @@ function CrpUploadPage() {
     setCrpTmaReportRows([]);
   };
 
+  const handleDownloadCrpTmaReport = async () => {
+    try {
+      setDownloadingCrpTmaReport(true);
+      setCrpTmaReportError("");
+
+      let runForDownload = crpTmaReportRun;
+      let rowsForDownload = crpTmaReportRows;
+
+      if (!runForDownload || rowsForDownload.length === 0) {
+        const latestResult = await getLatestCrpTmaReportCleanData();
+        runForDownload = latestResult.run;
+        rowsForDownload = latestResult.rows;
+        setCrpTmaReportRun(latestResult.run);
+        setCrpTmaReportRows(latestResult.rows);
+      }
+
+      if (rowsForDownload.length === 0) {
+        throw new Error("No row data found for CRP TMA Report - Clean Data.");
+      }
+
+      const csvHeader = crpTmaReportColumnKeys.join(",");
+      const csvRows = rowsForDownload.map((row) =>
+        crpTmaReportColumnKeys
+          .map((column) => {
+            const value = row[column as keyof CrpTmaReportRow];
+            const text = value === null || value === undefined ? "" : String(value);
+            if (/[",\r\n]/.test(text)) {
+              return `"${text.replace(/"/g, "\"\"")}"`;
+            }
+            return text;
+          })
+          .join(",")
+      );
+      const csvContent = [csvHeader, ...csvRows].join("\r\n");
+
+      const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+      const objectUrl = URL.createObjectURL(blob);
+      const fileName = `crp_tma_report_clean_data_${runForDownload?.id ?? "latest"}.csv`;
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = objectUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      console.error(downloadError);
+      setCrpTmaReportError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Failed to download CRP TMA Report - Clean Data."
+      );
+    } finally {
+      setDownloadingCrpTmaReport(false);
+    }
+  };
+
   return (
     <div className="page">
       <section className="section">
@@ -157,6 +216,11 @@ function CrpUploadPage() {
           </button>
           <button type="button" onClick={handleShowCrpTmaReport}>
             Show CRP TMA Report - Clean Data
+          </button>
+          <button type="button" onClick={handleDownloadCrpTmaReport} disabled={downloadingCrpTmaReport}>
+            {downloadingCrpTmaReport
+              ? "Downloading..."
+              : "Download CRP TMA Report - Clean Data"}
           </button>
         </div>
 

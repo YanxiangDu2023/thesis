@@ -23,7 +23,7 @@ const steps: Step[] = [
     code: "P00",
     name: "Preparation Raw Layer",
     description:
-      "Raw source-aligned market and sales records before structural processing.",
+      "Builds the CRP D1 base by combining latest TMA/SAL data with country mapping and rule-based reporter, brand, and deletion flags.",
     records: 1280,
     status: "Ready",
     sampleRows: [

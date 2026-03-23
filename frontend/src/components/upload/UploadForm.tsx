@@ -9,6 +9,17 @@ type UploadFormProps = {
 };
 
 const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
+  oth_data: [
+    "year",
+    "source",
+    "brand_name",
+    "machine_line",
+    "placeholder_1",
+    "country",
+    "placeholder_2",
+    "size_class",
+    "quantity",
+  ],
   group_country: [
     "year",
     "country_grouping",
@@ -18,7 +29,6 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
     "market_area",
     "market_area_code",
     "region",
-    "change_indicator",
   ],
   volvo_sale_data: [
     "calendar",
@@ -53,9 +63,68 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
 const BASE_HIDDEN_COLUMNS = ["id", "upload_run_id", "row_index"];
 
 const HIDDEN_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
+  source_matrix: [...BASE_HIDDEN_COLUMNS],
+  reporter_list: [...BASE_HIDDEN_COLUMNS],
+  size_class: [...BASE_HIDDEN_COLUMNS],
+  brand_mapping: [...BASE_HIDDEN_COLUMNS],
+  group_country: [...BASE_HIDDEN_COLUMNS],
+  machine_line_mapping: [...BASE_HIDDEN_COLUMNS],
+  oth_data: [...BASE_HIDDEN_COLUMNS],
   volvo_sale_data: [...BASE_HIDDEN_COLUMNS, "brand_code_1", "brand_code_2", "brand_name"],
   tma_data: [...BASE_HIDDEN_COLUMNS],
 };
+
+const NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
+  oth_data: ["placeholder_1", "placeholder_2"],
+};
+
+const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, string>> = {
+  oth_data: {
+    placeholder_1: "empty_1",
+    placeholder_2: "empty_2",
+  },
+};
+
+function getRowsForDisplay(label: string, rows: UploadRow[]): UploadRow[] {
+  if (label !== "oth_data") {
+    return rows;
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    placeholder_1: "",
+    placeholder_2: "",
+  }));
+}
+
+function getVisibleColumns(label: string, rows: UploadRow[]): string[] {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const hiddenColumns = HIDDEN_COLUMNS_BY_MATRIX_TYPE[label] ?? [];
+  const rowKeys = Object.keys(rows[0]).filter((column) => !hiddenColumns.includes(column));
+  const preferredOrder = PREFERRED_COLUMN_ORDER[label] ?? [];
+  const orderedPreferred = preferredOrder.filter((column) => rowKeys.includes(column));
+  const remainingColumns = rowKeys.filter((column) => !orderedPreferred.includes(column));
+
+  return [...orderedPreferred, ...remainingColumns];
+}
+
+function toCsvCell(value: string | number | null | undefined): string {
+  const text = value === null || value === undefined ? "" : String(value);
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, "\"\"")}"`;
+  }
+  return text;
+}
+
+function buildCsvContent(label: string, columns: string[], rows: UploadRow[]): string {
+  const labelOverrides = COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label] ?? {};
+  const header = columns.map((column) => toCsvCell(labelOverrides[column] ?? column)).join(",");
+  const dataLines = rows.map((row) => columns.map((column) => toCsvCell(row[column])).join(","));
+  return [header, ...dataLines].join("\r\n");
+}
 
 function UploadForm({ label, title }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -67,20 +136,15 @@ function UploadForm({ label, title }: UploadFormProps) {
   const [latestLoading, setLatestLoading] = useState(false);
   const [latestError, setLatestError] = useState("");
   const [showLatestPanel, setShowLatestPanel] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+
+  const latestRowsForDisplay = useMemo(() => {
+    return getRowsForDisplay(label, latestRows);
+  }, [label, latestRows]);
 
   const latestColumns = useMemo(() => {
-    if (latestRows.length === 0) {
-      return [];
-    }
-
-    const hiddenColumns = HIDDEN_COLUMNS_BY_MATRIX_TYPE[label] ?? [];
-    const rowKeys = Object.keys(latestRows[0]).filter((column) => !hiddenColumns.includes(column));
-    const preferredOrder = PREFERRED_COLUMN_ORDER[label] ?? [];
-    const orderedPreferred = preferredOrder.filter((column) => rowKeys.includes(column));
-    const remainingColumns = rowKeys.filter((column) => !orderedPreferred.includes(column));
-
-    return [...orderedPreferred, ...remainingColumns];
-  }, [label, latestRows]);
+    return getVisibleColumns(label, latestRowsForDisplay);
+  }, [label, latestRowsForDisplay]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -98,7 +162,7 @@ function UploadForm({ label, title }: UploadFormProps) {
     } catch (error) {
       console.error(error);
       setStatus("error");
-      setMessage("Upload failed.");
+      setMessage(error instanceof Error ? error.message : "Upload failed.");
     }
   };
 
@@ -129,6 +193,49 @@ function UploadForm({ label, title }: UploadFormProps) {
     setLatestRows([]);
   };
 
+  const handleDownloadLatest = async () => {
+    try {
+      setDownloadLoading(true);
+      setLatestError("");
+
+      let uploadForDownload = latestUpload;
+      let rowsForDownload = latestRows;
+
+      if (!uploadForDownload || rowsForDownload.length === 0) {
+        const result = await getLatestUploadByMatrixType(label);
+        uploadForDownload = result.upload_run;
+        rowsForDownload = result.rows;
+        setLatestUpload(result.upload_run);
+        setLatestRows(result.rows);
+      }
+
+      const rowsForDisplay = getRowsForDisplay(label, rowsForDownload);
+      const columnsForDownload = getVisibleColumns(label, rowsForDisplay);
+
+      if (columnsForDownload.length === 0) {
+        throw new Error("No row data found in SQL for this upload.");
+      }
+
+      const csvContent = buildCsvContent(label, columnsForDownload, rowsForDisplay);
+      const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+      const objectUrl = URL.createObjectURL(blob);
+      const fileName = `${label}_latest_${uploadForDownload?.id ?? "unknown"}.csv`;
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = objectUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error(error);
+      setLatestError(error instanceof Error ? error.message : "Failed to download latest upload data.");
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   return (
     <div className="upload-card">
       <h3>{title}</h3>
@@ -152,6 +259,9 @@ function UploadForm({ label, title }: UploadFormProps) {
         </button>
         <button type="button" onClick={handleShowLatest}>
           Show Latest
+        </button>
+        <button type="button" onClick={handleDownloadLatest} disabled={downloadLoading}>
+          {downloadLoading ? "Downloading..." : "Download Latest"}
         </button>
       </div>
 
@@ -182,8 +292,12 @@ function UploadForm({ label, title }: UploadFormProps) {
                 <p>No row data found in SQL for this upload.</p>
               ) : (
                 <FilterableTable
-                  columns={latestColumns.map((column) => ({ key: column, label: column }))}
-                  rows={latestRows}
+                  columns={latestColumns.map((column) => ({
+                    key: column,
+                    label: COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label]?.[column] ?? column,
+                    filterable: !((NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []).includes(column)),
+                  }))}
+                  rows={latestRowsForDisplay}
                   maxHeight="360px"
                 />
               )}

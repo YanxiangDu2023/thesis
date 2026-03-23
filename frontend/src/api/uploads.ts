@@ -17,10 +17,17 @@ export async function uploadCsv(matrixType: string, file: File): Promise<UploadC
   formData.append("matrix_type", matrixType);
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/uploads/csv`, {
-    method: "POST",
-    body: formData,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/uploads/csv`, {
+      method: "POST",
+      body: formData,
+    });
+  } catch (error) {
+    throw new Error(
+      "Failed to reach upload API. Please re-select the file and try again. " 
+    );
+  }
 
   const result = await response.json();
   if (!response.ok) {

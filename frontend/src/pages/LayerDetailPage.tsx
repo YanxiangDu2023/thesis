@@ -73,6 +73,13 @@ latest_group_country AS (
   ORDER BY uploaded_at DESC, id DESC
   LIMIT 1
 ),
+latest_source_matrix AS (
+  SELECT id
+  FROM upload_runs
+  WHERE matrix_type = 'source_matrix' AND status = 'success'
+  ORDER BY uploaded_at DESC, id DESC
+  LIMIT 1
+),
 gc_by_code AS (
   SELECT
     UPPER(TRIM(country_code)) AS country_code_key,
@@ -145,6 +152,14 @@ all_agg AS (
   SELECT * FROM tma_agg
   UNION ALL
   SELECT * FROM volvo_agg
+),
+source_matrix_machine_lines AS (
+  SELECT
+    UPPER(TRIM(machine_line_name)) AS machine_line_name_key
+  FROM source_matrix_rows
+  WHERE upload_run_id = (SELECT id FROM latest_source_matrix)
+    AND TRIM(COALESCE(machine_line_name, '')) <> ''
+  GROUP BY UPPER(TRIM(machine_line_name))
 )
 SELECT
   a.year AS "Year",
@@ -167,6 +182,9 @@ SELECT
   a.source AS "Source",
   CASE
     WHEN TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
+    WHEN UPPER(TRIM(a.source)) = 'SAL'
+         AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
+         AND sm.machine_line_name_key IS NULL THEN 'Y'
     ELSE ''
   END AS "Deletion flag",
   a.fid AS "fid"
@@ -177,6 +195,8 @@ LEFT JOIN gc_by_code g_code
 LEFT JOIN gc_by_name g_name
   ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
  AND UPPER(TRIM(a.year)) = g_name.year_key
+LEFT JOIN source_matrix_machine_lines sm
+  ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
 ORDER BY
   "Country Grouping",
   "Country Group Code",
@@ -184,6 +204,63 @@ ORDER BY
   "Machine Line Code",
   "Machine Line name",
   "Size Class";`;
+
+const CRP_D1_RULE_BULLETS = [
+  "Deletion flag = Y when Machine Line Code = 390.",
+  "Deletion flag = Y when Source = SAL and Machine Line name is not found in latest Source Matrix.",
+  "Reporter Flag = # for TMA records, Reporter Flag = Y for SAL records.",
+  "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
+  "Country mapping first uses country code + year, then falls back to country name + year.",
+];
+
+const CRP_D1_SQL_MAP_BULLETS = [
+  "`gc_by_code` and `gc_by_name`: build country lookup tables from Group Country upload.",
+  "`tma_agg` and `volvo_agg`: normalize + aggregate TMA and SAL rows into the same shape.",
+  "`source_matrix_machine_lines`: list valid Machine Line names from latest Source Matrix.",
+  "`all_agg`: union TMA + SAL records for final rule application.",
+];
+
+const CRP_D1_KEY_SQL_SNIPPETS: Array<{ title: string; explain: string; sql: string }> = [
+  {
+    title: "Deletion Flag Rule",
+    explain:
+      "Marks deletion for code 390, and also for SAL rows whose machine line name is missing from Source Matrix.",
+    sql: `CASE
+  WHEN TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
+  WHEN UPPER(TRIM(a.source)) = 'SAL'
+       AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
+       AND sm.machine_line_name_key IS NULL THEN 'Y'
+  ELSE ''
+END AS "Deletion flag"`,
+  },
+  {
+    title: "Reporter + Brand Rules",
+    explain: "Reporter and brand are assigned by source type (SAL vs TMA).",
+    sql: `CASE
+  WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
+  ELSE '#'
+END AS "Brand Code",
+CASE
+  WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
+  ELSE 'Y'
+END AS "Reporter Flag"`,
+  },
+  {
+    title: "Country Mapping Priority",
+    explain: "Country info prefers country_code + year match, then falls back to country_name + year.",
+    sql: `COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
+COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
+COALESCE(g_code.country_name, g_name.country_name, a.country_raw) AS country,
+COALESCE(g_code.region, g_name.region, a.region_raw) AS region
+
+LEFT JOIN gc_by_code g_code
+  ON UPPER(TRIM(a.end_country_code)) = g_code.country_code_key
+ AND UPPER(TRIM(a.year)) = g_code.year_key
+LEFT JOIN gc_by_name g_name
+  ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
+ AND UPPER(TRIM(a.year)) = g_name.year_key`,
+  },
+];
 
 function LayerDetailPage() {
   const params = useParams();
@@ -294,15 +371,39 @@ function LayerDetailPage() {
         ) : null}
         {layer.code === "P00" && showSqlGuide ? (
           <div className="sql-guide">
-            <p>
-              Definition summary: deletion is <strong>Y</strong> when <strong>Machine Line Code = 390</strong>;{" "}
-              reporter is <strong>#</strong> for TMA and <strong>Y</strong> for SAL; brand code is{" "}
-              <strong>VCE</strong> for SAL and <strong>#</strong> for TMA. Country mapping uses{" "}
-              <strong>country code + year</strong> first, then falls back to <strong>country name + year</strong>.
-            </p>
-            <pre>
-              <code>{CRP_D1_COMBINED_SQL}</code>
-            </pre>
+            <h4 className="sql-guide__title">Business Rules</h4>
+            <ul className="sql-guide__list">
+              {CRP_D1_RULE_BULLETS.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ul>
+
+            <h4 className="sql-guide__title">SQL Map</h4>
+            <ul className="sql-guide__list">
+              {CRP_D1_SQL_MAP_BULLETS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <h4 className="sql-guide__title">Key SQL Snippets</h4>
+            <div className="sql-guide__snippets">
+              {CRP_D1_KEY_SQL_SNIPPETS.map((snippet) => (
+                <div key={snippet.title} className="sql-guide__snippet">
+                  <strong>{snippet.title}</strong>
+                  <p>{snippet.explain}</p>
+                  <pre>
+                    <code>{snippet.sql}</code>
+                  </pre>
+                </div>
+              ))}
+            </div>
+
+            <details className="sql-guide__details">
+              <summary>View Full SQL</summary>
+              <pre>
+                <code>{CRP_D1_COMBINED_SQL}</code>
+              </pre>
+            </details>
           </div>
         ) : null}
 

@@ -311,6 +311,17 @@ button {
   line-height: 1.7;
 }
 
+.card__list {
+  margin: 0;
+  padding-left: 18px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.card__list li {
+  margin-bottom: 6px;
+}
+
 .layer-card {
   position: relative;
   overflow: hidden;
@@ -500,6 +511,55 @@ button {
   margin: 0 0 12px;
   color: #475569;
   line-height: 1.65;
+}
+
+.sql-guide__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.sql-guide__list {
+  margin: 0 0 12px 18px;
+  padding: 0;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.sql-guide__list li {
+  margin-bottom: 6px;
+}
+
+.sql-guide__snippets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sql-guide__snippet {
+  border: 1px solid #dbe7ff;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.sql-guide__snippet p {
+  margin: 6px 0 10px;
+}
+
+.sql-guide__snippet pre {
+  margin: 0;
+}
+
+.sql-guide__details {
+  margin-top: 10px;
+}
+
+.sql-guide__details summary {
+  cursor: pointer;
+  color: #1d4ed8;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .sql-guide pre {

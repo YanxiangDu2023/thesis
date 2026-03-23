@@ -1,11 +1,22 @@
 import { Link } from "react-router-dom";
 
-const layers = [
+type LayerCard = {
+  code: string;
+  title: string;
+  description?: string;
+  bullets?: string[];
+};
+
+const layers: LayerCard[] = [
   {
     code: "P00",
     title: "Preparation Raw Layer",
-    description:
-      "Stores source-aligned raw market and sales data before major transformations.",
+    bullets: [
+      "Merge latest TMA and SAL records into one CRP D1 base dataset.",
+      "Map country attributes using country code + year first, then country name + year fallback.",
+      "Assign Reporter Flag by source (TMA = #, SAL = Y).",
+      "Assign Deletion Flag when Machine Line Code = 390, or SAL machine line is missing in Source Matrix.",
+    ],
   },
   {
     code: "P10",
@@ -123,7 +134,15 @@ function HomePage() {
               <article className="card layer-card">
                 <span className="layer-card__code">{layer.code}</span>
                 <h4 className="card__title">{layer.title}</h4>
-                <p className="card__text">{layer.description}</p>
+                {layer.bullets ? (
+                  <ul className="card__list">
+                    {layer.bullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="card__text">{layer.description}</p>
+                )}
               </article>
             </Link>
           ))}

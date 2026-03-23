@@ -457,6 +457,7 @@ def get_crp_d1_combined_report():
     latest_tma_upload_run_id = _get_latest_success_upload_id(cursor, "tma_data")
     latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
     latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
+    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -465,6 +466,8 @@ def get_crp_d1_combined_report():
         missing_types.append("volvo_sale_data")
     if latest_group_country_upload_run_id is None:
         missing_types.append("group_country")
+    if latest_source_matrix_upload_run_id is None:
+        missing_types.append("source_matrix")
 
     if missing_types:
         conn.close()
@@ -551,6 +554,14 @@ def get_crp_d1_combined_report():
                 SELECT * FROM tma_agg
                 UNION ALL
                 SELECT * FROM volvo_agg
+            ),
+            source_matrix_machine_lines AS (
+                SELECT
+                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key
+                FROM source_matrix_rows
+                WHERE upload_run_id = ?
+                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
+                GROUP BY UPPER(TRIM(machine_line_name))
             )
             SELECT
                 a.year AS year,
@@ -573,6 +584,9 @@ def get_crp_d1_combined_report():
                 a.source AS source,
                 CASE
                     WHEN TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
+                    WHEN UPPER(TRIM(a.source)) = 'SAL'
+                         AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
+                         AND sm.machine_line_name_key IS NULL THEN 'Y'
                     ELSE ''
                 END AS deletion_flag,
                 a.fid AS fid
@@ -583,6 +597,8 @@ def get_crp_d1_combined_report():
             LEFT JOIN gc_by_name g_name
               ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
              AND UPPER(TRIM(a.year)) = g_name.year_key
+            LEFT JOIN source_matrix_machine_lines sm
+              ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
             ORDER BY
                 country_grouping,
                 country_group_code,
@@ -595,6 +611,7 @@ def get_crp_d1_combined_report():
             latest_group_country_upload_run_id,
             latest_tma_upload_run_id,
             latest_volvo_upload_run_id,
+            latest_source_matrix_upload_run_id,
         ))
 
         rows = [dict(row) for row in cursor.fetchall()]
@@ -604,6 +621,7 @@ def get_crp_d1_combined_report():
             "tma_upload_run_id": latest_tma_upload_run_id,
             "volvo_upload_run_id": latest_volvo_upload_run_id,
             "group_country_upload_run_id": latest_group_country_upload_run_id,
+            "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -632,12 +650,48 @@ def get_latest_upload_by_matrix_type(matrix_type: str):
         raise HTTPException(status_code=404, detail="No uploads found for this matrix type")
 
     latest_upload_dict = dict(latest_upload)
-    cursor.execute(f"""
-        SELECT *
-        FROM {table_name}
-        WHERE upload_run_id = ?
-        ORDER BY row_index ASC, id ASC
-    """, (latest_upload_dict["id"],))
+    if matrix_type == "oth_data":
+        cursor.execute("""
+            SELECT
+                id,
+                upload_run_id,
+                row_index,
+                year,
+                source,
+                brand_name,
+                machine_line,
+                country,
+                size_class,
+                quantity
+            FROM oth_data_rows
+            WHERE upload_run_id = ?
+            ORDER BY row_index ASC, id ASC
+        """, (latest_upload_dict["id"],))
+    elif matrix_type == "group_country":
+        cursor.execute("""
+            SELECT
+                id,
+                upload_run_id,
+                row_index,
+                year,
+                group_code,
+                country_code,
+                country_name,
+                country_grouping,
+                region,
+                market_area,
+                market_area_code
+            FROM group_country_rows
+            WHERE upload_run_id = ?
+            ORDER BY row_index ASC, id ASC
+        """, (latest_upload_dict["id"],))
+    else:
+        cursor.execute(f"""
+            SELECT *
+            FROM {table_name}
+            WHERE upload_run_id = ?
+            ORDER BY row_index ASC, id ASC
+        """, (latest_upload_dict["id"],))
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
 

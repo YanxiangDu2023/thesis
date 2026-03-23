@@ -15,6 +15,15 @@ OTH_EXPECTED_HEADERS = {
     "size class",
     "quantity",
 }
+OTH_COLUMN_NAMES = [
+    "year",
+    "source",
+    "brand_name",
+    "machine_line",
+    "country",
+    "size_class",
+    "quantity",
+]
 SIZE_CLASS_EXPECTED_HEADERS = {
     "calendar",
     "source",
@@ -82,6 +91,68 @@ TMA_DATA_COLUMN_NAMES = [
     "total_market_fid_sales",
 ]
 
+SOURCE_MATRIX_COUNTRY_GROUPING_ALIASES = [
+    "Country Grouping",
+    "Country Group",
+    "country_grouping",
+]
+SOURCE_MATRIX_COUNTRY_NAME_ALIASES = [
+    "Country Name",
+    "Country",
+    "Market",
+    "Unnamed: 1",
+    "country_name",
+]
+SOURCE_MATRIX_MACHINE_LINE_CODE_ALIASES = [
+    "Machine Line",
+    "Machine Line Code",
+    "Machine Code",
+    "machine_line_code",
+]
+SOURCE_MATRIX_MACHINE_LINE_NAME_ALIASES = [
+    "Machine Line Name",
+    "Machine Line Desc",
+    "Machine Line Description",
+    "Unnamed: 3",
+    "machine_line_name",
+]
+SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES = [
+    "Primary Source",
+    "primary_source",
+]
+SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES = [
+    "Secondary source NOT IN USE",
+    "Secondary Source NOT IN USE",
+    "Secondary Source",
+    "secondary_source",
+]
+SOURCE_MATRIX_CRP_SOURCE_ALIASES = [
+    "CRP source",
+    "CRP Source",
+    "crp_source",
+]
+SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES = [
+    "Change Indicator",
+    "change_indicator",
+    "Deletion Indicator",
+]
+BRAND_MAPPING_BRAND_NAME_ALIASES = [
+    "Brand Name",
+    "Brand",
+    "brand_name",
+]
+BRAND_MAPPING_BRAND_CODE_ALIASES = [
+    "Brand Code",
+    "Code",
+    "brand_code",
+]
+BRAND_MAPPING_DELETION_INDICATOR_ALIASES = [
+    "Deletion Indicator",
+    "Delete Indicator",
+    "Change Indicator",
+    "deletion_indicator",
+]
+
 
 def _clean_cell(value) -> str:
     if pd.isna(value):
@@ -91,7 +162,53 @@ def _clean_cell(value) -> str:
 
 
 def _normalize_header(value) -> str:
-    return " ".join(str(value).replace("\n", " ").strip().lower().split())
+    # Normalize separators so header detection works for both
+    # "geographical region" and "geographical_region" styles.
+    return " ".join(
+        str(value)
+        .replace("\n", " ")
+        .replace("_", " ")
+        .replace("-", " ")
+        .strip()
+        .lower()
+        .split()
+    )
+
+def _build_column_lookup(columns) -> dict[str, str]:
+    lookup: dict[str, str] = {}
+    for column in columns:
+        normalized = _normalize_header(column)
+        if normalized and normalized not in lookup:
+            lookup[normalized] = column
+    return lookup
+
+def _get_cell_by_header_aliases(row, column_lookup: dict[str, str], aliases: list[str]) -> str:
+    for alias in aliases:
+        normalized_alias = _normalize_header(alias)
+        source_column = column_lookup.get(normalized_alias)
+        if source_column is not None:
+            return _clean_cell(row.get(source_column, ""))
+    return ""
+
+
+def _get_cell_by_header_aliases_or_index(
+    row,
+    column_lookup: dict[str, str],
+    aliases: list[str],
+    fallback_index: int,
+    source_columns: list,
+) -> str:
+    for alias in aliases:
+        normalized_alias = _normalize_header(alias)
+        source_column = column_lookup.get(normalized_alias)
+        if source_column is not None:
+            return _clean_cell(row.get(source_column, ""))
+
+    if 0 <= fallback_index < len(source_columns):
+        source_column = source_columns[fallback_index]
+        return _clean_cell(row.get(source_column, ""))
+
+    return ""
 
 
 def _looks_like_oth_header(first_row) -> bool:
@@ -104,16 +221,51 @@ def _load_oth_dataframe(stored_path: str) -> pd.DataFrame:
     oth_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
 
     if oth_df.empty:
-        return oth_df
+        return pd.DataFrame(columns=OTH_COLUMN_NAMES)
 
     if _looks_like_oth_header(oth_df.iloc[0].tolist()):
         oth_df = oth_df.iloc[1:].reset_index(drop=True)
 
-    if oth_df.shape[1] < 9:
-        for missing_col in range(oth_df.shape[1], 9):
-            oth_df[missing_col] = ""
+    if oth_df.shape[1] < len(OTH_COLUMN_NAMES):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "OTH Data CSV must include columns in this order: "
+                "Year, Source, Brand, Machine Line, Country, Size Class, Quantity."
+            ),
+        )
 
-    return oth_df
+    # Support both layouts:
+    # 1) New 7-column layout: Year, Source, Brand, Machine Line, Country, Size Class, Quantity
+    # 2) Legacy 9-column layout with blank placeholders between machine_line/country and country/size_class
+    use_legacy_layout = False
+    if oth_df.shape[1] >= 9:
+        sample_size = min(len(oth_df), 50)
+        if sample_size > 0:
+            sample = oth_df.iloc[:sample_size]
+            col_5_empty_ratio = (
+                sample.iloc[:, 4].astype(str).str.strip().eq("").sum() / sample_size
+            )
+            col_7_empty_ratio = (
+                sample.iloc[:, 6].astype(str).str.strip().eq("").sum() / sample_size
+            )
+            use_legacy_layout = col_5_empty_ratio >= 0.8 and col_7_empty_ratio >= 0.8
+
+    if use_legacy_layout:
+        normalized = pd.DataFrame({
+            "year": oth_df.iloc[:, 0],
+            "source": oth_df.iloc[:, 1],
+            "brand_name": oth_df.iloc[:, 2],
+            "machine_line": oth_df.iloc[:, 3],
+            "country": oth_df.iloc[:, 5],
+            "size_class": oth_df.iloc[:, 7],
+            "quantity": oth_df.iloc[:, 8],
+        })
+    else:
+        normalized = oth_df.iloc[:, :len(OTH_COLUMN_NAMES)].copy()
+        normalized.columns = OTH_COLUMN_NAMES
+
+    return normalized
 
 
 def _looks_like_size_class_header(first_row) -> bool:
@@ -170,7 +322,7 @@ def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
     group_country_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
 
     if group_country_df.empty:
-        return pd.DataFrame(columns=[*GROUP_COUNTRY_FIXED_COLUMNS, "change_indicator"])
+        return pd.DataFrame(columns=GROUP_COUNTRY_FIXED_COLUMNS)
 
     first_row = [
         _normalize_header(value)
@@ -203,11 +355,6 @@ def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
 
     normalized_data = group_country_df.iloc[:, :len(GROUP_COUNTRY_FIXED_COLUMNS)].copy()
     normalized_data.columns = GROUP_COUNTRY_FIXED_COLUMNS
-
-    if group_country_df.shape[1] > len(GROUP_COUNTRY_FIXED_COLUMNS):
-        normalized_data["change_indicator"] = group_country_df.iloc[:, len(GROUP_COUNTRY_FIXED_COLUMNS)]
-    else:
-        normalized_data["change_indicator"] = ""
 
     return normalized_data
 
@@ -344,6 +491,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
 
         if matrix_type == "reporter_list":
             row_count = len(df)
+            reporter_column_lookup = _build_column_lookup(df.columns)
             for idx, row in df.iterrows():
                 cursor.execute("""
                     INSERT INTO reporter_list_rows (
@@ -360,17 +508,47 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("Calendar", "")),
-                    _clean_cell(row.get("Source", "")),
-                    _clean_cell(row.get("Source Code", "")),
-                    _clean_cell(row.get("Machine Line", "")),
-                    _clean_cell(row.get("Machine Code", "")),
-                    _clean_cell(row.get("Brand Name", "")),
-                    _clean_cell(row.get("Brand Code", ""))
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Calendar Year", "Calendar", "Year"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Source"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["source_code", "Source Code", "Source_Code", "Unnamed: 2"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Machine Line"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Machine Line Code", "Machine Code", "machine_code", "Unnamed: 4"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Brand", "Brand Name", "Brand Code", "Unnamed: 5"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Unnamed: 6", "Brand Code", "brand_code", "Brand_Code"]
+                    )
                 ))
 
         elif matrix_type == "source_matrix":
             row_count = len(df)
+            source_matrix_column_lookup = _build_column_lookup(df.columns)
+            source_matrix_columns = list(df.columns)
             for idx, row in df.iterrows():
                 cursor.execute("""
                     INSERT INTO source_matrix_rows (
@@ -388,14 +566,62 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("Country Grouping", "")),
-                    _clean_cell(row.get("Unnamed: 1", "")),
-                    _clean_cell(row.get("Machine Line", "")),
-                    _clean_cell(row.get("Unnamed: 3", "")),
-                    _clean_cell(row.get("Primary Source", "")),
-                    _clean_cell(row.get("Secondary source NOT IN USE", "")),
-                    _clean_cell(row.get("CRP source", "")),
-                    _clean_cell(row.get("Change Indicator", ""))
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_COUNTRY_GROUPING_ALIASES,
+                        0,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_COUNTRY_NAME_ALIASES,
+                        1,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_MACHINE_LINE_CODE_ALIASES,
+                        2,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_MACHINE_LINE_NAME_ALIASES,
+                        3,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES,
+                        4,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES,
+                        5,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_CRP_SOURCE_ALIASES,
+                        6,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES,
+                        7,
+                        source_matrix_columns,
+                    ),
                 ))
 
         elif matrix_type == "size_class":
@@ -431,6 +657,8 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
 
         elif matrix_type == "brand_mapping":
             row_count = len(df)
+            brand_mapping_column_lookup = _build_column_lookup(df.columns)
+            brand_mapping_columns = list(df.columns)
             for idx, row in df.iterrows():
                 cursor.execute("""
                     INSERT INTO brand_mapping_rows (
@@ -443,9 +671,27 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("Brand Name", "")),
-                    _clean_cell(row.get("Brand Code", "")),
-                    _clean_cell(row.get("Deletion Indicator", ""))
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        brand_mapping_column_lookup,
+                        BRAND_MAPPING_BRAND_NAME_ALIASES,
+                        0,
+                        brand_mapping_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        brand_mapping_column_lookup,
+                        BRAND_MAPPING_BRAND_CODE_ALIASES,
+                        1,
+                        brand_mapping_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        brand_mapping_column_lookup,
+                        BRAND_MAPPING_DELETION_INDICATOR_ALIASES,
+                        2,
+                        brand_mapping_columns,
+                    ),
                 ))
 
         elif matrix_type == "group_country":
@@ -465,9 +711,8 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         country_grouping,
                         region,
                         market_area,
-                        market_area_code,
-                        change_indicator
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        market_area_code
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
@@ -478,8 +723,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.get("country_grouping", "")),
                     _clean_cell(row.get("region", "")),
                     _clean_cell(row.get("market_area", "")),
-                    _clean_cell(row.get("market_area_code", "")),
-                    _clean_cell(row.get("change_indicator", ""))
+                    _clean_cell(row.get("market_area_code", ""))
                 ))
 
         elif matrix_type == "machine_line_mapping":
@@ -514,24 +758,20 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         source,
                         brand_name,
                         machine_line,
-                        empty_col_1,
                         country,
-                        empty_col_2,
                         size_class,
                         quantity
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.iloc[0]) if len(row) > 0 else "",
-                    _clean_cell(row.iloc[1]) if len(row) > 1 else "",
-                    _clean_cell(row.iloc[2]) if len(row) > 2 else "",
-                    _clean_cell(row.iloc[3]) if len(row) > 3 else "",
-                    _clean_cell(row.iloc[4]) if len(row) > 4 else "",
-                    _clean_cell(row.iloc[5]) if len(row) > 5 else "",
-                    _clean_cell(row.iloc[6]) if len(row) > 6 else "",
-                    _clean_cell(row.iloc[7]) if len(row) > 7 else "",
-                    _clean_cell(row.iloc[8]) if len(row) > 8 else ""
+                    _clean_cell(row.get("year", "")),
+                    _clean_cell(row.get("source", "")),
+                    _clean_cell(row.get("brand_name", "")),
+                    _clean_cell(row.get("machine_line", "")),
+                    _clean_cell(row.get("country", "")),
+                    _clean_cell(row.get("size_class", "")),
+                    _clean_cell(row.get("quantity", ""))
                 ))
 
         elif matrix_type == "volvo_sale_data":
