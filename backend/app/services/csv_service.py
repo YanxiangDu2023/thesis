@@ -166,6 +166,7 @@ def _normalize_header(value) -> str:
     # "geographical region" and "geographical_region" styles.
     return " ".join(
         str(value)
+        .replace("\ufeff", "")
         .replace("\n", " ")
         .replace("_", " ")
         .replace("-", " ")
@@ -290,6 +291,15 @@ def _load_size_class_dataframe(stored_path: str) -> pd.DataFrame:
     size_class_df = size_class_df.iloc[:, :len(SIZE_CLASS_COLUMN_NAMES)].copy()
     size_class_df.columns = SIZE_CLASS_COLUMN_NAMES
 
+    # Safety net: drop any header-like rows that may still exist
+    # (for example due to repeated header rows inside the file).
+    header_like_mask = size_class_df.apply(
+        lambda row: _looks_like_size_class_header(row.tolist()),
+        axis=1,
+    )
+    if header_like_mask.any():
+        size_class_df = size_class_df.loc[~header_like_mask].reset_index(drop=True)
+
     return size_class_df
 
 
@@ -305,6 +315,16 @@ def _load_machine_line_mapping_dataframe(stored_path: str) -> pd.DataFrame:
     if machine_line_mapping_df.empty:
         return pd.DataFrame(columns=MACHINE_LINE_MAPPING_COLUMN_NAMES)
 
+    # Drop leading empty lines before header detection.
+    while not machine_line_mapping_df.empty:
+        first_values = [_clean_cell(value) for value in machine_line_mapping_df.iloc[0].tolist()]
+        if any(value != "" for value in first_values):
+            break
+        machine_line_mapping_df = machine_line_mapping_df.iloc[1:].reset_index(drop=True)
+
+    if machine_line_mapping_df.empty:
+        return pd.DataFrame(columns=MACHINE_LINE_MAPPING_COLUMN_NAMES)
+
     if _looks_like_machine_line_mapping_header(machine_line_mapping_df.iloc[0].tolist()):
         machine_line_mapping_df = machine_line_mapping_df.iloc[1:].reset_index(drop=True)
 
@@ -315,11 +335,29 @@ def _load_machine_line_mapping_dataframe(stored_path: str) -> pd.DataFrame:
     machine_line_mapping_df = machine_line_mapping_df.iloc[:, :len(MACHINE_LINE_MAPPING_COLUMN_NAMES)].copy()
     machine_line_mapping_df.columns = MACHINE_LINE_MAPPING_COLUMN_NAMES
 
+    # Safety net: remove repeated header-like rows that may appear in data.
+    header_like_mask = machine_line_mapping_df.apply(
+        lambda row: _looks_like_machine_line_mapping_header(row.tolist()),
+        axis=1,
+    )
+    if header_like_mask.any():
+        machine_line_mapping_df = machine_line_mapping_df.loc[~header_like_mask].reset_index(drop=True)
+
     return machine_line_mapping_df
 
 
 def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
     group_country_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+
+    if group_country_df.empty:
+        return pd.DataFrame(columns=GROUP_COUNTRY_FIXED_COLUMNS)
+
+    # Drop leading empty lines before header detection.
+    while not group_country_df.empty:
+        first_values = [_clean_cell(value) for value in group_country_df.iloc[0].tolist()]
+        if any(value != "" for value in first_values):
+            break
+        group_country_df = group_country_df.iloc[1:].reset_index(drop=True)
 
     if group_country_df.empty:
         return pd.DataFrame(columns=GROUP_COUNTRY_FIXED_COLUMNS)
@@ -355,6 +393,28 @@ def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
 
     normalized_data = group_country_df.iloc[:, :len(GROUP_COUNTRY_FIXED_COLUMNS)].copy()
     normalized_data.columns = GROUP_COUNTRY_FIXED_COLUMNS
+
+    # Safety net: remove any repeated header-like rows that may still appear in data.
+    def _looks_like_group_country_header_row(row_values) -> bool:
+        normalized = [_normalize_header(value) for value in row_values]
+        checks = [
+            len(normalized) > 0 and normalized[0] in {"calendar", "calendar year", "year"},
+            len(normalized) > 1 and normalized[1] == "country grouping",
+            len(normalized) > 2 and normalized[2] == "group code",
+            len(normalized) > 3 and normalized[3] == "country code",
+            len(normalized) > 4 and normalized[4] in {"country", "country name"},
+            len(normalized) > 5 and normalized[5] == "market area",
+            len(normalized) > 6 and normalized[6] == "market area code",
+            len(normalized) > 7 and normalized[7] == "region",
+        ]
+        return sum(1 for flag in checks if flag) >= 6
+
+    header_like_mask = normalized_data.apply(
+        lambda row: _looks_like_group_country_header_row(row.tolist()),
+        axis=1,
+    )
+    if header_like_mask.any():
+        normalized_data = normalized_data.loc[~header_like_mask].reset_index(drop=True)
 
     return normalized_data
 

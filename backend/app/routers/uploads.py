@@ -1,4 +1,11 @@
+import csv
+import os
+import uuid
+from datetime import datetime
+from typing import Any
+
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from pydantic import BaseModel
 from app.database import get_connection
 from app.services.csv_service import handle_csv_upload
 
@@ -26,6 +33,26 @@ REQUIRED_UPLOAD_TYPES = [
 ]
 
 
+class SaveEditedUploadRequest(BaseModel):
+    matrix_type: str
+    rows: list[dict[str, Any]]
+    source_upload_run_id: int | None = None
+
+
+def _to_text(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return "" if text.lower() == "nan" else text
+
+
+def _get_table_insert_columns(cursor, table_name: str) -> list[str]:
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = [row["name"] for row in cursor.fetchall()]
+    excluded = {"id", "upload_run_id", "row_index"}
+    return [column for column in columns if column not in excluded]
+
+
 def _get_latest_success_upload_id(cursor, matrix_type: str):
     cursor.execute("""
         SELECT id
@@ -36,6 +63,118 @@ def _get_latest_success_upload_id(cursor, matrix_type: str):
     """, (matrix_type,))
     row = cursor.fetchone()
     return row["id"] if row else None
+
+
+@router.post("/uploads/save-edited")
+def save_edited_upload(payload: SaveEditedUploadRequest):
+    matrix_type = payload.matrix_type
+    table_name = MATRIX_TYPE_TO_TABLE.get(matrix_type)
+    if table_name is None:
+        raise HTTPException(status_code=400, detail="Unsupported matrix type")
+
+    if len(payload.rows) == 0:
+        raise HTTPException(status_code=400, detail="No rows to save")
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    upload_run_id = None
+
+    try:
+        insert_columns = _get_table_insert_columns(cursor, table_name)
+        if len(insert_columns) == 0:
+            raise HTTPException(
+                status_code=500,
+                detail=f"No writable columns found for {matrix_type}",
+            )
+
+        target_dir = os.path.join("uploads", matrix_type)
+        os.makedirs(target_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        source_suffix = f"_from_{payload.source_upload_run_id}" if payload.source_upload_run_id else ""
+        original_file_name = f"{matrix_type}_edited{source_suffix}.csv"
+        stored_file_name = f"{timestamp}_{uuid.uuid4().hex}_{original_file_name}"
+        stored_path = os.path.join(target_dir, stored_file_name)
+
+        with open(stored_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(insert_columns)
+            for row in payload.rows:
+                writer.writerow([_to_text(row.get(column, "")) for column in insert_columns])
+
+        cursor.execute("""
+            INSERT INTO upload_runs (
+                matrix_type,
+                original_file_name,
+                stored_file_name,
+                stored_path,
+                status
+            ) VALUES (?, ?, ?, ?, ?)
+        """, (
+            matrix_type,
+            original_file_name,
+            stored_file_name,
+            stored_path,
+            "processing",
+        ))
+        upload_run_id = cursor.lastrowid
+
+        column_sql = ", ".join(insert_columns)
+        value_placeholders = ", ".join(["?"] * (len(insert_columns) + 2))
+        insert_sql = f"""
+            INSERT INTO {table_name} (
+                upload_run_id,
+                row_index,
+                {column_sql}
+            ) VALUES ({value_placeholders})
+        """
+
+        for idx, row in enumerate(payload.rows, start=1):
+            values = [_to_text(row.get(column, "")) for column in insert_columns]
+            cursor.execute(insert_sql, (upload_run_id, idx, *values))
+
+        row_count = len(payload.rows)
+        cursor.execute("""
+            UPDATE upload_runs
+            SET row_count = ?, status = ?, message = ?
+            WHERE id = ?
+        """, (
+            row_count,
+            "success",
+            "Saved from in-page editor",
+            upload_run_id,
+        ))
+
+        conn.commit()
+
+        return {
+            "message": "Save successful",
+            "upload_run_id": upload_run_id,
+            "row_count": row_count,
+            "matrix_type": matrix_type,
+            "original_file_name": original_file_name,
+            "status": "success",
+        }
+    except HTTPException as e:
+        if upload_run_id is not None:
+            cursor.execute("""
+                UPDATE upload_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, ("failed", str(e.detail), upload_run_id))
+            conn.commit()
+        raise e
+    except Exception as e:
+        if upload_run_id is not None:
+            cursor.execute("""
+                UPDATE upload_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, ("failed", str(e), upload_run_id))
+            conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
 
 @router.post("/uploads/csv")
 async def upload_csv(
@@ -583,7 +722,8 @@ def get_crp_d1_combined_report():
                 '#' AS pri_sec,
                 a.source AS source,
                 CASE
-                    WHEN TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
+                    WHEN UPPER(TRIM(a.source)) = 'SAL'
+                         AND TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
                     WHEN UPPER(TRIM(a.source)) = 'SAL'
                          AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
                          AND sm.machine_line_name_key IS NULL THEN 'Y'
@@ -627,6 +767,273 @@ def get_crp_d1_combined_report():
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+
+@router.get("/reports/oth-deletion-flag")
+def get_oth_deletion_flag_report():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    latest_oth_upload_run_id = _get_latest_success_upload_id(cursor, "oth_data")
+    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+    latest_brand_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "brand_mapping")
+    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
+
+    missing_types = []
+    if latest_oth_upload_run_id is None:
+        missing_types.append("oth_data")
+    if latest_group_country_upload_run_id is None:
+        missing_types.append("group_country")
+    if latest_machine_line_mapping_upload_run_id is None:
+        missing_types.append("machine_line_mapping")
+    if latest_brand_mapping_upload_run_id is None:
+        missing_types.append("brand_mapping")
+    if latest_source_matrix_upload_run_id is None:
+        missing_types.append("source_matrix")
+    if latest_reporter_list_upload_run_id is None:
+        missing_types.append("reporter_list")
+
+    if missing_types:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing latest successful upload for: {', '.join(missing_types)}"
+        )
+
+    try:
+        cursor.execute("""
+            WITH source_matrix_base AS (
+                SELECT
+                    UPPER(TRIM(country_name)) AS country_name_key,
+                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key,
+                    UPPER(TRIM(primary_source)) AS primary_source_key,
+                    UPPER(TRIM(secondary_source)) AS secondary_source_key
+                FROM source_matrix_rows
+                WHERE upload_run_id = ?
+                  AND TRIM(COALESCE(country_name, '')) <> ''
+                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
+            ),
+            source_matrix_keys AS (
+                SELECT
+                    country_name_key,
+                    machine_line_name_key
+                FROM source_matrix_base
+                GROUP BY
+                    country_name_key,
+                    machine_line_name_key
+            ),
+            source_matrix_source_flags AS (
+                SELECT
+                    country_name_key,
+                    machine_line_name_key,
+                    primary_source_key AS source_key,
+                    'P' AS pri_sec
+                FROM source_matrix_base
+                WHERE TRIM(COALESCE(primary_source_key, '')) <> ''
+                UNION ALL
+                SELECT
+                    country_name_key,
+                    machine_line_name_key,
+                    secondary_source_key AS source_key,
+                    'S' AS pri_sec
+                FROM source_matrix_base
+                WHERE TRIM(COALESCE(secondary_source_key, '')) <> ''
+            ),
+            source_matrix_source_flags_dedup AS (
+                SELECT
+                    country_name_key,
+                    machine_line_name_key,
+                    source_key,
+                    CASE
+                        WHEN SUM(CASE WHEN pri_sec = 'P' THEN 1 ELSE 0 END) > 0 THEN 'P'
+                        WHEN SUM(CASE WHEN pri_sec = 'S' THEN 1 ELSE 0 END) > 0 THEN 'S'
+                        ELSE ''
+                    END AS pri_sec
+                FROM source_matrix_source_flags
+                GROUP BY
+                    country_name_key,
+                    machine_line_name_key,
+                    source_key
+            )
+            SELECT
+                o.year AS year,
+                o.source AS source,
+                o.country AS country_code,
+                COALESCE(g.country_name, o.country) AS country,
+                g.country_grouping AS country_grouping,
+                g.region AS region,
+                g.market_area AS market_area,
+                COALESCE(m.machine_line_name, o.machine_line) AS machine_line_name,
+                m.machine_line_code AS machine_line_code,
+                COALESCE(b.brand_name, o.brand_name) AS brand_name,
+                b.brand_code AS brand_code,
+                o.size_class AS size_class_flag,
+                o.quantity AS fid,
+                NULL AS ms_percent,
+                CASE
+                    WHEN TRIM(COALESCE(m.machine_line_code, '')) = '390' THEN 'Y'
+                    WHEN TRIM(COALESCE(g.country_name, o.country, '')) <> ''
+                     AND TRIM(COALESCE(m.machine_line_name, o.machine_line, '')) <> ''
+                     AND smk.country_name_key IS NULL THEN 'Y'
+                    ELSE ''
+                END AS deletion_flag,
+                COALESCE(smsf.pri_sec, '') AS pri_sec,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM source_matrix_rows sm
+                        JOIN reporter_list_rows rl
+                          ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
+                         AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
+                         AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(b.brand_code, '')))
+                         AND rl.upload_run_id = ?
+                        WHERE sm.upload_run_id = ?
+                          AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(g.country_name, o.country, '')))
+                          AND UPPER(TRIM(COALESCE(sm.machine_line_name, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
+                          AND TRIM(COALESCE(sm.crp_source, '')) <> ''
+                    ) THEN 'Y'
+                    ELSE ''
+                END AS reporter_flag
+            FROM oth_data_rows o
+            LEFT JOIN group_country_rows g
+                ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
+               AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
+               AND g.upload_run_id = ?
+            LEFT JOIN machine_line_mapping_rows m
+                ON (
+                     UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_name))
+                     OR UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_code))
+                   )
+               AND m.upload_run_id = ?
+            LEFT JOIN brand_mapping_rows b
+                ON UPPER(TRIM(o.brand_name)) = UPPER(TRIM(b.brand_name))
+               AND b.upload_run_id = ?
+            LEFT JOIN source_matrix_keys smk
+                ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smk.country_name_key
+               AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smk.machine_line_name_key
+            LEFT JOIN source_matrix_source_flags_dedup smsf
+                ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smsf.country_name_key
+               AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smsf.machine_line_name_key
+               AND UPPER(TRIM(COALESCE(o.source, ''))) = smsf.source_key
+            WHERE o.upload_run_id = ?
+            ORDER BY o.row_index ASC
+        """, (
+            latest_source_matrix_upload_run_id,
+            latest_reporter_list_upload_run_id,
+            latest_source_matrix_upload_run_id,
+            latest_group_country_upload_run_id,
+            latest_machine_line_mapping_upload_run_id,
+            latest_brand_mapping_upload_run_id,
+            latest_oth_upload_run_id,
+        ))
+
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {
+            "row_count": len(rows),
+            "rows": rows,
+            "oth_upload_run_id": latest_oth_upload_run_id,
+            "group_country_upload_run_id": latest_group_country_upload_run_id,
+            "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
+            "brand_mapping_upload_run_id": latest_brand_mapping_upload_run_id,
+            "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
+            "reporter_list_upload_run_id": latest_reporter_list_upload_run_id,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/reports/p10-vce-non-vce")
+def get_p10_vce_non_vce_report():
+    combined = get_crp_d1_combined_report()
+    combined_rows = combined["rows"]
+
+    grouped = {}
+    for row in combined_rows:
+        key = (
+            row.get("year", ""),
+            row.get("country_group_code", ""),
+            row.get("country_grouping", ""),
+            row.get("country", ""),
+            row.get("region", ""),
+            row.get("machine_line_code", ""),
+            row.get("machine_line_name", ""),
+            row.get("size_class", ""),
+        )
+        if key not in grouped:
+            grouped[key] = {
+                "year": row.get("year", ""),
+                "country_group_code": row.get("country_group_code", ""),
+                "country_grouping": row.get("country_grouping", ""),
+                "country": row.get("country", ""),
+                "region": row.get("region", ""),
+                "machine_line_code": row.get("machine_line_code", ""),
+                "machine_line_name": row.get("machine_line_name", ""),
+                "size_class": row.get("size_class", ""),
+                "total_market": 0.0,
+                "vce": 0.0,
+                "non_vce": 0.0,
+                "vce_share_pct": "",
+            }
+
+        target = grouped[key]
+        fid = float(row.get("fid") or 0)
+        source = str(row.get("source", "")).strip().upper()
+        reporter_flag = str(row.get("reporter_flag", "")).strip().upper()
+        deletion_flag = str(row.get("deletion_flag", "")).strip().upper()
+
+        if source == "TMA":
+            target["total_market"] += fid
+
+        if reporter_flag == "Y" and deletion_flag != "Y":
+            target["vce"] += fid
+
+    result_rows = []
+    total_market_sum = 0.0
+    vce_sum = 0.0
+    non_vce_sum = 0.0
+
+    for row in grouped.values():
+        non_vce = row["total_market"] - row["vce"]
+        row["non_vce"] = non_vce if non_vce > 0 else 0.0
+        row["vce_share_pct"] = (
+            f"{(row['vce'] / row['total_market']) * 100:.1f}%"
+            if row["total_market"] > 0
+            else ""
+        )
+        total_market_sum += row["total_market"]
+        vce_sum += row["vce"]
+        non_vce_sum += row["non_vce"]
+        result_rows.append(row)
+
+    result_rows.sort(
+        key=lambda item: (
+            item["country_grouping"],
+            item["country_group_code"],
+            item["country"],
+            item["machine_line_code"],
+            item["machine_line_name"],
+            item["size_class"],
+        )
+    )
+
+    return {
+        "row_count": len(result_rows),
+        "rows": result_rows,
+        "summary": {
+            "total_market_sum": total_market_sum,
+            "vce_sum": vce_sum,
+            "non_vce_sum": non_vce_sum,
+        },
+        "source_row_count": combined["row_count"],
+        "tma_upload_run_id": combined["tma_upload_run_id"],
+        "volvo_upload_run_id": combined["volvo_upload_run_id"],
+        "group_country_upload_run_id": combined["group_country_upload_run_id"],
+        "source_matrix_upload_run_id": combined["source_matrix_upload_run_id"],
+    }
 
 @router.get("/uploads/latest/{matrix_type}")
 def get_latest_upload_by_matrix_type(matrix_type: str):

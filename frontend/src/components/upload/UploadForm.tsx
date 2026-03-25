@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { getLatestUploadByMatrixType, uploadCsv } from "../../api/uploads";
+import { getLatestUploadByMatrixType, saveEditedUpload, uploadCsv } from "../../api/uploads";
 import type { UploadRow, UploadRun, UploadStatus } from "../../types/upload";
 import FilterableTable from "../table/FilterableTable";
 
@@ -77,6 +77,9 @@ const HIDDEN_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
 const NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
   oth_data: ["placeholder_1", "placeholder_2"],
 };
+const NON_EDITABLE_COLUMNS_BY_MATRIX_TYPE: Record<string, string[]> = {
+  oth_data: ["placeholder_1", "placeholder_2"],
+};
 
 const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, string>> = {
   oth_data: {
@@ -84,6 +87,8 @@ const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, strin
     placeholder_2: "empty_2",
   },
 };
+
+const LATEST_TABLE_MAX_HEIGHT = "72vh";
 
 function getRowsForDisplay(label: string, rows: UploadRow[]): UploadRow[] {
   if (label !== "oth_data") {
@@ -109,6 +114,16 @@ function getVisibleColumns(label: string, rows: UploadRow[]): string[] {
   const remainingColumns = rowKeys.filter((column) => !orderedPreferred.includes(column));
 
   return [...orderedPreferred, ...remainingColumns];
+}
+
+function projectRowsToColumns(rows: UploadRow[], columns: string[]): UploadRow[] {
+  return rows.map((row) => {
+    const projected: UploadRow = {};
+    columns.forEach((column) => {
+      projected[column] = row[column] ?? "";
+    });
+    return projected;
+  });
 }
 
 function toCsvCell(value: string | number | null | undefined): string {
@@ -137,6 +152,13 @@ function UploadForm({ label, title }: UploadFormProps) {
   const [latestError, setLatestError] = useState("");
   const [showLatestPanel, setShowLatestPanel] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [isEditingLatest, setIsEditingLatest] = useState(false);
+  const [editedRows, setEditedRows] = useState<UploadRow[]>([]);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [tableFilters, setTableFilters] = useState<Record<string, string>>({});
+  const useCompactTable = label === "source_matrix";
 
   const latestRowsForDisplay = useMemo(() => {
     return getRowsForDisplay(label, latestRows);
@@ -145,6 +167,13 @@ function UploadForm({ label, title }: UploadFormProps) {
   const latestColumns = useMemo(() => {
     return getVisibleColumns(label, latestRowsForDisplay);
   }, [label, latestRowsForDisplay]);
+
+  const editableRowsForDisplay = useMemo(() => {
+    if (isEditingLatest) {
+      return editedRows;
+    }
+    return latestRowsForDisplay;
+  }, [editedRows, isEditingLatest, latestRowsForDisplay]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -171,6 +200,10 @@ function UploadForm({ label, title }: UploadFormProps) {
       setShowLatestPanel(true);
       setLatestLoading(true);
       setLatestError("");
+      setIsEditingLatest(false);
+      setEditedRows([]);
+      setSaveMessage("");
+      setSaveError("");
 
       const result = await getLatestUploadByMatrixType(label);
       setLatestUpload(result.upload_run);
@@ -191,6 +224,80 @@ function UploadForm({ label, title }: UploadFormProps) {
     setLatestError("");
     setLatestUpload(null);
     setLatestRows([]);
+    setIsEditingLatest(false);
+    setEditedRows([]);
+    setSaveMessage("");
+    setSaveError("");
+    setTableFilters({});
+  };
+
+  const handleStartEditLatest = () => {
+    if (latestRowsForDisplay.length === 0 || latestColumns.length === 0) {
+      return;
+    }
+    setEditedRows(projectRowsToColumns(latestRowsForDisplay, latestColumns));
+    setSaveMessage("");
+    setSaveError("");
+    setIsEditingLatest(true);
+  };
+
+  const handleCancelEditLatest = () => {
+    setIsEditingLatest(false);
+    setEditedRows([]);
+    setSaveMessage("");
+    setSaveError("");
+  };
+
+  const handleAddEditedRow = () => {
+    if (!isEditingLatest || latestColumns.length === 0) {
+      return;
+    }
+    const newRow: UploadRow = {};
+    latestColumns.forEach((column) => {
+      newRow[column] = tableFilters[column] ?? "";
+    });
+    setEditedRows((prev) => [...prev, newRow]);
+    setSaveMessage("");
+    setSaveError("");
+  };
+
+  const handleDeleteEditedRow = (rowIndex: number) => {
+    setEditedRows((prev) => prev.filter((_, idx) => idx !== rowIndex));
+    setSaveMessage("");
+    setSaveError("");
+  };
+
+  const handleSaveEditedLatest = async () => {
+    if (!latestUpload) {
+      setSaveError("No latest upload found.");
+      return;
+    }
+    if (editedRows.length === 0) {
+      setSaveError("No rows to save.");
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+      setSaveError("");
+      setSaveMessage("");
+
+      const result = await saveEditedUpload(label, editedRows, latestUpload.id);
+      setSaveMessage(`Save successful. New Upload ID: ${result.upload_run_id}`);
+      setStatus("success");
+      setMessage(`Edited data saved as a new upload (ID: ${result.upload_run_id}).`);
+
+      const refreshed = await getLatestUploadByMatrixType(label);
+      setLatestUpload(refreshed.upload_run);
+      setLatestRows(refreshed.rows);
+      setIsEditingLatest(false);
+      setEditedRows([]);
+    } catch (error) {
+      console.error(error);
+      setSaveError(error instanceof Error ? error.message : "Failed to save edited data.");
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const handleDownloadLatest = async () => {
@@ -288,6 +395,29 @@ function UploadForm({ label, title }: UploadFormProps) {
                 {latestUpload.status ?? "unknown"}
               </p>
 
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                {!isEditingLatest ? (
+                  <button type="button" onClick={handleStartEditLatest}>
+                    Edit in Page
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" onClick={handleAddEditedRow} disabled={saveLoading}>
+                      Add Row
+                    </button>
+                    <button type="button" onClick={handleCancelEditLatest} disabled={saveLoading}>
+                      Cancel Edit
+                    </button>
+                    <button type="button" onClick={handleSaveEditedLatest} disabled={saveLoading}>
+                      {saveLoading ? "Saving..." : "Save as New Upload"}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {saveMessage ? <p style={{ color: "green" }}>{saveMessage}</p> : null}
+              {saveError ? <p style={{ color: "red" }}>Error: {saveError}</p> : null}
+
               {latestRows.length === 0 ? (
                 <p>No row data found in SQL for this upload.</p>
               ) : (
@@ -297,8 +427,14 @@ function UploadForm({ label, title }: UploadFormProps) {
                     label: COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label]?.[column] ?? column,
                     filterable: !((NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []).includes(column)),
                   }))}
-                  rows={latestRowsForDisplay}
-                  maxHeight="360px"
+                  rows={editableRowsForDisplay}
+                  maxHeight={LATEST_TABLE_MAX_HEIGHT}
+                  editable={isEditingLatest}
+                  onRowsChange={setEditedRows}
+                  onDeleteRow={isEditingLatest ? handleDeleteEditedRow : undefined}
+                  onFiltersChange={setTableFilters}
+                  nonEditableColumns={NON_EDITABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []}
+                  compact={useCompactTable}
                 />
               )}
             </>

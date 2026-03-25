@@ -9,6 +9,8 @@ export type UploadCsvResponse = {
   status: "success";
 };
 
+export type SaveEditedUploadResponse = UploadCsvResponse;
+
 export type UploadRun = {
   id: number;
   matrix_type: string;
@@ -143,4 +145,66 @@ export type CrpD1CombinedReportResponse = {
   tma_upload_run_id: number;
   volvo_upload_run_id: number;
   group_country_upload_run_id: number;
+  source_matrix_upload_run_id: number;
+};
+
+export type OthDeletionFlagRow = {
+  year: string;
+  source: string;
+  country_code: string;
+  country: string;
+  country_grouping: string;
+  region: string;
+  market_area: string;
+  machine_line_name: string;
+  machine_line_code: string;
+  brand_name: string;
+  brand_code: string;
+  size_class_flag: string;
+  fid: string | number | null;
+  ms_percent: string | null;
+  deletion_flag: string;
+  pri_sec: string;
+  reporter_flag: string;
+};
+
+export type OthDeletionFlagResponse = {
+  row_count: number;
+  rows: OthDeletionFlagRow[];
+  oth_upload_run_id: number;
+  group_country_upload_run_id: number;
+  machine_line_mapping_upload_run_id: number;
+  brand_mapping_upload_run_id: number;
+  source_matrix_upload_run_id: number;
+  reporter_list_upload_run_id: number;
+};
+
+export type P10VceNonVceRow = {
+  year: string;
+  country_group_code: string;
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line_code: string;
+  machine_line_name: string;
+  size_class: string;
+  total_market: number;
+  vce: number;
+  non_vce: number;
+  vce_share_pct: string;
+};
+
+export type P10VceNonVceResponse = {
+  row_count: number;
+  rows: P10VceNonVceRow[];
+  summary: {
+    total_market_sum: number;
+    vce_sum: number;
+    non_vce_sum: number;
+  };
+  source_row_count: number;
+  tma_upload_run_id: number;
+  volvo_upload_run_id: number;
+  group_country_upload_run_id: number;
+  source_matrix_upload_run_id: number;
 };

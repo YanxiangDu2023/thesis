@@ -12,17 +12,19 @@ const layers: LayerCard[] = [
     code: "P00",
     title: "Preparation Raw Layer",
     bullets: [
-      "Merge latest TMA and SAL records into one CRP D1 base dataset.",
-      "Map country attributes using country code + year first, then country name + year fallback.",
-      "Assign Reporter Flag by source (TMA = #, SAL = Y).",
-      "Assign Deletion Flag when Machine Line Code = 390, or SAL machine line is missing in Source Matrix.",
+      "For CRP data:",
+      "Merge latest TMA + SAL,map country fields, and assign reporter/deletion flags.",
+      "For OTH data: mark Deletion flag = Y when Machine Line Code = 390, or when Country + Machine Line Name is not found in Source Matrix.",
     ],
   },
   {
     code: "P10",
     title: "Prepared Layer",
-    description:
-      "Applies preparation logic and structural processing before downstream calculation.",
+    bullets: [
+      "Display TMA (Total Market) records at prepared layer granularity.",
+      "Calculate Volvo CE (VCE) from Reporter Flag = Y and exclude Deletion flag = Y.",
+      "Compute Non-Volvo CE as max(TMA - VCE, 0) for downstream steps.",
+    ],
   },
   {
     code: "A10",
