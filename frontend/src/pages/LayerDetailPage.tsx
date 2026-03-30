@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
-import { getCrpD1CombinedReport, getOthDeletionFlagReport, getP10VceNonVceReport } from "../api/uploads";
-import type { CrpD1CombinedReportRow, OthDeletionFlagRow, P10VceNonVceRow } from "../types/upload";
+import { getA10AdjustmentReport, getCrpD1CombinedReport, getOthDeletionFlagReport, getP10VceNonVceReport } from "../api/uploads";
+import type { A10AdjustmentRow, CrpD1CombinedReportRow, OthDeletionFlagRow, P10VceNonVceRow } from "../types/upload";
 
 type LayerDetail = {
   code: string;
@@ -30,7 +30,9 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
     description: "Compute and display TMA, Volvo CE (VCE), and Non-Volvo CE values.",
     highlights: [
       "TMA (Total Market) comes from TMA source records.",
-      "VCE includes only rows with Reporter Flag = Y and Deletion flag != Y.",
+      "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
+      "VCE includes Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
+      "For Volvo CEX, Mini is temporarily treated like <6T and Midi like 6<11T, which may create some variance because TMA CEX uses <6T, 6<11T, and 6<10T.",
       "Non-VCE = max(TMA - VCE, 0).",
     ],
   },
@@ -403,9 +405,17 @@ LEFT JOIN gc_by_name g_name
 
 const P10_RULE_BULLETS = [
   "Total Market (TMA): sum of rows where Source = TMA.",
-  "VCE: sum of rows where Reporter Flag = Y and Deletion flag != Y.",
-  "Rows with Deletion flag = Y are excluded from VCE.",
+  "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
+  "VCE: sum of Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
+  "For Volvo CEX, Mini is temporarily mapped to <6T and Midi is temporarily mapped to 6<11T.",
+  "TMA CEX uses <6T, 6<11T, and 6<10T, so this temporary mapping may cause some variance.",
   "Non-VCE: max(TMA - VCE, 0).",
+];
+
+const A10_RULE_BULLETS = [
+  "A10 shows SAL rows, TMA rows, and one derived Result row for each matched group.",
+  "Result row FID comes from valid Volvo/SAL rows; TM FID comes from TMA rows for the same group.",
+  "TM Non VCE is calculated as max(TM FID - FID, 0) on the Result row.",
 ];
 
 const REPORT_TABLE_MAX_HEIGHT = "72vh";
@@ -435,6 +445,11 @@ function LayerDetailPage() {
     non_vce_sum: 0,
   });
   const [p10ResetToken, setP10ResetToken] = useState(0);
+  const [runningA10Report, setRunningA10Report] = useState(false);
+  const [a10Message, setA10Message] = useState("");
+  const [a10Error, setA10Error] = useState("");
+  const [a10Rows, setA10Rows] = useState<A10AdjustmentRow[]>([]);
+  const [a10ResetToken, setA10ResetToken] = useState(0);
   const [showSqlGuide, setShowSqlGuide] = useState(false);
   const [showOthSqlGuide, setShowOthSqlGuide] = useState(false);
 
@@ -454,6 +469,9 @@ function LayerDetailPage() {
       { key: "source", label: "Source" },
       { key: "deletion_flag", label: "Deletion flag" },
       { key: "fid", label: "fid" },
+      { key: "tm", label: "TM" },
+      { key: "vce_fid", label: "VCE FID" },
+      { key: "tm_non_vce", label: "TM Non VCE" },
     ],
     []
   );
@@ -472,6 +490,29 @@ function LayerDetailPage() {
       { key: "vce", label: "Volvo CE (VCE)" },
       { key: "non_vce", label: "Non-Volvo CE" },
       { key: "vce_share_pct", label: "VCE / TMA (%)" },
+    ],
+    []
+  );
+
+  const a10Columns = useMemo(
+    () => [
+      { key: "year", label: "Year" },
+      { key: "country_group_code", label: "Country Group Code" },
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "country", label: "Country" },
+      { key: "region", label: "Region" },
+      { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "machine_line_name", label: "Machine Line name" },
+      { key: "size_class", label: "Size Class" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "reporter_flag", label: "Reporter Flag" },
+      { key: "vce_flag", label: "VCE Flag" },
+      { key: "source", label: "Source" },
+      { key: "pri_sec", label: "Pri/Sec" },
+      { key: "calculation_step", label: "Calculation Step" },
+      { key: "fid", label: "FID" },
+      { key: "tm_fid", label: "TM FID" },
+      { key: "tm_non_vce", label: "TM Non VCE" },
     ],
     []
   );
@@ -587,6 +628,26 @@ function LayerDetailPage() {
       setP10Error(error instanceof Error ? error.message : "Failed to run P10 VCE / Non-VCE Report.");
     } finally {
       setRunningP10Report(false);
+    }
+  };
+
+  const handleRunA10Report = async () => {
+    try {
+      setRunningA10Report(true);
+      setA10Error("");
+      setA10Message("");
+
+      const result = await getA10AdjustmentReport();
+      setA10Rows(result.rows);
+      setA10ResetToken((prev) => prev + 1);
+      setA10Message(`Run successful. Row Count: ${result.row_count}`);
+    } catch (error) {
+      console.error(error);
+      setA10Rows([]);
+      setA10ResetToken((prev) => prev + 1);
+      setA10Error(error instanceof Error ? error.message : "Failed to run A10 Adjustment Report.");
+    } finally {
+      setRunningA10Report(false);
     }
   };
 
@@ -761,6 +822,18 @@ function LayerDetailPage() {
             </button>
           </div>
         ) : null}
+        {layer.code === "A10" ? (
+          <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn--overview"
+              onClick={handleRunA10Report}
+              disabled={runningA10Report}
+            >
+              Run A10 Adjustment Report
+            </button>
+          </div>
+        ) : null}
         {layer.code === "P00" && showOthSqlGuide ? (
           <div className="sql-guide">
             <h4 className="sql-guide__title">OTH Rules (2.1 / 2.2 / 2.3)</h4>
@@ -803,6 +876,16 @@ function LayerDetailPage() {
             <h4 className="sql-guide__title">Calculation Rules</h4>
             <ul className="sql-guide__list">
               {P10_RULE_BULLETS.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {layer.code === "A10" ? (
+          <div className="sql-guide">
+            <h4 className="sql-guide__title">Calculation Rules</h4>
+            <ul className="sql-guide__list">
+              {A10_RULE_BULLETS.map((rule) => (
                 <li key={rule}>{rule}</li>
               ))}
             </ul>
@@ -927,6 +1010,46 @@ function LayerDetailPage() {
               />
             </div>
           </>
+        ) : null}
+        {layer.code === "A10" && runningA10Report ? (
+          <p style={{ color: "blue" }}>Running A10 Adjustment Report...</p>
+        ) : null}
+        {layer.code === "A10" && a10Message ? (
+          <p style={{ color: "green" }}>{a10Message}</p>
+        ) : null}
+        {layer.code === "A10" && a10Error ? (
+          <p style={{ color: "red" }}>Error: {a10Error}</p>
+        ) : null}
+        {layer.code === "A10" && a10Rows.length > 0 ? (
+          <div className="section summary-card" style={{ marginTop: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+              <strong>A10 Adjustment Report</strong>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={() => {
+                  setA10Rows([]);
+                  setA10Message("");
+                  setA10Error("");
+                }}
+                aria-label="Close A10 Adjustment Report"
+              >
+                x
+              </button>
+            </div>
+            <FilterableTable
+              columns={a10Columns}
+              rows={a10Rows}
+              maxHeight={REPORT_TABLE_MAX_HEIGHT}
+              resetToken={a10ResetToken}
+              getRowClassName={(row) =>
+                String(row.brand_code ?? "").trim().toUpperCase() === "RESULT"
+                  ? "data-table__row--result"
+                  : undefined
+              }
+              compact
+            />
+          </div>
         ) : null}
 
         <div style={{ marginTop: "16px", display: "flex", gap: "10px", flexWrap: "wrap" }}>

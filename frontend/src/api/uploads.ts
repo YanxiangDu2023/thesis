@@ -1,4 +1,5 @@
 import type {
+  A10AdjustmentResponse,
   CrpD1CombinedReportResponse,
   LatestCrpTmaReportCleanDataResponse,
   LatestControlReportCleanDataResponse,
@@ -14,8 +15,7 @@ import type {
   UploadCsvResponse,
   UploadRun,
 } from "../types/upload";
-
-const API_BASE_URL = "http://127.0.0.1:8001";
+import { apiFetch } from "./client";
 
 function toText(value: string | number | null | undefined): string {
   if (value === null || value === undefined) {
@@ -205,7 +205,7 @@ export async function uploadCsv(matrixType: string, file: File): Promise<UploadC
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/uploads/csv`, {
+    response = await apiFetch("/uploads/csv", {
       method: "POST",
       body: formData,
     });
@@ -228,7 +228,7 @@ export async function saveEditedUpload(
   rows: UploadRow[],
   sourceUploadRunId?: number
 ): Promise<SaveEditedUploadResponse> {
-  const response = await fetch(`${API_BASE_URL}/uploads/save-edited`, {
+  const response = await apiFetch("/uploads/save-edited", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -249,7 +249,7 @@ export async function saveEditedUpload(
 }
 
 export async function getUpload(uploadRunId: number): Promise<UploadRun> {
-  const response = await fetch(`${API_BASE_URL}/uploads/${uploadRunId}`);
+  const response = await apiFetch(`/uploads/${uploadRunId}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -260,7 +260,7 @@ export async function getUpload(uploadRunId: number): Promise<UploadRun> {
 }
 
 export async function getLatestUploadByMatrixType(matrixType: string): Promise<LatestUploadResponse> {
-  const response = await fetch(`${API_BASE_URL}/uploads/latest/${encodeURIComponent(matrixType)}`);
+  const response = await apiFetch(`/uploads/latest/${encodeURIComponent(matrixType)}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -271,7 +271,7 @@ export async function getLatestUploadByMatrixType(matrixType: string): Promise<L
 }
 
 export async function getUploadCompleteness(): Promise<UploadCompletenessResponse> {
-  const response = await fetch(`${API_BASE_URL}/uploads/completeness`);
+  const response = await apiFetch("/uploads/completeness");
   const result = await response.json();
 
   if (!response.ok) {
@@ -282,7 +282,7 @@ export async function getUploadCompleteness(): Promise<UploadCompletenessRespons
 }
 
 export async function runControlReportCleanData(): Promise<RunControlReportCleanDataResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/control-report-clean-data/run`, {
+  const response = await apiFetch("/reports/control-report-clean-data/run", {
     method: "POST",
   });
   const result = await response.json();
@@ -295,7 +295,7 @@ export async function runControlReportCleanData(): Promise<RunControlReportClean
 }
 
 export async function getLatestControlReportCleanData(): Promise<LatestControlReportCleanDataResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/control-report-clean-data/latest`);
+  const response = await apiFetch("/reports/control-report-clean-data/latest");
   const result = await response.json();
 
   if (!response.ok) {
@@ -306,7 +306,7 @@ export async function getLatestControlReportCleanData(): Promise<LatestControlRe
 }
 
 export async function runCrpTmaReportCleanData(): Promise<RunCrpTmaReportCleanDataResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/crp-tma-clean-data/run`, {
+  const response = await apiFetch("/reports/crp-tma-clean-data/run", {
     method: "POST",
   });
   const result = await response.json();
@@ -319,7 +319,7 @@ export async function runCrpTmaReportCleanData(): Promise<RunCrpTmaReportCleanDa
 }
 
 export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaReportCleanDataResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/crp-tma-clean-data/latest`);
+  const response = await apiFetch("/reports/crp-tma-clean-data/latest");
   const result = await response.json();
 
   if (!response.ok) {
@@ -330,7 +330,7 @@ export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaRepo
 }
 
 export async function getCrpD1CombinedReport(): Promise<CrpD1CombinedReportResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/crp-d1-combined`);
+  const response = await apiFetch("/reports/crp-d1-combined");
   const result = await response.json();
 
   if (!response.ok) {
@@ -340,8 +340,19 @@ export async function getCrpD1CombinedReport(): Promise<CrpD1CombinedReportRespo
   return result as CrpD1CombinedReportResponse;
 }
 
+export async function getA10AdjustmentReport(): Promise<A10AdjustmentResponse> {
+  const response = await apiFetch("/reports/a10-adjustment");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch A10 Adjustment Report");
+  }
+
+  return result as A10AdjustmentResponse;
+}
+
 export async function getOthDeletionFlagReport(): Promise<OthDeletionFlagResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/oth-deletion-flag`);
+  const response = await apiFetch("/reports/oth-deletion-flag");
   const result = await response.json();
 
   if (!response.ok) {
@@ -355,7 +366,7 @@ export async function getOthDeletionFlagReport(): Promise<OthDeletionFlagRespons
 }
 
 export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
-  const response = await fetch(`${API_BASE_URL}/reports/p10-vce-non-vce`);
+  const response = await apiFetch("/reports/p10-vce-non-vce");
   const result = await response.json();
 
   if (!response.ok) {

@@ -3,11 +3,21 @@
 }
 
 :root {
-  font-family: Inter, Arial, sans-serif;
-  color: #1f2937;
-  background: #f3f6fb;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #1d2939;
+  background: #efede8;
   line-height: 1.5;
   font-weight: 400;
+  --volvo-blue: #173b7a;
+  --volvo-blue-deep: #0d2348;
+  --volvo-blue-soft: #375da8;
+  --volvo-yellow: #f1b434;
+  --graphite: #20252b;
+  --slate: #54606e;
+  --stone-100: #f5f2eb;
+  --stone-200: #ebe5da;
+  --stone-300: #d8d1c4;
+  --white: #ffffff;
 }
 
 html,
@@ -18,8 +28,10 @@ body,
 }
 
 body {
-  background: linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
-  color: #1f2937;
+  background:
+    radial-gradient(circle at top left, rgba(241, 180, 52, 0.14), transparent 24%),
+    linear-gradient(180deg, #f7f5f0 0%, #ebe7df 100%);
+  color: var(--graphite);
 }
 
 button {
@@ -47,9 +59,9 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(250, 248, 244, 0.9);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--stone-300);
   padding: 16px 28px;
   display: flex;
   justify-content: space-between;
@@ -63,35 +75,45 @@ button {
 }
 
 .navbar__logo {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0f172a, #1d4ed8);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  letter-spacing: 1px;
-  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.2);
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 24px rgba(13, 35, 72, 0.12);
+  overflow: hidden;
+  border: 1px solid rgba(13, 35, 72, 0.08);
+}
+
+.brand-image-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.brand-image-logo--navbar {
+  width: 52px;
+  height: 52px;
 }
 
 .navbar__title {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
+  color: var(--graphite);
 }
 
 .navbar__subtitle {
   margin: 2px 0 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--slate);
 }
 
 .navbar__nav {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .nav-link {
@@ -99,49 +121,462 @@ button {
   background: transparent;
   padding: 10px 16px;
   border-radius: 999px;
-  color: #475569;
+  color: var(--slate);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  background: #e8eefc;
-  color: #1d4ed8;
+  background: rgba(23, 59, 122, 0.08);
+  color: var(--volvo-blue);
 }
 
 .nav-link--active {
-  background: #0f172a;
+  background: var(--volvo-blue-deep);
   color: white;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 10px 20px rgba(13, 35, 72, 0.18);
+}
+
+.navbar__session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+}
+
+.navbar__user-chip {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--stone-300);
+}
+
+.navbar__user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--graphite);
+}
+
+.navbar__user-email {
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.nav-action {
+  border: 1px solid rgba(23, 59, 122, 0.24);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--white);
+  color: var(--volvo-blue);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-action:hover {
+  background: rgba(23, 59, 122, 0.06);
+  border-color: var(--volvo-blue-soft);
+}
+
+/* Auth */
+.auth-shell,
+.auth-loading-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 460px);
+  gap: 0;
+  padding: 0;
+  background:
+    linear-gradient(90deg, #f5f5f5 0, #f5f5f5 calc(100% - 440px), #ffffff calc(100% - 440px), #ffffff 100%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(15, 23, 42, 0.03) 0,
+      rgba(15, 23, 42, 0.03) 1px,
+      transparent 1px,
+      transparent 36px
+    );
+}
+
+.auth-loading-shell {
+  place-items: center;
+  grid-template-columns: minmax(320px, 480px);
+}
+
+.auth-brand-panel,
+.auth-form-panel,
+.auth-loading-card {
+  min-height: 100vh;
+}
+
+.auth-brand-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.auth-brand-panel__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: min(100%, 640px);
+  text-align: center;
+}
+
+.auth-brand-panel__eyebrow {
+  margin: 0;
+  color: #525252;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.volvo-mark {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+.volvo-mark__ring {
+  position: absolute;
+  inset: 20px;
+  border: 10px solid #0a0a0a;
+  border-radius: 50%;
+}
+
+.volvo-mark__arrow-shaft {
+  position: absolute;
+  top: 30px;
+  right: 36px;
+  width: 62px;
+  height: 10px;
+  background: #0a0a0a;
+  transform: rotate(41deg);
+  transform-origin: center;
+  border-radius: 999px;
+}
+
+.volvo-mark__arrow-head {
+  position: absolute;
+  top: 17px;
+  right: 18px;
+  width: 0;
+  height: 0;
+  border-left: 26px solid #0a0a0a;
+  border-top: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  transform: rotate(41deg);
+}
+
+.volvo-mark__word {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #0a0a0a;
+}
+
+.volvo-mark__word::before {
+  content: "";
+  position: absolute;
+  width: 138px;
+  height: 18px;
+  background: #f5f5f5;
+  z-index: -1;
+}
+
+.auth-brand-panel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.auth-brand-panel__title {
+  margin: 0;
+  max-width: 560px;
+  color: #111111;
+  font-size: 46px;
+  line-height: 1.02;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.auth-brand-panel__text {
+  margin: 0;
+  max-width: 520px;
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.auth-form-panel,
+.auth-loading-card {
+  background: #ffffff;
+}
+
+.auth-form-panel {
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+}
+
+.auth-loading-card {
+  min-height: auto;
+  padding: 32px;
+  border: 1px solid #d4d4d4;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+}
+
+.auth-form-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-form-panel__eyebrow {
+  margin: 0;
+  color: #737373;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.auth-form-panel__title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.05;
+  color: #111111;
+  text-transform: uppercase;
+}
+
+.auth-form-panel__description {
+  margin: 0;
+  color: #525252;
+  line-height: 1.7;
+}
+
+.auth-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f5f5f5;
+  border: 1px solid #d4d4d4;
+}
+
+.auth-mode-toggle__button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: transparent;
+  color: #525252;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-mode-toggle__button--active {
+  background: #111111;
+  color: white;
+  border-color: #111111;
+  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.18);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #262626;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-field input {
+  width: 100%;
+  border: 1.5px solid #1f2937;
+  border-radius: 0;
+  padding: 14px 16px;
+  background: #ffffff;
+  font: inherit;
+  color: #111111;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 6px 6px 0 rgba(17, 17, 17, 0.12);
+}
+
+.auth-field__hint {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.auth-form__error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 0;
+  background: #ffffff;
+  color: #991b1b;
+  border-left: 4px solid #991b1b;
+  border-top: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.auth-form__submit {
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: #111111;
+  color: white;
+  box-shadow: 0 14px 28px rgba(17, 17, 17, 0.16);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-form__submit:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.auth-form__skip {
+  width: 100%;
+  border-radius: 999px;
+  background: transparent;
+  color: #111111;
+  border: 1.5px solid #111111;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  box-shadow: none;
+}
+
+.auth-form__skip:hover {
+  background: #f5f5f5;
+}
+
+.auth-form-panel__footer {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 /* Hero */
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #60a5fa 100%);
-  border-radius: 28px;
-  padding: 52px 48px;
+  background: #2b2b2b;
+  border-radius: 30px;
+  padding: 54px 48px;
   color: white;
-  box-shadow: 0 24px 50px rgba(29, 78, 216, 0.2);
+  box-shadow: 0 26px 50px rgba(32, 37, 43, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hero::after {
   content: "";
   position: absolute;
-  width: 280px;
-  height: 280px;
-  right: -80px;
-  top: -80px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(20, 20, 20, 0.72) 0%, rgba(20, 20, 20, 0.42) 40%, rgba(20, 20, 20, 0.18) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.12));
+}
+
+.hero__background-photo {
+  position: absolute;
+  inset: 0;
+  background-image: url("/volvo-ce-hero-equipment.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  opacity: 0.5;
+  filter: saturate(0.82) contrast(0.98) brightness(0.82);
+  pointer-events: none;
+}
+
+.hero__layout {
+  position: relative;
+  z-index: 1;
+  display: block;
 }
 
 .hero__content {
-  position: relative;
-  z-index: 1;
   max-width: 760px;
+}
+
+.hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.brand-image-logo--hero {
+  width: 108px;
+  height: 108px;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 8px;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.18);
+}
+
+.hero__brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero__brand-name {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero__brand-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .section-tag {
@@ -156,20 +591,22 @@ button {
 }
 
 .hero .section-tag {
-  background: rgba(255, 255, 255, 0.16);
-  color: #e5efff;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .section:not(.hero) .section-tag {
-  background: #eaf1ff;
-  color: #1d4ed8;
+  background: rgba(241, 180, 52, 0.12);
+  color: #855d00;
 }
 
 .hero__title {
   margin: 0 0 16px;
-  font-size: 44px;
-  line-height: 1.1;
+  font-size: 48px;
+  line-height: 1.04;
   font-weight: 800;
+  max-width: 680px;
 }
 
 .hero__text {
@@ -177,7 +614,7 @@ button {
   max-width: 680px;
   font-size: 17px;
   line-height: 1.75;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .hero__actions {
@@ -201,9 +638,9 @@ button {
 }
 
 .btn--primary {
-  background: white;
-  color: #0f172a;
-  box-shadow: 0 10px 24px rgba(255, 255, 255, 0.18);
+  background: var(--volvo-yellow);
+  color: #221800;
+  box-shadow: 0 14px 26px rgba(241, 180, 52, 0.24);
 }
 
 .btn--secondary {
@@ -213,41 +650,54 @@ button {
 }
 
 .btn--overview {
-  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 55%, #60a5fa 100%);
+  background: linear-gradient(135deg, var(--volvo-blue-deep) 0%, var(--volvo-blue) 100%);
   color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  border: 1px solid rgba(59, 130, 246, 0.6);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(13, 35, 72, 0.4);
+  box-shadow: 0 10px 24px rgba(13, 35, 72, 0.16);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn--overview:hover {
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 14px 28px rgba(13, 35, 72, 0.22);
+}
+
+.btn--overview::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--volvo-yellow);
 }
 
 .btn--tiny {
   padding: 8px 12px;
   border-radius: 10px;
   font-size: 12px;
-  background: #eaf1ff;
-  color: #1d4ed8;
-  border: 1px solid #c7d9ff;
+  background: rgba(241, 180, 52, 0.12);
+  color: #7a5500;
+  border: 1px solid rgba(241, 180, 52, 0.26);
   box-shadow: none;
 }
 
 .btn--tiny:hover {
-  background: #dbe8ff;
+  background: rgba(241, 180, 52, 0.2);
 }
 
 /* Sections */
 .section {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e5e7eb;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(249, 246, 239, 0.96) 100%);
+  border: 1px solid var(--stone-300);
   border-radius: 24px;
   padding: 28px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 18px 34px rgba(32, 37, 43, 0.05);
 }
 
 .section-header {
@@ -258,12 +708,12 @@ button {
   margin: 0 0 8px;
   font-size: 28px;
   line-height: 1.2;
-  color: #0f172a;
+  color: var(--graphite);
 }
 
 .section-description {
   margin: 0;
-  color: #64748b;
+  color: var(--slate);
   line-height: 1.7;
 }
 
@@ -292,29 +742,30 @@ button {
 }
 
 .card {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1px solid #e6ecf5;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8f1 100%);
+  border: 1px solid var(--stone-300);
   border-radius: 20px;
   padding: 22px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 26px rgba(32, 37, 43, 0.04);
+  position: relative;
 }
 
 .card__title {
   margin: 0 0 10px;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--graphite);
 }
 
 .card__text {
   margin: 0;
-  color: #64748b;
+  color: var(--slate);
   line-height: 1.7;
 }
 
 .card__list {
   margin: 0;
   padding-left: 18px;
-  color: #64748b;
+  color: var(--slate);
   line-height: 1.6;
 }
 
@@ -339,8 +790,8 @@ button {
 
 .layer-card-link:hover .layer-card {
   transform: translateY(-2px);
-  border-color: #bfdbfe;
-  box-shadow: 0 12px 28px rgba(29, 78, 216, 0.12);
+  border-color: rgba(23, 59, 122, 0.26);
+  box-shadow: 0 14px 30px rgba(13, 35, 72, 0.12);
 }
 
 .layer-card::before {
@@ -348,7 +799,7 @@ button {
   position: absolute;
   inset: 0 0 auto 0;
   height: 4px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  background: linear-gradient(90deg, var(--volvo-yellow), var(--volvo-blue));
 }
 
 .layer-card__code {
@@ -358,8 +809,8 @@ button {
   margin-bottom: 14px;
   padding: 7px 12px;
   border-radius: 999px;
-  background: #eaf1ff;
-  color: #1d4ed8;
+  background: rgba(23, 59, 122, 0.08);
+  color: var(--volvo-blue);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -380,16 +831,17 @@ button {
   text-align: center;
   padding: 16px 18px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0f172a, #1d4ed8);
+  background: linear-gradient(135deg, var(--volvo-blue-deep), var(--volvo-blue));
   color: white;
   font-weight: 800;
   letter-spacing: 0.04em;
-  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.18);
+  box-shadow: 0 12px 24px rgba(13, 35, 72, 0.18);
+  border-top: 3px solid var(--volvo-yellow);
 }
 
 .pipeline-arrow {
   font-size: 24px;
-  color: #64748b;
+  color: #7b8794;
   font-weight: 700;
 }
 
@@ -694,6 +1146,11 @@ button {
   color: #475569;
 }
 
+.data-table__row--result td {
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .data-table__filter-select,
 .data-table__cell-input {
   width: 100%;
@@ -812,6 +1269,11 @@ button {
   .hero__title {
     font-size: 36px;
   }
+
+  .hero__background-photo {
+    background-size: cover;
+    background-position: center center;
+  }
 }
 
 @media (max-width: 768px) {
@@ -825,6 +1287,12 @@ button {
   .navbar__nav {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .navbar__session {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
   }
 
   .main-content {
@@ -844,8 +1312,96 @@ button {
     font-size: 15px;
   }
 
+  .hero__brand {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .brand-image-logo--hero {
+    width: 88px;
+    height: 88px;
+  }
+
+  .hero__background-photo {
+    background-size: cover;
+    background-position: 62% center;
+    opacity: 0.46;
+  }
+
   .overview-actions__buttons {
     grid-template-columns: 1fr;
+  }
+
+  .auth-shell,
+  .auth-loading-shell {
+    grid-template-columns: 1fr;
+    padding: 0;
+    background:
+      linear-gradient(180deg, #f5f5f5 0, #f5f5f5 52%, #ffffff 52%, #ffffff 100%),
+      repeating-linear-gradient(
+        0deg,
+        rgba(15, 23, 42, 0.03) 0,
+        rgba(15, 23, 42, 0.03) 1px,
+        transparent 1px,
+        transparent 32px
+      );
+  }
+
+  .auth-brand-panel,
+  .auth-brand-panel__content,
+  .auth-form-panel,
+  .auth-loading-card {
+    padding: 24px;
+  }
+
+  .auth-brand-panel,
+  .auth-form-panel,
+  .auth-loading-card {
+    min-height: auto;
+  }
+
+  .auth-brand-panel {
+    border-right: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .volvo-mark {
+    width: 210px;
+    height: 210px;
+  }
+
+  .volvo-mark__ring {
+    inset: 16px;
+    border-width: 8px;
+  }
+
+  .volvo-mark__arrow-shaft {
+    top: 24px;
+    right: 28px;
+    width: 52px;
+    height: 8px;
+  }
+
+  .volvo-mark__arrow-head {
+    top: 13px;
+    right: 12px;
+    border-left-width: 22px;
+    border-top-width: 15px;
+    border-bottom-width: 15px;
+  }
+
+  .volvo-mark__word {
+    font-size: 22px;
+  }
+
+  .volvo-mark__word::before {
+    width: 118px;
+    height: 14px;
+  }
+
+  .auth-brand-panel__title {
+    font-size: 30px;
   }
 
   .p10-donut {

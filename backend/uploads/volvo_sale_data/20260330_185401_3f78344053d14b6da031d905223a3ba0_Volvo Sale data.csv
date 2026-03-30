@@ -1,0 +1,984 @@
+﻿Calendar Year,Region,Market Area,Country,Machine Line code,Machine Line,Size Class Flag,Brand Owner code,Brand Owner ,Brand,Brand Nationality,Source,FID
+2023,Region Asia,MA Indonesia,Indonesia,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,234
+2023,Region Asia,MA Indonesia,Indonesia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Asia,MA Indonesia,Indonesia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,134
+2023,Region Asia,MA Indonesia,Indonesia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,224
+2023,Region Asia,MA Indonesia,Indonesia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region Asia,MA Indonesia,Indonesia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Asia,MA Indonesia,Indonesia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,24
+2023,Region Asia,MA Indonesia,Indonesia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,192
+2023,Region Asia,MA Indonesia,Indonesia,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Asia,MA Indonesia,Indonesia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,8
+2023,Region Asia,MA Indonesia,Indonesia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,184
+2023,Region Asia,MA Indonesia,Indonesia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2023,Region Asia,MA Japan,Japan,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Asia,MA Japan,Japan,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Asia,MA Japan,Japan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Asia,MA Japan,Japan,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2023,Region Asia,MA Japan,Japan,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,61
+2023,Region Asia,MA Japan,Japan,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Asia,MA Japan,Japan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA Korea,South Korea,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Asia,MA Korea,South Korea,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,905
+2023,Region Asia,MA Korea,South Korea,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,405
+2023,Region Asia,MA Korea,South Korea,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,698
+2023,Region Asia,MA Korea,South Korea,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Asia,MA Korea,South Korea,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,61
+2023,Region Asia,MA SE Asia,Cambodia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Asia,MA SE Asia,Cambodia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region Asia,MA SE Asia,Cambodia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,17
+2023,Region Asia,MA SE Asia,Lao,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,20
+2023,Region Asia,MA SE Asia,Malaysia,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Malaysia,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Malaysia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,51
+2023,Region Asia,MA SE Asia,Malaysia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,113
+2023,Region Asia,MA SE Asia,Malaysia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Asia,MA SE Asia,Malaysia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Asia,MA SE Asia,Malaysia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,63
+2023,Region Asia,MA SE Asia,Malaysia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA SE Asia,Myanmar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,7
+2023,Region Asia,MA SE Asia,Myanmar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2023,Region Asia,MA SE Asia,Myanmar,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region Asia,MA SE Asia,Philippines,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,39
+2023,Region Asia,MA SE Asia,Philippines,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Asia,MA SE Asia,Philippines,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2023,Region Asia,MA SE Asia,Philippines,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,75
+2023,Region Asia,MA SE Asia,Philippines,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,408
+2023,Region Asia,MA SE Asia,Philippines,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,SDLG,China,SAL,42
+2023,Region Asia,MA SE Asia,Philippines,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,82
+2023,Region Asia,MA SE Asia,Philippines,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Asia,MA SE Asia,Philippines,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region Asia,MA SE Asia,Philippines,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,187
+2023,Region Asia,MA SE Asia,Philippines,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region Asia,MA SE Asia,Singapore,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA SE Asia,Singapore,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,22
+2023,Region Asia,MA SE Asia,Singapore,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA SE Asia,Singapore,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,27
+2023,Region Asia,MA SE Asia,Singapore,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA SE Asia,Singapore,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Asia,MA SE Asia,Taiwan,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA SE Asia,Taiwan,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA SE Asia,Taiwan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Taiwan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,62
+2023,Region Asia,MA SE Asia,Taiwan,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA SE Asia,Taiwan,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,20
+2023,Region Asia,MA SE Asia,Taiwan,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Taiwan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,4
+2023,Region Asia,MA SE Asia,Taiwan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Asia,MA SE Asia,Thailand,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,8
+2023,Region Asia,MA SE Asia,Thailand,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region Asia,MA SE Asia,Thailand,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA SE Asia,Thailand,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,96
+2023,Region Asia,MA SE Asia,Thailand,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,53
+2023,Region Asia,MA SE Asia,Thailand,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA SE Asia,Thailand,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,10
+2023,Region Asia,MA SE Asia,Thailand,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,15
+2023,Region Asia,MA SE Asia,Viet Nam,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Asia,MA SE Asia,Viet Nam,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Asia,MA SE Asia,Viet Nam,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Asia,MA SE Asia,Viet Nam,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Asia,MA SE Asia,Viet Nam,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region China,MA China,China,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,"2,214"
+2023,Region China,MA China,China,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,"2,225"
+2023,Region China,MA China,China,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region China,MA China,China,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,"2,049"
+2023,Region China,MA China,China,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,925
+2023,Region China,MA China,China,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,SDLG,China,SAL,19
+2023,Region China,MA China,China,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region China,MA China,China,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region China,MA China,China,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,547
+2023,Region China,MA China,China,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,"8,659"
+2023,Region China,MA China,China,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,51
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,38
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,58
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,77
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,44
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,56
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,56
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,33
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,57
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,41
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,29
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,129
+2023,Region Europe,MA France,France,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,118
+2023,Region Europe,MA France,France,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,648
+2023,Region Europe,MA France,France,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,334
+2023,Region Europe,MA France,France,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,261
+2023,Region Europe,MA France,France,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,161
+2023,Region Europe,MA France,France,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,MA France,France,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2023,Region Europe,MA France,France,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,235
+2023,Region Europe,MA France,France,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,321
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,135
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,111
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,45
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,117
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,1
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,47
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,145
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,97
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,107
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,25
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,166
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,84
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,361
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,537
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,39
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,1
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,450
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,311
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,68
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,778
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,418
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,298
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,116
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,146
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,609
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,703
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,19
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,105
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,271
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,245
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,56
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,118
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,599
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,85
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,65
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,59
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,53
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,21
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,80
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,54
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,83
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,33
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,69
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,98
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,51
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,388
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,301
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,49
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,38
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,36
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,227
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,192
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,346
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,172
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,96
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,43
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,450
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,163
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,59
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,65
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,44
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,151
+2023,Region India,MA India,India,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,45
+2023,Region India,MA India,India,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,15
+2023,Region India,MA India,India,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,"1,071"
+2023,Region India,MA India,India,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,391
+2023,Region India,MA India,India,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,50
+2023,Region International,MA Africa,South Africa,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,10
+2023,Region International,MA Africa,South Africa,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2023,Region International,MA Africa,South Africa,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,20
+2023,Region International,MA Africa,South Africa,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,88
+2023,Region International,MA Africa,South Africa,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,293
+2023,Region International,MA Africa,South Africa,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region International,MA Africa,South Africa,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region International,MA Africa,South Africa,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,61
+2023,Region International,MA Africa,South Africa,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,111
+2023,Region International,MA East,Oman,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2023,Region International,MA East,Oman,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,49
+2023,Region International,MA East,Oman,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2023,Region International,MA East,Qatar,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region International,MA East,Qatar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,19
+2023,Region International,MA East,Qatar,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region International,MA East,Qatar,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region International,MA East,Qatar,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2023,Region International,MA East,Saudi Arabia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region International,MA East,Saudi Arabia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,50
+2023,Region International,MA East,Saudi Arabia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,198
+2023,Region International,MA East,Saudi Arabia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,26
+2023,Region International,MA East,Saudi Arabia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,112
+2023,Region International,MA East,Saudi Arabia,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region International,MA East,Saudi Arabia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,158
+2023,Region International,MA East,Saudi Arabia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,57
+2023,Region International,MA East,Turkey,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region International,MA East,Turkey,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,66
+2023,Region International,MA East,Turkey,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,461
+2023,Region International,MA East,Turkey,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2023,Region International,MA East,Turkey,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region International,MA East,Turkey,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region International,MA East,Turkey,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region International,MA East,Turkey,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,243
+2023,Region International,MA East,UAE,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region International,MA East,UAE,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region International,MA East,UAE,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,72
+2023,Region International,MA East,UAE,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2023,Region International,MA East,UAE,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,156
+2023,Region International,MA East,UAE,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region International,MA East,UAE,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,37
+2023,Region International,MA East,UAE,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,80
+2023,Region International,MA Oceania,Australia,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region International,MA Oceania,Australia,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region International,MA Oceania,Australia,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,38
+2023,Region International,MA Oceania,Australia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,58
+2023,Region International,MA Oceania,Australia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,217
+2023,Region International,MA Oceania,Australia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region International,MA Oceania,Australia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,72
+2023,Region International,MA Oceania,Australia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,158
+2023,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2023,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region International,MA Oceania,Australia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,39
+2023,Region International,MA Oceania,Australia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,313
+2023,Region Latin America,MA Argentina,Argentina,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2023,Region Latin America,MA Argentina,Argentina,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,54
+2023,Region Latin America,MA Argentina,Argentina,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Latin America,MA Argentina,Argentina,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,11
+2023,Region Latin America,MA Argentina,Argentina,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,89
+2023,Region Latin America,MA Argentina,Argentina,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2023,Region Latin America,MA Brazil,Brazil,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Latin America,MA Brazil,Brazil,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,86
+2023,Region Latin America,MA Brazil,Brazil,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,587
+2023,Region Latin America,MA Brazil,Brazil,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Brazil,Brazil,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Latin America,MA Brazil,Brazil,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,30
+2023,Region Latin America,MA Brazil,Brazil,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Brazil,Brazil,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,275
+2023,Region Latin America,MA Brazil,Brazil,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,622
+2023,Region Latin America,MA Hispanic,Chile,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region Latin America,MA Hispanic,Chile,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,60
+2023,Region Latin America,MA Hispanic,Chile,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Latin America,MA Hispanic,Chile,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2023,Region Latin America,MA Hispanic,Chile,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Latin America,MA Hispanic,Chile,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Chile,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,19
+2023,Region Latin America,MA Hispanic,Chile,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,62
+2023,Region Latin America,MA Hispanic,Colombia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Latin America,MA Hispanic,Colombia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region Latin America,MA Hispanic,Colombia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region Latin America,MA Hispanic,Colombia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,7
+2023,Region Latin America,MA Hispanic,Colombia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,36
+2023,Region Latin America,MA Hispanic,Colombia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Costa Rica,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Costa Rica,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Costa Rica,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region Latin America,MA Hispanic,Costa Rica,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Costa Rica,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Costa Rica,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Latin America,MA Hispanic,Ecuador,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,22
+2023,Region Latin America,MA Hispanic,Ecuador,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,10
+2023,Region Latin America,MA Hispanic,Ecuador,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,30
+2023,Region Latin America,MA Hispanic,Ecuador,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region Latin America,MA Hispanic,Ecuador,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic,Guatemala,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Latin America,MA Hispanic,Guatemala,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic,Guatemala,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic,Guatemala,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Latin America,MA Hispanic,Mexico,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Mexico,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,71
+2023,Region Latin America,MA Hispanic,Mexico,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Latin America,MA Hispanic,Mexico,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Latin America,MA Hispanic,Mexico,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Mexico,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,15
+2023,Region Latin America,MA Hispanic,Mexico,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,21
+2023,Region Latin America,MA Hispanic,Nicaragua,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Latin America,MA Hispanic,Nicaragua,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region Latin America,MA Hispanic,Panama,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Latin America,MA Hispanic,Panama,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region Latin America,MA Hispanic,Panama,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2023,Region Latin America,MA Hispanic,Panama,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Panama,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Panama,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic,Panama,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Peru,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Peru,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Peru,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,78
+2023,Region Latin America,MA Hispanic,Peru,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Peru,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Peru,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,19
+2023,Region Latin America,MA Hispanic,Peru,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,42
+2023,Region Latin America,MA Hispanic Central,Paraguay,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Latin America,MA Hispanic Central,Paraguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,43
+2023,Region Latin America,MA Hispanic Central,Paraguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic Central,Uruguay,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic Central,Uruguay,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2023,Region Latin America,MA Hispanic Central,Uruguay,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic Central,Uruguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,12
+2023,Region Latin America,MA Hispanic Central,Uruguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region North America,MA Canada,Canada,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region North America,MA Canada,Canada,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2023,Region North America,MA Canada,Canada,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,273
+2023,Region North America,MA Canada,Canada,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region North America,MA Canada,Canada,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,15
+2023,Region North America,MA Canada,Canada,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,129
+2023,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2023,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,7
+2023,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,26
+2023,Region North America,MA Canada,Canada,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,32
+2023,Region North America,MA Canada,Canada,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,343
+2023,Region North America,MA United States,United States,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,281
+2023,Region North America,MA United States,United States,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,325
+2023,Region North America,MA United States,United States,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,"1,850"
+2023,Region North America,MA United States,United States,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,104
+2023,Region North America,MA United States,United States,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,185
+2023,Region North America,MA United States,United States,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,"1,150"
+2023,Region North America,MA United States,United States,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,79
+2023,Region North America,MA United States,United States,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,55
+2023,Region North America,MA United States,United States,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,14
+2023,Region North America,MA United States,United States,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,150
+2023,Region North America,MA United States,United States,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,9
+2023,Region North America,MA United States,United States,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,"2,185"
+2024,Region Asia,MA Asia East,Japan,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia East,Japan,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Asia,MA Asia East,Japan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2024,Region Asia,MA Asia East,Japan,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Asia,MA Asia East,Japan,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,56
+2024,Region Asia,MA Asia East,Japan,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region Asia,MA Asia East,Japan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Asia,MA Asia East,Malaysia,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,10
+2024,Region Asia,MA Asia East,Malaysia,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,6
+2024,Region Asia,MA Asia East,Malaysia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,50
+2024,Region Asia,MA Asia East,Malaysia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,75
+2024,Region Asia,MA Asia East,Malaysia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Asia,MA Asia East,Malaysia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,37
+2024,Region Asia,MA Asia East,Malaysia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Asia,MA Asia East,Philippines,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,30
+2024,Region Asia,MA Asia East,Philippines,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,13
+2024,Region Asia,MA Asia East,Philippines,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Asia,MA Asia East,Philippines,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,178
+2024,Region Asia,MA Asia East,Philippines,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,159
+2024,Region Asia,MA Asia East,Philippines,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,SDLG,China,SAL,30
+2024,Region Asia,MA Asia East,Philippines,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,68
+2024,Region Asia,MA Asia East,Philippines,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region Asia,MA Asia East,Philippines,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,4
+2024,Region Asia,MA Asia East,Philippines,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,92
+2024,Region Asia,MA Asia East,Philippines,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Asia,MA Asia East,Singapore,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Asia,MA Asia East,Singapore,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2024,Region Asia,MA Asia East,Singapore,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,40
+2024,Region Asia,MA Asia East,Singapore,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region Asia,MA Asia East,Taiwan,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Asia,MA Asia East,Taiwan,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Asia,MA Asia East,Taiwan,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Asia,MA Asia East,Taiwan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,6
+2024,Region Asia,MA Asia East,Taiwan,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,40
+2024,Region Asia,MA Asia East,Taiwan,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,25
+2024,Region Asia,MA Asia East,Taiwan,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Asia,MA Asia East,Taiwan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,11
+2024,Region Asia,MA Asia East,Taiwan,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia West,Cambodia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Asia,MA Asia West,Cambodia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,16
+2024,Region Asia,MA Asia West,Indonesia,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,38
+2024,Region Asia,MA Asia West,Indonesia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,21
+2024,Region Asia,MA Asia West,Indonesia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,164
+2024,Region Asia,MA Asia West,Indonesia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Asia,MA Asia West,Indonesia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,12
+2024,Region Asia,MA Asia West,Indonesia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,306
+2024,Region Asia,MA Asia West,Indonesia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,8
+2024,Region Asia,MA Asia West,Indonesia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,169
+2024,Region Asia,MA Asia West,Indonesia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Asia,MA Asia West,Lao,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Asia,MA Asia West,Myanmar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,23
+2024,Region Asia,MA Asia West,Myanmar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Asia,MA Asia West,Thailand,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,24
+2024,Region Asia,MA Asia West,Thailand,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,83
+2024,Region Asia,MA Asia West,Thailand,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Asia,MA Asia West,Thailand,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region Asia,MA Asia West,Thailand,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,36
+2024,Region Asia,MA Asia West,Thailand,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Asia,MA Asia West,Thailand,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,11
+2024,Region Asia,MA Asia West,Timor-Leste,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Asia,MA Asia West,Timor-Leste,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia West,Timor-Leste,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region Asia,MA Asia West,Viet Nam,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,8
+2024,Region Asia,MA Asia West,Viet Nam,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region Asia,MA Asia West,Viet Nam,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia West,Viet Nam,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Asia,MA Korea,South Korea,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region Asia,MA Korea,South Korea,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,834
+2024,Region Asia,MA Korea,South Korea,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,418
+2024,Region Asia,MA Korea,South Korea,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,755
+2024,Region Asia,MA Korea,South Korea,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Asia,MA Korea,South Korea,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,62
+2024,Region China,MA China,China,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,"3,507"
+2024,Region China,MA China,China,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,"2,146"
+2024,Region China,MA China,China,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region China,MA China,China,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,"3,483"
+2024,Region China,MA China,China,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,811
+2024,Region China,MA China,China,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,SDLG,China,SAL,99
+2024,Region China,MA China,China,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region China,MA China,China,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2024,Region China,MA China,China,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,433
+2024,Region China,MA China,China,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,"10,718"
+2024,Region China,MA China,China,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,45
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,63
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,76
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Europe,"MA ASC EU, IL & Balkan",Czech Republic,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,29
+2024,Region Europe,"MA ASC EU, IL & Balkan",Greece,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Europe,"MA ASC EU, IL & Balkan",Greece,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,"MA ASC EU, IL & Balkan",Greece,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,59
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,49
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,40
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,36
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,47
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,24
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,130
+2024,Region Europe,MA France,France,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,111
+2024,Region Europe,MA France,France,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,466
+2024,Region Europe,MA France,France,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,222
+2024,Region Europe,MA France,France,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,263
+2024,Region Europe,MA France,France,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,1
+2024,Region Europe,MA France,France,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,99
+2024,Region Europe,MA France,France,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Europe,MA France,France,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2024,Region Europe,MA France,France,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,167
+2024,Region Europe,MA France,France,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,215
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,93
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,70
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,19
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,96
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,39
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,86
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,143
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,71
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,79
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,237
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,102
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,246
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,382
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,6
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,223
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,282
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,39
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,311
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,255
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,167
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,103
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,70
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,510
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,496
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,97
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,204
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,199
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,30
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,166
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,734
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,60
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,36
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,44
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,71
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,132
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,23
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,65
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,43
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,95
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,284
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,218
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,20
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,27
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,22
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,191
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,68
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,246
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,123
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,55
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,70
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,450
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,105
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,81
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,114
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,1
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,43
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,129
+2024,Region India,MA India,India,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,23
+2024,Region India,MA India,India,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region India,MA India,India,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,15
+2024,Region India,MA India,India,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,"1,128"
+2024,Region India,MA India,India,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,400
+2024,Region India,MA India,India,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,102
+2024,Region International,MA Africa,South Africa,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,39
+2024,Region International,MA Africa,South Africa,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,55
+2024,Region International,MA Africa,South Africa,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,316
+2024,Region International,MA Africa,South Africa,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region International,MA Africa,South Africa,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region International,MA Africa,South Africa,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,20
+2024,Region International,MA Africa,South Africa,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,103
+2023,Region Asia,MA Indonesia,Indonesia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,48
+2023,Region Asia,MA Indonesia,Indonesia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,12
+2023,Region Asia,MA Indonesia,Indonesia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,47
+2023,Region Asia,MA Indonesia,Indonesia,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region Asia,MA Japan,Japan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Asia,MA Japan,Japan,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region Asia,MA Korea,South Korea,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA Korea,South Korea,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,15
+2023,Region Asia,MA SE Asia,Cambodia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Asia,MA SE Asia,Cambodia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Asia,MA SE Asia,Malaysia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,4
+2023,Region Asia,MA SE Asia,Malaysia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Asia,MA SE Asia,Philippines,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,46
+2023,Region Asia,MA SE Asia,Philippines,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,34
+2023,Region Asia,MA SE Asia,Philippines,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,46
+2023,Region Asia,MA SE Asia,Philippines,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2023,Region Asia,MA SE Asia,Philippines,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Singapore,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2023,Region Asia,MA SE Asia,Singapore,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,5
+2023,Region Asia,MA SE Asia,Taiwan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Asia,MA SE Asia,Taiwan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Asia,MA SE Asia,Taiwan,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,4
+2023,Region Asia,MA SE Asia,Thailand,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,10
+2023,Region Asia,MA SE Asia,Thailand,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,5
+2023,Region Asia,MA SE Asia,Thailand,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Asia,MA SE Asia,Viet Nam,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region China,MA China,China,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,116
+2023,Region China,MA China,China,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,96
+2024,Region International,MA East,Oman,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region International,MA East,Oman,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2024,Region International,MA East,Oman,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region International,MA East,Oman,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,70
+2024,Region International,MA East,Oman,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region China,MA China,China,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region China,MA China,China,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,89
+2023,Region China,MA China,China,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,12
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region Europe,"MA ASC EU, IL & Balkan",Austria,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region International,MA East,Qatar,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region International,MA East,Qatar,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region International,MA East,Qatar,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,9
+2024,Region International,MA East,Qatar,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Europe,"MA ASC EU, IL & Balkan",Portugal,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2024,Region International,MA East,Saudi Arabia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region International,MA East,Saudi Arabia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,40
+2024,Region International,MA East,Saudi Arabia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,215
+2024,Region International,MA East,Saudi Arabia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,45
+2024,Region International,MA East,Saudi Arabia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,73
+2024,Region International,MA East,Saudi Arabia,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region International,MA East,Saudi Arabia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,4
+2024,Region International,MA East,Saudi Arabia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,116
+2024,Region International,MA East,Saudi Arabia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,38
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Europe,"MA ASC EU, IL & Balkan",Spain,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,6
+2023,Region Europe,MA France,France,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2023,Region Europe,MA France,France,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,30
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Belgium,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,4
+2024,Region International,MA East,Turkey,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region International,MA East,Turkey,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,22
+2024,Region International,MA East,Turkey,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,45
+2024,Region International,MA East,Turkey,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,16
+2024,Region International,MA East,Turkey,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,393
+2024,Region International,MA East,Turkey,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region International,MA East,Turkey,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region International,MA East,Turkey,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region International,MA East,Turkey,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region International,MA East,Turkey,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region International,MA East,Turkey,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,34
+2024,Region International,MA East,Turkey,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,288
+2024,Region International,MA East,UAE,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region International,MA East,UAE,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region International,MA East,UAE,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region International,MA East,UAE,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,50
+2024,Region International,MA East,UAE,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,28
+2024,Region International,MA East,UAE,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,129
+2024,Region International,MA East,UAE,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region International,MA East,UAE,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,101
+2024,Region International,MA East,UAE,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,59
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,26
+2023,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,26
+2023,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,13
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region Europe,MA Swecon & Robert Aebi,Germany,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,34
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region International,MA Oceania,Australia,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region International,MA Oceania,Australia,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,6
+2024,Region International,MA Oceania,Australia,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,32
+2024,Region International,MA Oceania,Australia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,166
+2024,Region International,MA Oceania,Australia,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region International,MA Oceania,Australia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,25
+2024,Region International,MA Oceania,Australia,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,161
+2024,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region International,MA Oceania,Australia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region International,MA Oceania,Australia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,8
+2024,Region International,MA Oceania,Australia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,291
+2023,Region Europe,MA Swecon & Robert Aebi,Sweden,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2024,Region Latin America,MA Argentina,Argentina,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Latin America,MA Argentina,Argentina,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,38
+2024,Region Latin America,MA Argentina,Argentina,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Latin America,MA Argentina,Argentina,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,19
+2024,Region Latin America,MA Argentina,Argentina,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Argentina,Argentina,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,60
+2024,Region Latin America,MA Argentina,Argentina,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,31
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,MA Swecon & Robert Aebi,Switzerland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,5
+2023,Region Europe,MA Volvo EU Owned Dealers,Denmark,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,32
+2023,Region Europe,MA Volvo EU Owned Dealers,Finland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Europe,MA Volvo EU Owned Dealers,Italy,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,35
+2023,Region Europe,MA Volvo EU Owned Dealers,Norway,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2023,Region Europe,MA Volvo EU Owned Dealers,Poland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,14
+2023,Region India,MA India,India,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,61
+2023,Region India,MA India,India,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,440
+2023,Region India,MA India,India,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,42
+2023,Region International,MA Africa,South Africa,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region International,MA Africa,South Africa,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2023,Region International,MA Africa,South Africa,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region International,MA East,Oman,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,6
+2023,Region International,MA East,Oman,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2023,Region International,MA East,Oman,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region International,MA East,Oman,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region International,MA East,Saudi Arabia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,23
+2023,Region International,MA East,Saudi Arabia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2023,Region International,MA East,Saudi Arabia,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2023,Region International,MA East,UAE,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,3
+2023,Region International,MA East,UAE,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2023,Region International,MA East,UAE,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2023,Region Latin America,MA Argentina,Argentina,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,19
+2023,Region Latin America,MA Argentina,Argentina,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Argentina,Argentina,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Brazil,Brazil,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2023,Region Latin America,MA Hispanic,Chile,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,2
+2023,Region Latin America,MA Hispanic,Chile,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Ecuador,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Ecuador,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2023,Region Latin America,MA Hispanic,Mexico,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,7
+2023,Region Latin America,MA Hispanic,Mexico,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Brazil,Brazil,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Brazil,Brazil,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,9
+2024,Region Latin America,MA Brazil,Brazil,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region Latin America,MA Brazil,Brazil,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,92
+2024,Region Latin America,MA Brazil,Brazil,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,508
+2024,Region Latin America,MA Brazil,Brazil,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Brazil,Brazil,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Latin America,MA Brazil,Brazil,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,85
+2024,Region Latin America,MA Brazil,Brazil,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Latin America,MA Brazil,Brazil,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,284
+2024,Region Latin America,MA Brazil,Brazil,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,620
+2023,Region Latin America,MA Hispanic,Nicaragua,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Nicaragua,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic,Panama,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic,Panama,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2023,Region Latin America,MA Hispanic,Peru,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,4
+2023,Region Latin America,MA Hispanic Central,Paraguay,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2023,Region Latin America,MA Hispanic Central,Uruguay,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region Latin America,MA Hispanic Central,Uruguay,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,1
+2023,Region North America,MA Canada,Canada,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,41
+2023,Region North America,MA United States,United States,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,867
+2023,Region North America,MA United States,United States,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo - Blaw Knox,United States,SAL,1
+2023,Region North America,MA United States,United States,420,Skid Steer Loaders,Skid Steer Loaders,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia East,Japan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Asia,MA Asia East,Malaysia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Asia,MA Asia East,Malaysia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Asia,MA Asia East,Philippines,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,7
+2024,Region Asia,MA Asia East,Philippines,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,4
+2024,Region Asia,MA Asia East,Philippines,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,26
+2024,Region Asia,MA Asia East,Philippines,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Asia,MA Asia East,Singapore,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Asia,MA Asia East,Singapore,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2024,Region Asia,MA Asia East,Taiwan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Chile,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Chile,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,10
+2024,Region Latin America,MA Hispanic,Chile,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,77
+2024,Region Latin America,MA Hispanic,Chile,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Latin America,MA Hispanic,Chile,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,21
+2024,Region Latin America,MA Hispanic,Chile,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,49
+2024,Region Asia,MA Asia East,Taiwan,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Asia,MA Asia East,Taiwan,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,5
+2024,Region Asia,MA Asia West,Cambodia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,6
+2024,Region Asia,MA Asia West,Indonesia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,40
+2024,Region Asia,MA Asia West,Indonesia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,12
+2024,Region Asia,MA Asia West,Indonesia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,18
+2024,Region Asia,MA Asia West,Indonesia,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2024,Region Asia,MA Asia West,Myanmar,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region Asia,MA Asia West,Thailand,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Asia,MA Asia West,Thailand,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2024,Region Asia,MA Asia West,Timor-Leste,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region Asia,MA Asia West,Viet Nam,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Asia,MA Asia West,Viet Nam,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Asia,MA Korea,South Korea,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Asia,MA Korea,South Korea,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,10
+2024,Region China,MA China,China,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,117
+2024,Region China,MA China,China,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,171
+2024,Region China,MA China,China,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region China,MA China,China,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,34
+2024,Region China,MA China,China,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,27
+2024,Region Europe,"MA ASC EU, IL & Balkan",Austria,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,"MA ASC EU, IL & Balkan",Portugal,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,"MA ASC EU, IL & Balkan",Spain,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,2
+2024,Region Europe,MA France,France,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,34
+2024,Region Europe,MA France,France,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,15
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Ireland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,11
+2024,Region Europe,MA SMT EU & Pat O'Donnell,Netherlands,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Europe,MA SMT EU & Pat O'Donnell,United Kingdom,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,7
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,6
+2024,Region Europe,MA Swecon & Robert Aebi,Germany,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,11
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Europe,MA Swecon & Robert Aebi,Sweden,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,8
+2024,Region Europe,MA Swecon & Robert Aebi,Switzerland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,7
+2024,Region Europe,MA Volvo EU Owned Dealers,Denmark,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Europe,MA Volvo EU Owned Dealers,Finland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,4
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Europe,MA Volvo EU Owned Dealers,Italy,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,4
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,21
+2024,Region Europe,MA Volvo EU Owned Dealers,Norway,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region Latin America,MA Hispanic,Colombia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,15
+2024,Region Latin America,MA Hispanic,Colombia,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,16
+2024,Region Latin America,MA Hispanic,Colombia,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Hispanic,Colombia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,43
+2024,Region Latin America,MA Hispanic,Colombia,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Europe,MA Volvo EU Owned Dealers,Poland,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,15
+2024,Region India,MA India,India,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,42
+2024,Region India,MA India,India,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,348
+2024,Region India,MA India,India,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,19
+2024,Region International,MA East,Oman,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,23
+2024,Region International,MA East,Oman,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,12
+2024,Region International,MA East,Oman,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region International,MA East,Oman,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,1
+2024,Region International,MA East,Qatar,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region International,MA East,Saudi Arabia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,11
+2024,Region International,MA East,Saudi Arabia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region International,MA East,Saudi Arabia,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2024,Region International,MA East,Saudi Arabia,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,6
+2024,Region International,MA East,UAE,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,8
+2024,Region International,MA East,UAE,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region International,MA East,UAE,400,Paving Machines,Paving Machines,VCE,Volvo CE,Volvo,Germany,SAL,3
+2024,Region International,MA East,UAE,410,Backhoe Loaders,Backhoe Loaders,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region International,MA Oceania,Australia,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,17
+2024,Region Latin America,MA Argentina,Argentina,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,8
+2024,Region Latin America,MA Argentina,Argentina,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Latin America,MA Hispanic,Costa Rica,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Latin America,MA Hispanic,Costa Rica,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Hispanic,Costa Rica,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,7
+2024,Region Latin America,MA Hispanic,Costa Rica,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Costa Rica,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Costa Rica,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region Latin America,MA Hispanic,Costa Rica,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,5
+2024,Region Latin America,MA Brazil,Brazil,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,7
+2024,Region Latin America,MA Brazil,Brazil,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Latin America,MA Hispanic,Chile,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Ecuador,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region Latin America,MA Hispanic,Ecuador,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,9
+2024,Region Latin America,MA Hispanic,Ecuador,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,30
+2024,Region Latin America,MA Hispanic,Ecuador,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,4
+2024,Region Latin America,MA Hispanic,Ecuador,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Hispanic,Ecuador,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Colombia,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,4
+2024,Region Latin America,MA Hispanic,Guatemala,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Latin America,MA Hispanic,Guatemala,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Guatemala,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Hispanic,Guatemala,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Costa Rica,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Mexico,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region Latin America,MA Hispanic,Mexico,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,60
+2024,Region Latin America,MA Hispanic,Mexico,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Latin America,MA Hispanic,Mexico,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Mexico,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,45
+2024,Region Latin America,MA Hispanic,Mexico,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,12
+2024,Region Latin America,MA Hispanic,Costa Rica,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Ecuador,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Guatemala,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Nicaragua,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Nicaragua,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,13
+2024,Region Latin America,MA Hispanic,Mexico,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,9
+2024,Region Latin America,MA Hispanic,Panama,300,Compact Excavators,Midi,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region Latin America,MA Hispanic,Panama,300,Compact Excavators,Mini,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Panama,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Latin America,MA Hispanic,Panama,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,3
+2024,Region Latin America,MA Hispanic,Panama,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,14
+2024,Region Latin America,MA Hispanic,Panama,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Hispanic,Panama,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,3
+2024,Region Latin America,MA Hispanic,Mexico,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Nicaragua,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Panama,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Paraguay,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region Latin America,MA Hispanic,Paraguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,31
+2024,Region Latin America,MA Hispanic,Paraguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Panama,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region Latin America,MA Hispanic,Paraguay,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Hispanic,Uruguay,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,9
+2024,Region Latin America,MA Hispanic,Uruguay,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Hispanic,Uruguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region Latin America,MA Hispanic,Uruguay,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,4
+2024,Region Latin America,MA Hispanic,Uruguay,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Peru,Peru,380,Motor Graders,Motor Graders,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Peru,Peru,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,SDLG,China,SAL,1
+2024,Region Latin America,MA Peru,Peru,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,65
+2024,Region Latin America,MA Peru,Peru,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region Latin America,MA Peru,Peru,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,18
+2024,Region Latin America,MA Peru,Peru,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,63
+2024,Region Latin America,MA Peru,Peru,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,SDLG,China,SAL,2
+2024,Region Latin America,MA Peru,Peru,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,1
+2024,Region North America,MA Canada,Canada,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,29
+2024,Region North America,MA United States,United States,390,Compaction Machines,Compaction Machines,VCE,Volvo CE,Volvo,Sweden,SAL,630
+2024,Region North America,MA Canada,Canada,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,20
+2024,Region North America,MA Canada,Canada,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,45
+2024,Region North America,MA Canada,Canada,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,183
+2024,Region North America,MA Canada,Canada,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,15
+2024,Region North America,MA Canada,Canada,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,14
+2024,Region North America,MA Canada,Canada,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,120
+2024,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,10
+2024,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,8
+2024,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,5
+2024,Region North America,MA Canada,Canada,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,37
+2024,Region North America,MA Canada,Canada,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,18
+2024,Region North America,MA Canada,Canada,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,224
+2024,Region North America,MA United States,United States,300,Compact Excavators,Midi,VCE,Volvo CE,Volvo,Sweden,SAL,208
+2024,Region North America,MA United States,United States,300,Compact Excavators,Mini,VCE,Volvo CE,Volvo,Sweden,SAL,491
+2024,Region North America,MA United States,United States,310,GPE Crawler Excavators,>10T,VCE,Volvo CE,Volvo,Sweden,SAL,"1,527"
+2024,Region North America,MA United States,United States,320,GPE Wheel Excavators,>11T,VCE,Volvo CE,Volvo,Sweden,SAL,106
+2024,Region North America,MA United States,United States,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Rokbak,United Kingdom,SAL,142
+2024,Region North America,MA United States,United States,330,Articulated Haulers,Articulated Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,"1,228"
+2024,Region North America,MA United States,United States,340,Rigid Haulers,Rigid Haulers,VCE,Volvo CE,Volvo,Sweden,SAL,2
+2024,Region North America,MA United States,United States,350,Compact Wheel Loaders,<7,VCE,Volvo CE,Volvo,Sweden,SAL,77
+2024,Region North America,MA United States,United States,350,Compact Wheel Loaders,10<12,VCE,Volvo CE,Volvo,Sweden,SAL,57
+2024,Region North America,MA United States,United States,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,SDLG,China,SAL,18
+2024,Region North America,MA United States,United States,350,Compact Wheel Loaders,7<10,VCE,Volvo CE,Volvo,Sweden,SAL,161
+2024,Region North America,MA United States,United States,360,GPE Wheel Loaders,>12,VCE,Volvo CE,SDLG,China,SAL,15
+2024,Region North America,MA United States,United States,360,GPE Wheel Loaders,>12,VCE,Volvo CE,Volvo,Sweden,SAL,"1,975"

@@ -13,7 +13,7 @@ const layers: LayerCard[] = [
     title: "Preparation Raw Layer",
     bullets: [
       "For CRP data:",
-      "Merge latest TMA + SAL,map country fields, and assign reporter/deletion flags.",
+      "Merge latest TMA + SAL, map country fields, and assign reporter/deletion flags.",
       "For OTH data: mark Deletion flag = Y when Machine Line Code = 390, or when Country + Machine Line Name is not found in Source Matrix.",
     ],
   },
@@ -22,7 +22,7 @@ const layers: LayerCard[] = [
     title: "Prepared Layer",
     bullets: [
       "Display TMA (Total Market) records at prepared layer granularity.",
-      "Calculate Volvo CE (VCE) from Reporter Flag = Y and exclude Deletion flag = Y.",
+      "Calculate Volvo CE (VCE) from Volvo/SAL rows that have a non-empty CRP Source in Source Matrix for the matched Country + Machine Line Name, exclude Deletion flag = Y, and exclude Motor Graders.",
       "Compute Non-Volvo CE as max(TMA - VCE, 0) for downstream steps.",
     ],
   },
@@ -44,14 +44,39 @@ function HomePage() {
   return (
     <div className="page">
       <section className="hero">
-        <div className="hero__content">
-          <p className="section-tag">Master Thesis Prototype</p>
-          <h2 className="hero__title">Visualizing the TMC Calculation Workflow</h2>
-          <p className="hero__text">
-            A prototype for improving transparency of SAP-based calculation steps
-            at Volvo CE, with a clearer view of intermediate layers, business
-            logic, and step-by-step outputs.
-          </p>
+        <div className="hero__background-photo" aria-hidden="true" />
+        <div className="hero__layout">
+          <div className="hero__content">
+            <div className="hero__brand">
+              <img
+                src="/volvo_construction_equipment_logo.jpg"
+                alt="Volvo logo"
+                className="brand-image-logo brand-image-logo--hero"
+              />
+
+              <div className="hero__brand-copy">
+                <p className="hero__brand-name">Volvo Construction Equipment</p>
+                <p className="hero__brand-subtitle">TMC Process Visualizer</p>
+              </div>
+            </div>
+
+            <p className="section-tag">Volvo CE Thesis Prototype</p>
+            <h2 className="hero__title">Visualizing the TMC Calculation Workflow</h2>
+            <p className="hero__text">
+              A more industrial, Volvo CE-inspired interface for exposing hidden SAP
+              calculation steps, intermediate layers, and operational logic in one
+              navigable workspace.
+            </p>
+
+            <div className="hero__actions">
+              <Link to="/pipeline" className="btn btn--primary">
+                Open Pipeline
+              </Link>
+              <Link to="/matrix" className="btn btn--secondary">
+                Submit Matrix
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -163,11 +188,11 @@ function HomePage() {
 
         <div className="pipeline-flow">
           <div className="pipeline-node">P00</div>
-          <div className="pipeline-arrow">→</div>
+          <div className="pipeline-arrow">{"\u2192"}</div>
           <div className="pipeline-node">P10</div>
-          <div className="pipeline-arrow">→</div>
+          <div className="pipeline-arrow">{"\u2192"}</div>
           <div className="pipeline-node">A10</div>
-          <div className="pipeline-arrow">→</div>
+          <div className="pipeline-arrow">{"\u2192"}</div>
           <div className="pipeline-node">A20</div>
         </div>
       </section>

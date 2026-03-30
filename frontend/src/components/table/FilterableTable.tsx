@@ -19,6 +19,7 @@ type FilterableTableProps = {
   onFilteredRowsChange?: (rows: Array<Record<string, string | number | null>>) => void;
   nonEditableColumns?: string[];
   compact?: boolean;
+  getRowClassName?: (row: Record<string, string | number | null>, index: number) => string | undefined;
 };
 
 const EMPTY_FILTER_VALUE = "__EMPTY_FILTER__";
@@ -43,6 +44,7 @@ function FilterableTable({
   onFilteredRowsChange,
   nonEditableColumns = [],
   compact = false,
+  getRowClassName,
 }: FilterableTableProps) {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const showRowActions = editable && typeof onDeleteRow === "function";
@@ -155,7 +157,10 @@ function FilterableTable({
             </tr>
           ) : (
             filteredRows.map(({ row, index }) => (
-              <tr key={`${row.id ?? index}-${index}`}>
+              <tr
+                key={`${row.id ?? index}-${index}`}
+                className={getRowClassName?.(row, index)}
+              >
                 {columns.map((column) => (
                   <td key={`${row.id ?? index}-${column.key}`}>
                     {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (

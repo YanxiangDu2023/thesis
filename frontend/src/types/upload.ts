@@ -137,11 +137,43 @@ export type CrpD1CombinedReportRow = {
   source: string;
   deletion_flag: string;
   fid: number | null;
+  tm: number | null;
+  vce_fid: number | null;
+  tm_non_vce: number | null;
 };
 
 export type CrpD1CombinedReportResponse = {
   row_count: number;
   rows: CrpD1CombinedReportRow[];
+  tma_upload_run_id: number;
+  volvo_upload_run_id: number;
+  group_country_upload_run_id: number;
+  source_matrix_upload_run_id: number;
+};
+
+export type A10AdjustmentRow = {
+  year: string;
+  country_group_code: string;
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line_code: string;
+  machine_line_name: string;
+  size_class: string;
+  brand_code: string;
+  reporter_flag: string;
+  vce_flag: string;
+  source: string;
+  pri_sec: string;
+  calculation_step: string;
+  fid: number | null;
+  tm_fid: number | null;
+  tm_non_vce: number | null;
+};
+
+export type A10AdjustmentResponse = {
+  row_count: number;
+  rows: A10AdjustmentRow[];
   tma_upload_run_id: number;
   volvo_upload_run_id: number;
   group_country_upload_run_id: number;

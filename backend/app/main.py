@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.init_auth_db import init_auth_db
 from app.init_db import init_db
+from app.routers.auth import router as auth_router
 from app.routers.uploads import router as uploads_router
+from app.security import require_auth
 
 app = FastAPI()
 
@@ -15,13 +18,15 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
+    init_auth_db()
     init_db()
 
 @app.get("/")
 def root():
     return {"message": "Backend is running"}
 
-app.include_router(uploads_router)
+app.include_router(auth_router)
+app.include_router(uploads_router, dependencies=[Depends(require_auth)])
 
 # from fastapi import FastAPI
 # from fastapi.middleware.cors import CORSMiddleware
