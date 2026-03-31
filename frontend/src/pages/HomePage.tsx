@@ -12,8 +12,7 @@ const layers: LayerCard[] = [
     code: "P00",
     title: "Preparation Raw Layer",
     bullets: [
-      "For CRP data:",
-      "Merge latest TMA + SAL, map country fields, and assign reporter/deletion flags.",
+      "For CRP data: Merge latest TMA + SAL, map country fields, and assign reporter/deletion flags.",
       "For OTH data: mark Deletion flag = Y when Machine Line Code = 390, or when Country + Machine Line Name is not found in Source Matrix.",
     ],
   },

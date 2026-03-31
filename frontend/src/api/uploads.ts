@@ -6,6 +6,7 @@ import type {
   LatestUploadResponse,
   OthDeletionFlagRow,
   OthDeletionFlagResponse,
+  P00ThreeCheckResponse,
   UploadRow,
   P10VceNonVceResponse,
   RunCrpTmaReportCleanDataResponse,
@@ -155,6 +156,7 @@ function buildOthDeletionFlagRowsFallback(
       market_area: toText(g?.market_area),
       machine_line_name: machineLineName,
       machine_line_code: machineLineCode,
+      artificial_machine_line: toText(m?.artificial_machine_line),
       brand_name: toText(b?.brand_name) || toText(o.brand_name),
       brand_code: toText(b?.brand_code),
       size_class_flag: toText(o.size_class),
@@ -374,4 +376,15 @@ export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
   }
 
   return result as P10VceNonVceResponse;
+}
+
+export async function getP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
+  const response = await apiFetch("/reports/p00-three-check");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch P00 3 Check Report");
+  }
+
+  return result as P00ThreeCheckResponse;
 }

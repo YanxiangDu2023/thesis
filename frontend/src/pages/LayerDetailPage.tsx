@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
-import { getA10AdjustmentReport, getCrpD1CombinedReport, getOthDeletionFlagReport, getP10VceNonVceReport } from "../api/uploads";
-import type { A10AdjustmentRow, CrpD1CombinedReportRow, OthDeletionFlagRow, P10VceNonVceRow } from "../types/upload";
+import { getA10AdjustmentReport, getCrpD1CombinedReport, getOthDeletionFlagReport, getP00ThreeCheckReport, getP10VceNonVceReport } from "../api/uploads";
+import type { A10AdjustmentRow, CrpD1CombinedReportRow, OthDeletionFlagRow, P00ThreeCheckRow, P10VceNonVceRow } from "../types/upload";
 
 type LayerDetail = {
   code: string;
@@ -22,6 +22,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
       "2.1 Mark Deletion flag: Y if Machine Line Code = 390; otherwise Y when Country + Machine Line Name is not found in Source Matrix.",
       "2.2 Assign Pri/Sec: match Source + Country + Machine Line Name to Source Matrix (country_name + machine_line_name). If Source equals primary_source then P; if Source equals secondary_source then S; otherwise blank.",
       "2.3 Assign Reporter flag: first read CRP Source from Source Matrix by Country + Machine Line Name, then match Reporter List by source_code + machine_line + brand_code; if matched, set Y.",
+      "3. Build one combined 3 Check Report that puts TMA, SAL, and OTH into one table and shows TM, VCE FID, and TM Non VCE for the matched group.",
     ],
   },
   P10: {
@@ -215,9 +216,11 @@ const CRP_D1_RULE_BULLETS = [
   "Deletion flag is only evaluated for SAL records.",
   "Deletion flag = Y when Source = SAL and Machine Line Code = 390.",
   "Deletion flag = Y when Source = SAL and Machine Line name is not found in latest Source Matrix.",
-  "Reporter Flag = # for TMA records, Reporter Flag = Y for SAL records.",
+  "Reporter Flag = # for TMA records; for SAL records it is Y only when Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, otherwise it stays blank.",
+  "All SAL rows are displayed in P00; SAL rows with empty CRP Source are not filtered out from this report.",
   "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
-  "For TMA rows, Size Class is merged to Mini/Midi when Machine Line Mapping maps multiple raw size classes to those artificial classes.",
+  "Artificial machine line is matched from Machine Line Mapping by machine line + size class + position.",
+  "For TMA rows, Size Class is merged when Machine Line Mapping maps multiple raw size classes to the same artificial class; currently this is used for Compact Excavators (CEX), where <6T rolls up to Mini and 6<10T / 6<11T / <10T roll up to Midi.",
   "Country mapping first uses country code + year, then falls back to country name + year.",
 ];
 
@@ -356,8 +359,9 @@ END AS reporter_flag`,
 const CRP_D1_SQL_MAP_BULLETS = [
   "`gc_by_code` and `gc_by_name`: build country lookup tables from Group Country upload.",
   "`tma_agg` and `volvo_agg`: normalize + aggregate TMA and SAL rows into the same shape.",
-  "`source_matrix_machine_lines`: list valid Machine Line names from latest Source Matrix.",
-  "`all_agg`: union TMA + SAL records for final rule application.",
+  "`source_matrix_country_line` and `source_matrix_machine_lines`: resolve CRP Source availability and validate Machine Line names against latest Source Matrix.",
+  "`machine_line_mapping_matches`: matches Artificial machine line from Machine Line Mapping using machine line + size class + position.",
+  "`all_agg`, `final_rows_base`, `final_rows`, and `display_rows`: union TMA + SAL, apply business flags, match artificial machine line, and merge TMA Mini/Midi rows for display.",
 ];
 
 const CRP_D1_KEY_SQL_SNIPPETS: Array<{ title: string; explain: string; sql: string }> = [
@@ -376,14 +380,16 @@ END AS "Deletion flag"`,
   },
   {
     title: "Reporter + Brand Rules",
-    explain: "Reporter and brand are assigned by source type (SAL vs TMA).",
+    explain: "Brand depends on source type. Reporter Flag is # for TMA, Y only for SAL rows with non-empty CRP Source, and blank for the remaining SAL rows.",
     sql: `CASE
   WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
   ELSE '#'
 END AS "Brand Code",
 CASE
   WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
-  ELSE 'Y'
+  WHEN UPPER(TRIM(a.source)) = 'SAL'
+       AND TRIM(COALESCE(sm_country_line.crp_source, '')) <> '' THEN 'Y'
+  ELSE ''
 END AS "Reporter Flag"`,
   },
   {
@@ -413,7 +419,7 @@ const P10_RULE_BULLETS = [
 const A10_RULE_BULLETS = [
   "A10 currently does not run split or re-split logic yet; it summarizes the prepared SAL and TMA rows.",
   "A10 shows one SAL detail row, one TMA detail row, and one derived Result row for each matched Year + Country Group + Country + Region + Machine Line + Size Class combination.",
-  "For TMA rows, Size Class is merged to Mini/Midi when Machine Line Mapping maps multiple raw size classes to those artificial classes.",
+  "For TMA rows, Size Class is merged when Machine Line Mapping maps multiple raw size classes to the same artificial class; currently this is used for Compact Excavators (CEX), where <6T rolls up to Mini and 6<10T / 6<11T / <10T roll up to Midi.",
   "Only Volvo/SAL rows with a non-empty CRP Source in Source Matrix can contribute to VCE-related values.",
   "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
   "Result FID = sum of valid Volvo/SAL rows for the group.",
@@ -437,6 +443,11 @@ function LayerDetailPage() {
   const [othDeletionFlagError, setOthDeletionFlagError] = useState("");
   const [othDeletionFlagRows, setOthDeletionFlagRows] = useState<OthDeletionFlagRow[]>([]);
   const [othDeletionFlagResetToken, setOthDeletionFlagResetToken] = useState(0);
+  const [runningThreeCheckReport, setRunningThreeCheckReport] = useState(false);
+  const [threeCheckMessage, setThreeCheckMessage] = useState("");
+  const [threeCheckError, setThreeCheckError] = useState("");
+  const [threeCheckRows, setThreeCheckRows] = useState<P00ThreeCheckRow[]>([]);
+  const [threeCheckResetToken, setThreeCheckResetToken] = useState(0);
   const [runningP10Report, setRunningP10Report] = useState(false);
   const [p10Message, setP10Message] = useState("");
   const [p10Error, setP10Error] = useState("");
@@ -534,14 +545,39 @@ function LayerDetailPage() {
       { key: "market_area", label: "Market Area" },
       { key: "machine_line_name", label: "Machine Line Name" },
       { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
       { key: "brand_name", label: "Brand Name" },
       { key: "brand_code", label: "Brand Code" },
       { key: "size_class_flag", label: "Size Class Flag" },
-      { key: "fid", label: "FID" },
       { key: "ms_percent", label: "MS (%)" },
       { key: "deletion_flag", label: "Deletion flag" },
       { key: "pri_sec", label: "Pri/Sec" },
       { key: "reporter_flag", label: "Reporter flag" },
+      { key: "fid", label: "FID" },
+    ],
+    []
+  );
+
+  const threeCheckColumns = useMemo(
+    () => [
+      { key: "year", label: "Year" },
+      { key: "country", label: "Country" },
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "region", label: "Region" },
+      { key: "machine_line_name", label: "Machine Line Name" },
+      { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
+      { key: "brand_name", label: "Brand Name" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "size_class", label: "Size Class" },
+      { key: "source", label: "Source" },
+      { key: "reporter_flag", label: "Reporter Flag" },
+      { key: "deletion_flag", label: "Deletion Flag" },
+      { key: "pri_sec", label: "Pri/Sec" },
+      { key: "fid", label: "FID" },
+      { key: "tm", label: "TM" },
+      { key: "vce_fid", label: "VCE FID" },
+      { key: "tm_non_vce", label: "TM Non VCE" },
     ],
     []
   );
@@ -634,6 +670,26 @@ function LayerDetailPage() {
       setP10Error(error instanceof Error ? error.message : "Failed to run P10 VCE / Non-VCE Report.");
     } finally {
       setRunningP10Report(false);
+    }
+  };
+
+  const handleRunThreeCheckReport = async () => {
+    try {
+      setRunningThreeCheckReport(true);
+      setThreeCheckError("");
+      setThreeCheckMessage("");
+
+      const result = await getP00ThreeCheckReport();
+      setThreeCheckRows(result.rows);
+      setThreeCheckResetToken((prev) => prev + 1);
+      setThreeCheckMessage(`Run successful. Row Count: ${result.row_count}`);
+    } catch (error) {
+      console.error(error);
+      setThreeCheckRows([]);
+      setThreeCheckResetToken((prev) => prev + 1);
+      setThreeCheckError(error instanceof Error ? error.message : "Failed to run 3 Check Report.");
+    } finally {
+      setRunningThreeCheckReport(false);
     }
   };
 
@@ -783,7 +839,7 @@ function LayerDetailPage() {
               </div>
             ) : null}
 
-            {layer.highlights.slice(1).map((item) => (
+            {layer.highlights.slice(1, 5).map((item) => (
               <div key={item} className="summary-row">
                 <span className="summary-value">{item}</span>
               </div>
@@ -803,6 +859,54 @@ function LayerDetailPage() {
                 onClick={() => setShowOthSqlGuide((prev) => !prev)}
               >
                 {showOthSqlGuide ? "Hide SQL Logic" : "View SQL Logic"}
+              </button>
+            </div>
+            {layer.code === "P00" && runningOthDeletionFlagReport ? (
+              <p style={{ color: "blue" }}>Running OTH Deletion Flag Report...</p>
+            ) : null}
+            {layer.code === "P00" && othDeletionFlagMessage ? (
+              <p style={{ color: "green" }}>{othDeletionFlagMessage}</p>
+            ) : null}
+            {layer.code === "P00" && othDeletionFlagError ? (
+              <p style={{ color: "red" }}>Error: {othDeletionFlagError}</p>
+            ) : null}
+            {layer.code === "P00" && othDeletionFlagRows.length > 0 ? (
+              <div className="section summary-card" style={{ marginTop: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                  <strong>OTH Deletion Flag Report</strong>
+                  <button
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() => {
+                      setOthDeletionFlagRows([]);
+                      setOthDeletionFlagMessage("");
+                      setOthDeletionFlagError("");
+                    }}
+                    aria-label="Close OTH Deletion Flag Report"
+                  >
+                    x
+                  </button>
+                </div>
+                <FilterableTable
+                  columns={othDeletionFlagColumns}
+                  rows={othDeletionFlagRows}
+                  maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                  resetToken={othDeletionFlagResetToken}
+                  compact
+                />
+              </div>
+            ) : null}
+            <div className="summary-row">
+              <span className="summary-value">{layer.highlights[5]}</span>
+            </div>
+            <div style={{ marginTop: "4px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn--overview"
+                onClick={handleRunThreeCheckReport}
+                disabled={runningThreeCheckReport}
+              >
+                Run 3 Check Report
               </button>
             </div>
           </div>
@@ -897,37 +1001,37 @@ function LayerDetailPage() {
             </ul>
           </div>
         ) : null}
-        {layer.code === "P00" && runningOthDeletionFlagReport ? (
-          <p style={{ color: "blue" }}>Running OTH Deletion Flag Report...</p>
+        {layer.code === "P00" && runningThreeCheckReport ? (
+          <p style={{ color: "blue" }}>Running 3 Check Report...</p>
         ) : null}
-        {layer.code === "P00" && othDeletionFlagMessage ? (
-          <p style={{ color: "green" }}>{othDeletionFlagMessage}</p>
+        {layer.code === "P00" && threeCheckMessage ? (
+          <p style={{ color: "green" }}>{threeCheckMessage}</p>
         ) : null}
-        {layer.code === "P00" && othDeletionFlagError ? (
-          <p style={{ color: "red" }}>Error: {othDeletionFlagError}</p>
+        {layer.code === "P00" && threeCheckError ? (
+          <p style={{ color: "red" }}>Error: {threeCheckError}</p>
         ) : null}
-        {layer.code === "P00" && othDeletionFlagRows.length > 0 ? (
+        {layer.code === "P00" && threeCheckRows.length > 0 ? (
           <div className="section summary-card" style={{ marginTop: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-              <strong>OTH Deletion Flag Report</strong>
+              <strong>3 Check Report</strong>
               <button
                 type="button"
                 className="btn btn--tiny"
                 onClick={() => {
-                  setOthDeletionFlagRows([]);
-                  setOthDeletionFlagMessage("");
-                  setOthDeletionFlagError("");
+                  setThreeCheckRows([]);
+                  setThreeCheckMessage("");
+                  setThreeCheckError("");
                 }}
-                aria-label="Close OTH Deletion Flag Report"
+                aria-label="Close 3 Check Report"
               >
                 x
               </button>
             </div>
             <FilterableTable
-              columns={othDeletionFlagColumns}
-              rows={othDeletionFlagRows}
+              columns={threeCheckColumns}
+              rows={threeCheckRows}
               maxHeight={REPORT_TABLE_MAX_HEIGHT}
-              resetToken={othDeletionFlagResetToken}
+              resetToken={threeCheckResetToken}
               compact
             />
           </div>

@@ -171,7 +171,7 @@ function UploadForm({ label, title }: UploadFormProps) {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [tableFilters, setTableFilters] = useState<Record<string, string>>({});
+  const [tableFilters, setTableFilters] = useState<Record<string, string[]>>({});
   const useCompactTable = label === "source_matrix";
 
   const latestRowsForDisplay = useMemo(() => {
@@ -268,7 +268,8 @@ function UploadForm({ label, title }: UploadFormProps) {
     }
     const newRow: UploadRow = {};
     latestColumns.forEach((column) => {
-      newRow[column] = tableFilters[column] ?? "";
+      const selectedValues = tableFilters[column] ?? [];
+      newRow[column] = selectedValues[0] ?? "";
     });
     setEditedRows((prev) => [...prev, newRow]);
     setSaveMessage("");

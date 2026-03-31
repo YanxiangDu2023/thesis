@@ -193,6 +193,7 @@ export type OthDeletionFlagRow = {
   market_area: string;
   machine_line_name: string;
   machine_line_code: string;
+  artificial_machine_line: string;
   brand_name: string;
   brand_code: string;
   size_class_flag: string;
@@ -212,6 +213,38 @@ export type OthDeletionFlagResponse = {
   brand_mapping_upload_run_id: number;
   source_matrix_upload_run_id: number;
   reporter_list_upload_run_id: number;
+};
+
+export type P00ThreeCheckRow = {
+  year: string;
+  country: string;
+  country_grouping: string;
+  region: string;
+  machine_line_name: string;
+  machine_line_code: string;
+  artificial_machine_line: string;
+  brand_name: string;
+  brand_code: string;
+  size_class: string;
+  source: string;
+  fid: number;
+  tm: number;
+  vce_fid: number;
+  tm_non_vce: number;
+  reporter_flag: string;
+  deletion_flag: string;
+  pri_sec: string;
+};
+
+export type P00ThreeCheckResponse = {
+  row_count: number;
+  rows: P00ThreeCheckRow[];
+  tma_upload_run_id: number;
+  volvo_upload_run_id: number;
+  group_country_upload_run_id: number;
+  source_matrix_upload_run_id: number;
+  machine_line_mapping_upload_run_id: number;
+  oth_upload_run_id: number;
 };
 
 export type P10VceNonVceRow = {

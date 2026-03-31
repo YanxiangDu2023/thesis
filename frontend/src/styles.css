@@ -1123,6 +1123,34 @@ button {
   border: 1px solid #e5e7eb;
 }
 
+.data-table-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.data-table__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.data-table__summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #dbe2ea;
+  color: #334155;
+  font-size: 12px;
+}
+
+.data-table__summary-chip strong {
+  color: #0f172a;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -1151,9 +1179,93 @@ button {
   color: #0f172a;
 }
 
+.data-table__spacer-row td {
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+}
+
 .data-table__filter-select,
 .data-table__cell-input {
   width: 100%;
+}
+
+.data-table__filter-menu {
+  position: relative;
+}
+
+.data-table__filter-summary {
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  min-height: 30px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table__filter-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  min-width: 180px;
+  max-width: 240px;
+  padding: 10px;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+}
+
+.data-table__filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.data-table__filter-clear {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.data-table__filter-done {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.data-table__filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.data-table__filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #334155;
 }
 
 .data-table--compact th,

@@ -1572,77 +1572,236 @@ def get_oth_deletion_flag_report():
                     country_name_key,
                     machine_line_name_key,
                     source_key
+            ),
+            brand_mapping_dedup AS (
+                SELECT
+                    UPPER(TRIM(COALESCE(brand_name, ''))) AS brand_name_key,
+                    TRIM(brand_name) AS brand_name,
+                    TRIM(brand_code) AS brand_code,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY UPPER(TRIM(COALESCE(brand_name, '')))
+                        ORDER BY row_index ASC, id ASC
+                    ) AS match_rank
+                FROM brand_mapping_rows
+                WHERE upload_run_id = ?
+                  AND TRIM(COALESCE(brand_name, '')) <> ''
+            ),
+            oth_base AS (
+                SELECT
+                    o.row_index AS oth_row_index,
+                    o.year AS year,
+                    o.source AS source,
+                    o.country AS country_code,
+                    COALESCE(g.country_name, o.country) AS country,
+                    g.country_grouping AS country_grouping,
+                    g.region AS region,
+                    g.market_area AS market_area,
+                    o.machine_line AS raw_machine_line_name,
+                    o.size_class AS size_class_flag,
+                    COALESCE(b.brand_name, o.brand_name) AS brand_name,
+                    b.brand_code AS brand_code,
+                    o.quantity AS fid
+                FROM oth_data_rows o
+                LEFT JOIN group_country_rows g
+                    ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
+                   AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
+                   AND g.upload_run_id = ?
+                LEFT JOIN brand_mapping_dedup b
+                    ON UPPER(TRIM(o.brand_name)) = b.brand_name_key
+                   AND b.match_rank = 1
+                WHERE o.upload_run_id = ?
+            ),
+            machine_line_code_matches AS (
+                SELECT
+                    ob.oth_row_index AS oth_row_index,
+                    TRIM(mlm.machine_line_name) AS machine_line_name,
+                    TRIM(mlm.machine_line_code) AS machine_line_code,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY ob.oth_row_index
+                        ORDER BY
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 1
+                                ELSE 2
+                            END,
+                            mlm.row_index ASC,
+                            mlm.id ASC
+                    ) AS match_rank
+                FROM oth_base ob
+                JOIN machine_line_mapping_rows mlm
+                  ON mlm.upload_run_id = ?
+                 AND (
+                        UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                     OR UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                 )
+            ),
+            artificial_machine_line_matches AS (
+                SELECT
+                    ob.oth_row_index AS oth_row_index,
+                    TRIM(COALESCE(mlm.artificial_machine_line, '')) AS artificial_machine_line,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY ob.oth_row_index
+                        ORDER BY
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(ob.size_class_flag, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.size_class_flag, ''))) = UPPER(TRIM(COALESCE(mlm.size_class, '')))
+                                 AND (
+                                        TRIM(COALESCE(mlm.position, '')) = ''
+                                     OR INSTR(
+                                            ',' || REPLACE(UPPER(TRIM(COALESCE(mlm.position, ''))), ' ', '') || ',',
+                                            ',OTH,'
+                                        ) > 0
+                                 ) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(ob.size_class_flag, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.size_class_flag, ''))) = UPPER(TRIM(COALESCE(mlm.size_class, ''))) THEN 1
+                                WHEN (
+                                        TRIM(COALESCE(mlm.position, '')) = ''
+                                     OR INSTR(
+                                            ',' || REPLACE(UPPER(TRIM(COALESCE(mlm.position, ''))), ' ', '') || ',',
+                                            ',OTH,'
+                                        ) > 0
+                                 ) THEN 2
+                                ELSE 3
+                            END,
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 1
+                                ELSE 2
+                            END,
+                            mlm.row_index ASC,
+                            mlm.id ASC
+                    ) AS match_rank
+                FROM oth_base ob
+                JOIN machine_line_mapping_rows mlm
+                  ON mlm.upload_run_id = ?
+                 AND (
+                        UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                     OR UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                 )
+            ),
+            final_rows AS (
+                SELECT
+                    ob.year AS year,
+                    ob.source AS source,
+                    ob.country_code AS country_code,
+                    ob.country AS country,
+                    ob.country_grouping AS country_grouping,
+                    ob.region AS region,
+                    ob.market_area AS market_area,
+                    COALESCE(mlcm.machine_line_name, ob.raw_machine_line_name) AS machine_line_name,
+                    COALESCE(mlcm.machine_line_code, '') AS machine_line_code,
+                    COALESCE(amlm.artificial_machine_line, '') AS artificial_machine_line,
+                    ob.brand_name AS brand_name,
+                    ob.brand_code AS brand_code,
+                    ob.size_class_flag AS size_class_flag,
+                    ob.fid AS fid
+                FROM oth_base ob
+                LEFT JOIN machine_line_code_matches mlcm
+                  ON ob.oth_row_index = mlcm.oth_row_index
+                 AND mlcm.match_rank = 1
+                LEFT JOIN artificial_machine_line_matches amlm
+                  ON ob.oth_row_index = amlm.oth_row_index
+                 AND amlm.match_rank = 1
             )
             SELECT
-                o.year AS year,
-                o.source AS source,
-                o.country AS country_code,
-                COALESCE(g.country_name, o.country) AS country,
-                g.country_grouping AS country_grouping,
-                g.region AS region,
-                g.market_area AS market_area,
-                COALESCE(m.machine_line_name, o.machine_line) AS machine_line_name,
-                m.machine_line_code AS machine_line_code,
-                COALESCE(b.brand_name, o.brand_name) AS brand_name,
-                b.brand_code AS brand_code,
-                o.size_class AS size_class_flag,
-                o.quantity AS fid,
+                year,
+                source,
+                country_code,
+                country,
+                country_grouping,
+                region,
+                market_area,
+                machine_line_name,
+                machine_line_code,
+                artificial_machine_line,
+                brand_name,
+                brand_code,
+                size_class_flag,
+                SUM(COALESCE(fid, 0)) AS fid,
                 NULL AS ms_percent,
-                CASE
-                    WHEN TRIM(COALESCE(m.machine_line_code, '')) = '390' THEN 'Y'
-                    WHEN TRIM(COALESCE(g.country_name, o.country, '')) <> ''
-                     AND TRIM(COALESCE(m.machine_line_name, o.machine_line, '')) <> ''
-                     AND smk.country_name_key IS NULL THEN 'Y'
-                    ELSE ''
-                END AS deletion_flag,
-                COALESCE(smsf.pri_sec, '') AS pri_sec,
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM source_matrix_rows sm
-                        JOIN reporter_list_rows rl
-                          ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
-                         AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
-                         AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(b.brand_code, '')))
-                         AND rl.upload_run_id = ?
-                        WHERE sm.upload_run_id = ?
-                          AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(g.country_name, o.country, '')))
-                          AND UPPER(TRIM(COALESCE(sm.machine_line_name, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
-                          AND TRIM(COALESCE(sm.crp_source, '')) <> ''
-                    ) THEN 'Y'
-                    ELSE ''
-                END AS reporter_flag
-            FROM oth_data_rows o
-            LEFT JOIN group_country_rows g
-                ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
-               AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
-               AND g.upload_run_id = ?
-            LEFT JOIN machine_line_mapping_rows m
-                ON (
-                     UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_name))
-                     OR UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_code))
-                   )
-               AND m.upload_run_id = ?
-            LEFT JOIN brand_mapping_rows b
-                ON UPPER(TRIM(o.brand_name)) = UPPER(TRIM(b.brand_name))
-               AND b.upload_run_id = ?
-            LEFT JOIN source_matrix_keys smk
-                ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smk.country_name_key
-               AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smk.machine_line_name_key
-            LEFT JOIN source_matrix_source_flags_dedup smsf
-                ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smsf.country_name_key
-               AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smsf.machine_line_name_key
-               AND UPPER(TRIM(COALESCE(o.source, ''))) = smsf.source_key
-            WHERE o.upload_run_id = ?
-            ORDER BY o.row_index ASC
+                deletion_flag,
+                pri_sec,
+                reporter_flag
+            FROM (
+                SELECT
+                    fr.year AS year,
+                    fr.source AS source,
+                    fr.country_code AS country_code,
+                    fr.country AS country,
+                    fr.country_grouping AS country_grouping,
+                    fr.region AS region,
+                    fr.market_area AS market_area,
+                    fr.machine_line_name AS machine_line_name,
+                    fr.machine_line_code AS machine_line_code,
+                    fr.artificial_machine_line AS artificial_machine_line,
+                    fr.brand_name AS brand_name,
+                    fr.brand_code AS brand_code,
+                    fr.size_class_flag AS size_class_flag,
+                    fr.fid AS fid,
+                    CASE
+                        WHEN TRIM(COALESCE(fr.machine_line_code, '')) = '390' THEN 'Y'
+                        WHEN TRIM(COALESCE(fr.country, '')) <> ''
+                         AND TRIM(COALESCE(fr.machine_line_name, '')) <> ''
+                         AND smk.country_name_key IS NULL THEN 'Y'
+                        ELSE ''
+                    END AS deletion_flag,
+                    COALESCE(smsf.pri_sec, '') AS pri_sec,
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM source_matrix_rows sm
+                            JOIN reporter_list_rows rl
+                              ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
+                             AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(fr.machine_line_name, '')))
+                             AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(fr.brand_code, '')))
+                             AND rl.upload_run_id = ?
+                            WHERE sm.upload_run_id = ?
+                              AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(fr.country, '')))
+                              AND UPPER(TRIM(COALESCE(sm.machine_line_name, ''))) = UPPER(TRIM(COALESCE(fr.machine_line_name, '')))
+                              AND TRIM(COALESCE(sm.crp_source, '')) <> ''
+                        ) THEN 'Y'
+                        ELSE ''
+                    END AS reporter_flag
+                FROM final_rows fr
+                LEFT JOIN source_matrix_keys smk
+                    ON UPPER(TRIM(COALESCE(fr.country, ''))) = smk.country_name_key
+                   AND UPPER(TRIM(COALESCE(fr.machine_line_name, ''))) = smk.machine_line_name_key
+                LEFT JOIN source_matrix_source_flags_dedup smsf
+                    ON UPPER(TRIM(COALESCE(fr.country, ''))) = smsf.country_name_key
+                   AND UPPER(TRIM(COALESCE(fr.machine_line_name, ''))) = smsf.machine_line_name_key
+                   AND UPPER(TRIM(COALESCE(fr.source, ''))) = smsf.source_key
+            )
+            GROUP BY
+                year,
+                source,
+                country_code,
+                country,
+                country_grouping,
+                region,
+                market_area,
+                machine_line_name,
+                machine_line_code,
+                artificial_machine_line,
+                brand_name,
+                brand_code,
+                size_class_flag,
+                deletion_flag,
+                pri_sec,
+                reporter_flag
+            ORDER BY year ASC, country_code ASC, machine_line_name ASC, brand_name ASC, size_class_flag ASC
         """, (
             latest_source_matrix_upload_run_id,
+            latest_brand_mapping_upload_run_id,
+            latest_group_country_upload_run_id,
+            latest_oth_upload_run_id,
+            latest_machine_line_mapping_upload_run_id,
+            latest_machine_line_mapping_upload_run_id,
             latest_reporter_list_upload_run_id,
             latest_source_matrix_upload_run_id,
-            latest_group_country_upload_run_id,
-            latest_machine_line_mapping_upload_run_id,
-            latest_brand_mapping_upload_run_id,
-            latest_oth_upload_run_id,
         ))
 
         rows = [dict(row) for row in cursor.fetchall()]
@@ -1658,6 +1817,174 @@ def get_oth_deletion_flag_report():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/reports/p00-three-check")
+def get_p00_three_check_report():
+    combined = _get_crp_d1_combined_report_data(include_all_sal=True)
+    oth = get_oth_deletion_flag_report()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+        if latest_machine_line_mapping_upload_run_id is None:
+            raise HTTPException(status_code=400, detail="Missing latest successful upload for: machine_line_mapping")
+
+        cursor.execute("""
+            SELECT
+                machine_line_name,
+                machine_line_code,
+                size_class,
+                artificial_machine_line,
+                position,
+                row_index,
+                id
+            FROM machine_line_mapping_rows
+            WHERE upload_run_id = ?
+            ORDER BY row_index ASC, id ASC
+        """, (latest_machine_line_mapping_upload_run_id,))
+        machine_line_mapping_rows = [dict(row) for row in cursor.fetchall()]
+
+        def to_number(value: Any) -> float:
+            text = _to_text(value).replace(",", "")
+            if not text:
+                return 0.0
+            try:
+                return float(text)
+            except ValueError:
+                return 0.0
+
+        def resolve_oth_size_class(machine_line_name: Any, machine_line_code: Any, size_class: Any) -> str:
+            machine_line_name_key = _to_text(machine_line_name).upper()
+            machine_line_code_key = _to_text(machine_line_code).upper()
+            size_class_key = _to_text(size_class).upper()
+
+            for mapping_row in machine_line_mapping_rows:
+                position = _to_text(mapping_row.get("position", "")).upper().replace(" ", "")
+                if position and "OTH" not in position.split(","):
+                    continue
+
+                mapping_size_class_key = _to_text(mapping_row.get("size_class", "")).upper()
+                if mapping_size_class_key != size_class_key:
+                    continue
+
+                mapping_name_key = _to_text(mapping_row.get("machine_line_name", "")).upper()
+                mapping_code_key = _to_text(mapping_row.get("machine_line_code", "")).upper()
+                if not (
+                    machine_line_name_key == mapping_name_key
+                    or machine_line_name_key == mapping_code_key
+                    or machine_line_code_key == mapping_name_key
+                    or machine_line_code_key == mapping_code_key
+                ):
+                    continue
+
+                artificial_machine_line = _to_text(mapping_row.get("artificial_machine_line", ""))
+                if artificial_machine_line.upper() in {"MINI", "MIDI"}:
+                    return artificial_machine_line
+                break
+
+            return _to_text(size_class)
+
+        stats_by_group: dict[tuple[str, str, str, str], dict[str, float]] = {}
+        result_rows: list[dict[str, Any]] = []
+
+        for row in combined["rows"]:
+            group_key = (
+                _to_text(row.get("year")),
+                _to_text(row.get("country")),
+                _to_text(row.get("machine_line_name")),
+                _to_text(row.get("size_class")),
+            )
+            if group_key not in stats_by_group:
+                stats_by_group[group_key] = {
+                    "tm": to_number(row.get("tm")),
+                    "vce_fid": to_number(row.get("vce_fid")),
+                    "tm_non_vce": to_number(row.get("tm_non_vce")),
+                }
+
+            source = _to_text(row.get("source")).upper()
+            if source not in {"TMA", "SAL"}:
+                continue
+
+            result_rows.append({
+                "year": _to_text(row.get("year")),
+                "country": _to_text(row.get("country")),
+                "country_grouping": _to_text(row.get("country_grouping")),
+                "region": _to_text(row.get("region")),
+                "machine_line_name": _to_text(row.get("machine_line_name")),
+                "machine_line_code": _to_text(row.get("machine_line_code")),
+                "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+                "brand_name": "TMA" if source == "TMA" else "VOLVO CE",
+                "brand_code": _to_text(row.get("brand_code")),
+                "size_class": _to_text(row.get("size_class")),
+                "source": source,
+                "fid": to_number(row.get("fid")),
+                "tm": to_number(row.get("tm")),
+                "vce_fid": to_number(row.get("vce_fid")),
+                "tm_non_vce": to_number(row.get("tm_non_vce")),
+                "reporter_flag": _to_text(row.get("reporter_flag")),
+                "deletion_flag": _to_text(row.get("deletion_flag")),
+                "pri_sec": _to_text(row.get("pri_sec")),
+            })
+
+        for row in oth["rows"]:
+            comparison_size_class = resolve_oth_size_class(
+                row.get("machine_line_name"),
+                row.get("machine_line_code"),
+                row.get("size_class_flag"),
+            )
+            group_key = (
+                _to_text(row.get("year")),
+                _to_text(row.get("country")),
+                _to_text(row.get("machine_line_name")),
+                comparison_size_class,
+            )
+            stats = stats_by_group.get(group_key, {"tm": 0.0, "vce_fid": 0.0, "tm_non_vce": 0.0})
+
+            result_rows.append({
+                "year": _to_text(row.get("year")),
+                "country": _to_text(row.get("country")),
+                "country_grouping": _to_text(row.get("country_grouping")),
+                "region": _to_text(row.get("region")),
+                "machine_line_name": _to_text(row.get("machine_line_name")),
+                "machine_line_code": _to_text(row.get("machine_line_code")),
+                "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+                "brand_name": _to_text(row.get("brand_name")),
+                "brand_code": _to_text(row.get("brand_code")),
+                "size_class": comparison_size_class,
+                "source": _to_text(row.get("source")),
+                "fid": to_number(row.get("fid")),
+                "tm": stats["tm"],
+                "vce_fid": stats["vce_fid"],
+                "tm_non_vce": stats["tm_non_vce"],
+                "reporter_flag": _to_text(row.get("reporter_flag")),
+                "deletion_flag": _to_text(row.get("deletion_flag")),
+                "pri_sec": _to_text(row.get("pri_sec")),
+            })
+
+        result_rows.sort(key=lambda row: (
+            row["year"],
+            row["country"],
+            row["machine_line_name"],
+            row["size_class"],
+            row["brand_name"],
+            row["source"],
+        ))
+
+        return {
+            "row_count": len(result_rows),
+            "rows": result_rows,
+            "tma_upload_run_id": combined.get("tma_upload_run_id"),
+            "volvo_upload_run_id": combined.get("volvo_upload_run_id"),
+            "group_country_upload_run_id": combined.get("group_country_upload_run_id"),
+            "source_matrix_upload_run_id": combined.get("source_matrix_upload_run_id"),
+            "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
+            "oth_upload_run_id": oth.get("oth_upload_run_id"),
+        }
     finally:
         conn.close()
 
