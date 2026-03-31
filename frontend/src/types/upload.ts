@@ -131,6 +131,7 @@ export type CrpD1CombinedReportRow = {
   machine_line_code: string;
   machine_line_name: string;
   size_class: string;
+  artificial_machine_line: string;
   brand_code: string;
   reporter_flag: string;
   pri_sec: string;
@@ -149,6 +150,7 @@ export type CrpD1CombinedReportResponse = {
   volvo_upload_run_id: number;
   group_country_upload_run_id: number;
   source_matrix_upload_run_id: number;
+  machine_line_mapping_upload_run_id: number;
 };
 
 export type A10AdjustmentRow = {
@@ -159,6 +161,7 @@ export type A10AdjustmentRow = {
   region: string;
   machine_line_code: string;
   machine_line_name: string;
+  artificial_machine_line: string;
   size_class: string;
   brand_code: string;
   reporter_flag: string;
@@ -219,6 +222,7 @@ export type P10VceNonVceRow = {
   region: string;
   machine_line_code: string;
   machine_line_name: string;
+  artificial_machine_line: string;
   size_class: string;
   total_market: number;
   vce: number;

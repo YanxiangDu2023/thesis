@@ -32,18 +32,17 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
       "TMA (Total Market) comes from TMA source records.",
       "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
       "VCE includes Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
-      "For Volvo CEX, Mini is temporarily treated like <6T and Midi like 6<11T, which may create some variance because TMA CEX uses <6T, 6<11T, and 6<10T.",
       "Non-VCE = max(TMA - VCE, 0).",
     ],
   },
   A10: {
     code: "A10",
     title: "Adjustment Layer",
-    description: "Intermediate adjusted output after selected business rules.",
+    description: "Current A10 output summarizes SAL and TMA rows into one reviewable result structure.",
     highlights: [
-      "Applies adjustment logic and allocation rules.",
-      "Produces intermediate adjusted values for review.",
-      "Supports validation before final adjustment output.",
+      "Shows original SAL rows, original TMA rows, and one derived Result row for each matched group.",
+      "Uses the same country and machine-line matching basis as the current P00/P10 preparation logic.",
+      "Supports review of VCE, TM FID, and TM Non VCE before later split logic is introduced.",
     ],
   },
   A20: {
@@ -218,6 +217,7 @@ const CRP_D1_RULE_BULLETS = [
   "Deletion flag = Y when Source = SAL and Machine Line name is not found in latest Source Matrix.",
   "Reporter Flag = # for TMA records, Reporter Flag = Y for SAL records.",
   "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
+  "For TMA rows, Size Class is merged to Mini/Midi when Machine Line Mapping maps multiple raw size classes to those artificial classes.",
   "Country mapping first uses country code + year, then falls back to country name + year.",
 ];
 
@@ -407,15 +407,18 @@ const P10_RULE_BULLETS = [
   "Total Market (TMA): sum of rows where Source = TMA.",
   "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
   "VCE: sum of Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
-  "For Volvo CEX, Mini is temporarily mapped to <6T and Midi is temporarily mapped to 6<11T.",
-  "TMA CEX uses <6T, 6<11T, and 6<10T, so this temporary mapping may cause some variance.",
   "Non-VCE: max(TMA - VCE, 0).",
 ];
 
 const A10_RULE_BULLETS = [
-  "A10 shows SAL rows, TMA rows, and one derived Result row for each matched group.",
-  "Result row FID comes from valid Volvo/SAL rows; TM FID comes from TMA rows for the same group.",
-  "TM Non VCE is calculated as max(TM FID - FID, 0) on the Result row.",
+  "A10 currently does not run split or re-split logic yet; it summarizes the prepared SAL and TMA rows.",
+  "A10 shows one SAL detail row, one TMA detail row, and one derived Result row for each matched Year + Country Group + Country + Region + Machine Line + Size Class combination.",
+  "For TMA rows, Size Class is merged to Mini/Midi when Machine Line Mapping maps multiple raw size classes to those artificial classes.",
+  "Only Volvo/SAL rows with a non-empty CRP Source in Source Matrix can contribute to VCE-related values.",
+  "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
+  "Result FID = sum of valid Volvo/SAL rows for the group.",
+  "Result TM FID = sum of TMA rows for the same group.",
+  "Result TM Non VCE = max(TM FID - FID, 0).",
 ];
 
 const REPORT_TABLE_MAX_HEIGHT = "72vh";
@@ -463,6 +466,7 @@ function LayerDetailPage() {
       { key: "machine_line_code", label: "Machine Line Code" },
       { key: "machine_line_name", label: "Machine Line name" },
       { key: "size_class", label: "Size Class" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
       { key: "brand_code", label: "Brand Code" },
       { key: "reporter_flag", label: "Reporter Flag" },
       { key: "pri_sec", label: "Pri/Sec" },
@@ -485,6 +489,7 @@ function LayerDetailPage() {
       { key: "region", label: "Region" },
       { key: "machine_line_code", label: "Machine Line Code" },
       { key: "machine_line_name", label: "Machine Line name" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
       { key: "size_class", label: "Size Class" },
       { key: "total_market", label: "TMA (Total Market)" },
       { key: "vce", label: "Volvo CE (VCE)" },
@@ -503,6 +508,7 @@ function LayerDetailPage() {
       { key: "region", label: "Region" },
       { key: "machine_line_code", label: "Machine Line Code" },
       { key: "machine_line_name", label: "Machine Line name" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
       { key: "size_class", label: "Size Class" },
       { key: "brand_code", label: "Brand Code" },
       { key: "reporter_flag", label: "Reporter Flag" },

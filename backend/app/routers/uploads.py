@@ -1,6 +1,7 @@
 import csv
 import os
 import uuid
+import unicodedata
 from datetime import datetime
 from typing import Any
 
@@ -42,7 +43,7 @@ class SaveEditedUploadRequest(BaseModel):
 def _to_text(value: Any) -> str:
     if value is None:
         return ""
-    text = str(value).strip()
+    text = unicodedata.normalize("NFKC", str(value)).strip()
     return "" if text.lower() == "nan" else text
 
 
@@ -63,15 +64,6 @@ def _get_latest_success_upload_id(cursor, matrix_type: str):
     """, (matrix_type,))
     row = cursor.fetchone()
     return row["id"] if row else None
-
-
-def _map_p10_size_class(value: Any) -> str:
-    normalized = _to_text(value).upper()
-    if normalized == "MINI":
-        return "<6T"
-    if normalized == "MIDI":
-        return "6<11T"
-    return _to_text(value)
 
 
 @router.post("/uploads/save-edited")
@@ -597,8 +589,7 @@ def get_latest_crp_tma_report_clean_data():
     }
 
 
-@router.get("/reports/crp-d1-combined")
-def get_crp_d1_combined_report():
+def _get_crp_d1_combined_report_data(include_all_sal: bool):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -606,6 +597,7 @@ def get_crp_d1_combined_report():
     latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
     latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
     latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -616,6 +608,8 @@ def get_crp_d1_combined_report():
         missing_types.append("group_country")
     if latest_source_matrix_upload_run_id is None:
         missing_types.append("source_matrix")
+    if latest_machine_line_mapping_upload_run_id is None:
+        missing_types.append("machine_line_mapping")
 
     if missing_types:
         conn.close()
@@ -625,7 +619,14 @@ def get_crp_d1_combined_report():
         )
 
     try:
-        cursor.execute("""
+        sal_visibility_clause = ""
+        if not include_all_sal:
+            sal_visibility_clause = """
+                WHERE UPPER(TRIM(a.source)) <> 'SAL'
+                   OR TRIM(COALESCE(sm_country_line.crp_source, '')) <> ''
+            """
+
+        cursor.execute(f"""
             WITH gc_by_code AS (
                 SELECT
                     UPPER(TRIM(country_code)) AS country_code_key,
@@ -729,8 +730,21 @@ def get_crp_d1_combined_report():
                   AND TRIM(COALESCE(machine_line_name, '')) <> ''
                 GROUP BY UPPER(TRIM(machine_line_name))
             ),
-            final_rows AS (
+            final_rows_base AS (
                 SELECT
+                    ROW_NUMBER() OVER (
+                        ORDER BY
+                            a.year,
+                            COALESCE(g_code.group_code, g_name.group_code, ''),
+                            COALESCE(g_code.country_grouping, g_name.country_grouping, ''),
+                            COALESCE(g_code.country_name, g_name.country_name, a.country_raw),
+                            COALESCE(g_code.region, g_name.region, a.region_raw),
+                            a.machine_line_code,
+                            a.machine_line_name,
+                            a.size_class,
+                            a.source,
+                            a.fid
+                    ) AS base_row_id,
                     a.year AS year,
                     COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
                     COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
@@ -772,8 +786,113 @@ def get_crp_d1_combined_report():
                  AND UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm_country_line.machine_line_name_key
                 LEFT JOIN source_matrix_machine_lines sm
                   ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
-                WHERE UPPER(TRIM(a.source)) <> 'SAL'
-                   OR TRIM(COALESCE(sm_country_line.crp_source, '')) <> ''
+                {sal_visibility_clause}
+            ),
+            machine_line_mapping_matches AS (
+                SELECT
+                    frb.base_row_id AS base_row_id,
+                    TRIM(mlm.artificial_machine_line) AS artificial_machine_line,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY frb.base_row_id
+                        ORDER BY
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 1
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 2
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 3
+                                ELSE 4
+                            END,
+                            mlm.row_index ASC,
+                            mlm.id ASC
+                    ) AS match_rank
+                FROM final_rows_base frb
+                JOIN machine_line_mapping_rows mlm
+                  ON mlm.upload_run_id = ?
+                 AND UPPER(TRIM(COALESCE(mlm.size_class, ''))) = UPPER(TRIM(COALESCE(frb.size_class, '')))
+                 AND (
+                        UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                 )
+                 AND (
+                        TRIM(COALESCE(mlm.position, '')) = ''
+                     OR INSTR(
+                            ',' || REPLACE(UPPER(TRIM(COALESCE(mlm.position, ''))), ' ', '') || ',',
+                            ',' || REPLACE(UPPER(TRIM(COALESCE(frb.source, ''))), ' ', '') || ','
+                        ) > 0
+                 )
+            ),
+            final_rows AS (
+                SELECT
+                    frb.base_row_id AS base_row_id,
+                    frb.year AS year,
+                    frb.country_group_code AS country_group_code,
+                    frb.country_grouping AS country_grouping,
+                    frb.country AS country,
+                    frb.region AS region,
+                    frb.machine_line_code AS machine_line_code,
+                    frb.machine_line_name AS machine_line_name,
+                    frb.size_class AS size_class,
+                    COALESCE(mlmm.artificial_machine_line, '') AS artificial_machine_line,
+                    frb.brand_code AS brand_code,
+                    frb.reporter_flag AS reporter_flag,
+                    frb.pri_sec AS pri_sec,
+                    frb.source AS source,
+                    frb.deletion_flag AS deletion_flag,
+                    frb.fid AS fid
+                FROM final_rows_base frb
+                LEFT JOIN machine_line_mapping_matches mlmm
+                  ON frb.base_row_id = mlmm.base_row_id
+                 AND mlmm.match_rank = 1
+            ),
+            display_rows AS (
+                SELECT
+                    year,
+                    country_group_code,
+                    country_grouping,
+                    country,
+                    region,
+                    machine_line_code,
+                    machine_line_name,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'TMA'
+                         AND UPPER(TRIM(COALESCE(artificial_machine_line, ''))) IN ('MINI', 'MIDI')
+                        THEN artificial_machine_line
+                        ELSE size_class
+                    END AS size_class,
+                    artificial_machine_line,
+                    brand_code,
+                    reporter_flag,
+                    pri_sec,
+                    source,
+                    deletion_flag,
+                    SUM(COALESCE(fid, 0)) AS fid
+                FROM final_rows
+                GROUP BY
+                    year,
+                    country_group_code,
+                    country_grouping,
+                    country,
+                    region,
+                    machine_line_code,
+                    machine_line_name,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'TMA'
+                         AND UPPER(TRIM(COALESCE(artificial_machine_line, ''))) IN ('MINI', 'MIDI')
+                        THEN artificial_machine_line
+                        ELSE size_class
+                    END,
+                    artificial_machine_line,
+                    brand_code,
+                    reporter_flag,
+                    pri_sec,
+                    source,
+                    deletion_flag
             ),
             row_stats AS (
                 SELECT
@@ -807,7 +926,7 @@ def get_crp_d1_combined_report():
                             ELSE 0
                         END
                     ) AS has_vce
-                FROM final_rows
+                FROM display_rows
                 WHERE UPPER(TRIM(COALESCE(machine_line_code, ''))) <> 'MOTOR GRADERS'
                   AND UPPER(TRIM(COALESCE(machine_line_name, ''))) <> 'MOTOR GRADERS'
                 GROUP BY
@@ -826,6 +945,7 @@ def get_crp_d1_combined_report():
                 fr.machine_line_code AS machine_line_code,
                 fr.machine_line_name AS machine_line_name,
                 fr.size_class AS size_class,
+                fr.artificial_machine_line AS artificial_machine_line,
                 fr.brand_code AS brand_code,
                 fr.reporter_flag AS reporter_flag,
                 fr.pri_sec AS pri_sec,
@@ -848,7 +968,7 @@ def get_crp_d1_combined_report():
                         END
                     ELSE NULL
                 END AS tm_non_vce
-            FROM final_rows fr
+            FROM display_rows fr
             LEFT JOIN row_stats rs
               ON fr.year = rs.year
              AND fr.country = rs.country
@@ -869,6 +989,7 @@ def get_crp_d1_combined_report():
             latest_volvo_upload_run_id,
             latest_source_matrix_upload_run_id,
             latest_source_matrix_upload_run_id,
+            latest_machine_line_mapping_upload_run_id,
         ))
 
         rows = [dict(row) for row in cursor.fetchall()]
@@ -879,11 +1000,17 @@ def get_crp_d1_combined_report():
             "volvo_upload_run_id": latest_volvo_upload_run_id,
             "group_country_upload_run_id": latest_group_country_upload_run_id,
             "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
+            "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+
+@router.get("/reports/crp-d1-combined")
+def get_crp_d1_combined_report():
+    return _get_crp_d1_combined_report_data(include_all_sal=True)
 
 
 @router.get("/reports/a10-adjustment")
@@ -895,6 +1022,7 @@ def get_a10_adjustment_report():
     latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
     latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
     latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -905,6 +1033,8 @@ def get_a10_adjustment_report():
         missing_types.append("group_country")
     if latest_source_matrix_upload_run_id is None:
         missing_types.append("source_matrix")
+    if latest_machine_line_mapping_upload_run_id is None:
+        missing_types.append("machine_line_mapping")
 
     if missing_types:
         conn.close()
@@ -1018,8 +1148,21 @@ def get_a10_adjustment_report():
                   AND TRIM(COALESCE(machine_line_name, '')) <> ''
                 GROUP BY UPPER(TRIM(machine_line_name))
             ),
-            final_rows AS (
+            final_rows_base AS (
                 SELECT
+                    ROW_NUMBER() OVER (
+                        ORDER BY
+                            a.year,
+                            COALESCE(g_code.group_code, g_name.group_code, ''),
+                            COALESCE(g_code.country_grouping, g_name.country_grouping, ''),
+                            COALESCE(g_code.country_name, g_name.country_name, a.country_raw),
+                            COALESCE(g_code.region, g_name.region, a.region_raw),
+                            a.machine_line_code,
+                            a.machine_line_name,
+                            a.size_class,
+                            a.source,
+                            a.fid
+                    ) AS base_row_id,
                     a.year AS year,
                     COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
                     COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
@@ -1069,6 +1212,109 @@ def get_a10_adjustment_report():
                 WHERE UPPER(TRIM(a.source)) <> 'SAL'
                    OR TRIM(COALESCE(sm_country_line.crp_source, '')) <> ''
             ),
+            machine_line_mapping_matches AS (
+                SELECT
+                    frb.base_row_id AS base_row_id,
+                    TRIM(mlm.artificial_machine_line) AS artificial_machine_line,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY frb.base_row_id
+                        ORDER BY
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 1
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 2
+                                WHEN UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 3
+                                ELSE 4
+                            END,
+                            mlm.row_index ASC,
+                            mlm.id ASC
+                    ) AS match_rank
+                FROM final_rows_base frb
+                JOIN machine_line_mapping_rows mlm
+                  ON mlm.upload_run_id = ?
+                 AND UPPER(TRIM(COALESCE(mlm.size_class, ''))) = UPPER(TRIM(COALESCE(frb.size_class, '')))
+                 AND (
+                        UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                     OR UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                 )
+                 AND (
+                        TRIM(COALESCE(mlm.position, '')) = ''
+                     OR INSTR(
+                            ',' || REPLACE(UPPER(TRIM(COALESCE(mlm.position, ''))), ' ', '') || ',',
+                            ',' || REPLACE(UPPER(TRIM(COALESCE(frb.source, ''))), ' ', '') || ','
+                        ) > 0
+                 )
+            ),
+            final_rows AS (
+                SELECT
+                    frb.year AS year,
+                    frb.country_group_code AS country_group_code,
+                    frb.country_grouping AS country_grouping,
+                    frb.country AS country,
+                    frb.region AS region,
+                    frb.machine_line_code AS machine_line_code,
+                    frb.machine_line_name AS machine_line_name,
+                    COALESCE(mlmm.artificial_machine_line, '') AS artificial_machine_line,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'TMA'
+                         AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) IN ('MINI', 'MIDI')
+                        THEN mlmm.artificial_machine_line
+                        ELSE frb.size_class
+                    END AS size_class,
+                    frb.brand_code AS brand_code,
+                    frb.reporter_flag AS reporter_flag,
+                    frb.vce_flag AS vce_flag,
+                    frb.pri_sec AS pri_sec,
+                    frb.source AS source,
+                    frb.deletion_flag AS deletion_flag,
+                    frb.raw_fid AS raw_fid
+                FROM final_rows_base frb
+                LEFT JOIN machine_line_mapping_matches mlmm
+                  ON frb.base_row_id = mlmm.base_row_id
+                 AND mlmm.match_rank = 1
+            ),
+            display_rows AS (
+                SELECT
+                    year,
+                    country_group_code,
+                    country_grouping,
+                    country,
+                    region,
+                    machine_line_code,
+                    machine_line_name,
+                    artificial_machine_line,
+                    size_class,
+                    brand_code,
+                    reporter_flag,
+                    vce_flag,
+                    pri_sec,
+                    source,
+                    deletion_flag,
+                    SUM(COALESCE(raw_fid, 0)) AS raw_fid
+                FROM final_rows
+                GROUP BY
+                    year,
+                    country_group_code,
+                    country_grouping,
+                    country,
+                    region,
+                    machine_line_code,
+                    machine_line_name,
+                    artificial_machine_line,
+                    size_class,
+                    brand_code,
+                    reporter_flag,
+                    vce_flag,
+                    pri_sec,
+                    source,
+                    deletion_flag
+            ),
             row_stats AS (
                 SELECT
                     year,
@@ -1078,6 +1324,7 @@ def get_a10_adjustment_report():
                     region,
                     machine_line_code,
                     machine_line_name,
+                    MAX(artificial_machine_line) AS artificial_machine_line,
                     size_class,
                     SUM(
                         CASE
@@ -1094,7 +1341,7 @@ def get_a10_adjustment_report():
                             ELSE 0
                         END
                     ) AS vce_fid
-                FROM final_rows
+                FROM display_rows
                 GROUP BY
                     year,
                     country_group_code,
@@ -1114,6 +1361,7 @@ def get_a10_adjustment_report():
                     fr.region AS region,
                     fr.machine_line_code AS machine_line_code,
                     fr.machine_line_name AS machine_line_name,
+                    fr.artificial_machine_line AS artificial_machine_line,
                     fr.size_class AS size_class,
                     fr.brand_code AS brand_code,
                     fr.reporter_flag AS reporter_flag,
@@ -1142,7 +1390,7 @@ def get_a10_adjustment_report():
                         WHEN UPPER(TRIM(fr.source)) = 'TMA' THEN 2
                         ELSE 9
                     END AS sort_order
-                FROM final_rows fr
+                FROM display_rows fr
                 LEFT JOIN row_stats rs
                   ON fr.year = rs.year
                  AND fr.country_group_code = rs.country_group_code
@@ -1162,6 +1410,7 @@ def get_a10_adjustment_report():
                     rs.region AS region,
                     rs.machine_line_code AS machine_line_code,
                     rs.machine_line_name AS machine_line_name,
+                    rs.artificial_machine_line AS artificial_machine_line,
                     rs.size_class AS size_class,
                     'Result' AS brand_code,
                     '' AS reporter_flag,
@@ -1186,6 +1435,7 @@ def get_a10_adjustment_report():
                 region,
                 machine_line_code,
                 machine_line_name,
+                artificial_machine_line,
                 size_class,
                 brand_code,
                 reporter_flag,
@@ -1216,6 +1466,7 @@ def get_a10_adjustment_report():
             latest_volvo_upload_run_id,
             latest_source_matrix_upload_run_id,
             latest_source_matrix_upload_run_id,
+            latest_machine_line_mapping_upload_run_id,
         ))
 
         rows = [dict(row) for row in cursor.fetchall()]
@@ -1226,6 +1477,7 @@ def get_a10_adjustment_report():
             "volvo_upload_run_id": latest_volvo_upload_run_id,
             "group_country_upload_run_id": latest_group_country_upload_run_id,
             "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
+            "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1412,12 +1664,18 @@ def get_oth_deletion_flag_report():
 
 @router.get("/reports/p10-vce-non-vce")
 def get_p10_vce_non_vce_report():
-    combined = get_crp_d1_combined_report()
+    combined = _get_crp_d1_combined_report_data(include_all_sal=False)
     combined_rows = combined["rows"]
 
     grouped = {}
     for row in combined_rows:
-        p10_size_class = _map_p10_size_class(row.get("size_class", ""))
+        source = str(row.get("source", "")).strip().upper()
+        raw_size_class = _to_text(row.get("size_class", ""))
+        artificial_machine_line = _to_text(row.get("artificial_machine_line", ""))
+        if source == "TMA" and artificial_machine_line.upper() in {"MINI", "MIDI"}:
+            p10_size_class = artificial_machine_line
+        else:
+            p10_size_class = raw_size_class
         key = (
             row.get("year", ""),
             row.get("country_group_code", ""),
@@ -1426,6 +1684,7 @@ def get_p10_vce_non_vce_report():
             row.get("region", ""),
             row.get("machine_line_code", ""),
             row.get("machine_line_name", ""),
+            artificial_machine_line,
             p10_size_class,
         )
         if key not in grouped:
@@ -1437,6 +1696,7 @@ def get_p10_vce_non_vce_report():
                 "region": row.get("region", ""),
                 "machine_line_code": row.get("machine_line_code", ""),
                 "machine_line_name": row.get("machine_line_name", ""),
+                "artificial_machine_line": artificial_machine_line,
                 "size_class": p10_size_class,
                 "total_market": 0.0,
                 "vce": 0.0,
@@ -1447,7 +1707,6 @@ def get_p10_vce_non_vce_report():
 
         target = grouped[key]
         fid = float(row.get("fid") or 0)
-        source = str(row.get("source", "")).strip().upper()
         reporter_flag = str(row.get("reporter_flag", "")).strip().upper()
         deletion_flag = str(row.get("deletion_flag", "")).strip().upper()
         machine_line_code = str(row.get("machine_line_code", "")).strip().upper()
@@ -1494,6 +1753,7 @@ def get_p10_vce_non_vce_report():
             item["country"],
             item["machine_line_code"],
             item["machine_line_name"],
+            item["artificial_machine_line"],
             item["size_class"],
         )
     )

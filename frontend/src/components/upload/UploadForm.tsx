@@ -30,6 +30,13 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
     "market_area_code",
     "region",
   ],
+  machine_line_mapping: [
+    "machine_line_name",
+    "machine_line_code",
+    "size_class",
+    "artificial_machine_line",
+    "position",
+  ],
   volvo_sale_data: [
     "calendar",
     "region",
@@ -85,6 +92,13 @@ const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, strin
   oth_data: {
     placeholder_1: "empty_1",
     placeholder_2: "empty_2",
+  },
+  machine_line_mapping: {
+    machine_line_name: "machine_line_name",
+    machine_line_code: "machine_line_code",
+    size_class: "Size Class",
+    artificial_machine_line: "Artificial machine line",
+    position: "Position",
   },
 };
 

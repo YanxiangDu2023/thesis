@@ -1,6 +1,7 @@
 import os
 import uuid
 import pandas as pd
+import unicodedata
 from datetime import datetime
 from fastapi import UploadFile, HTTPException
 from app.database import get_connection
@@ -47,10 +48,16 @@ SIZE_CLASS_COLUMN_NAMES = [
 MACHINE_LINE_MAPPING_EXPECTED_HEADERS = {
     "machine line name",
     "machine line code",
+    "size class",
+    "artificial machine line",
+    "position",
 }
 MACHINE_LINE_MAPPING_COLUMN_NAMES = [
     "machine_line_name",
     "machine_line_code",
+    "size_class",
+    "artificial_machine_line",
+    "position",
 ]
 GROUP_COUNTRY_FIXED_COLUMNS = [
     "year",
@@ -157,7 +164,7 @@ BRAND_MAPPING_DELETION_INDICATOR_ALIASES = [
 def _clean_cell(value) -> str:
     if pd.isna(value):
         return ""
-    text = str(value).strip()
+    text = unicodedata.normalize("NFKC", str(value)).strip()
     return "" if text.lower() == "nan" else text
 
 
@@ -796,13 +803,19 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         upload_run_id,
                         row_index,
                         machine_line_name,
-                        machine_line_code
-                    ) VALUES (?, ?, ?, ?)
+                        machine_line_code,
+                        size_class,
+                        artificial_machine_line,
+                        position
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
                     _clean_cell(row.get("machine_line_name", "")),
-                    _clean_cell(row.get("machine_line_code", ""))
+                    _clean_cell(row.get("machine_line_code", "")),
+                    _clean_cell(row.get("size_class", "")),
+                    _clean_cell(row.get("artificial_machine_line", "")),
+                    _clean_cell(row.get("position", ""))
                 ))
 
         elif matrix_type == "oth_data":

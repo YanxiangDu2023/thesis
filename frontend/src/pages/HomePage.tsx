@@ -30,7 +30,7 @@ const layers: LayerCard[] = [
     code: "A10",
     title: "Adjustment Layer",
     description:
-      "Captures adjusted values after business rules and allocation logic are applied.",
+      "Summarizes prepared SAL and TMA rows into reviewable A10 result rows before later split logic.",
   },
   {
     code: "A20",

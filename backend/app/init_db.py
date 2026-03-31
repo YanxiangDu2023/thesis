@@ -176,9 +176,15 @@ def init_db():
         row_index INTEGER,
         machine_line_name TEXT,
         machine_line_code TEXT,
+        size_class TEXT,
+        artificial_machine_line TEXT,
+        position TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+    _ensure_column(cursor, "machine_line_mapping_rows", "size_class", "TEXT")
+    _ensure_column(cursor, "machine_line_mapping_rows", "artificial_machine_line", "TEXT")
+    _ensure_column(cursor, "machine_line_mapping_rows", "position", "TEXT")
     
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS oth_data_rows (
