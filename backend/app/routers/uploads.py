@@ -860,9 +860,12 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     machine_line_code,
                     machine_line_name,
                     CASE
-                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'TMA'
-                         AND UPPER(TRIM(COALESCE(artificial_machine_line, ''))) IN ('MINI', 'MIDI')
-                        THEN artificial_machine_line
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(size_class, ''))) = 'MINI'
+                        THEN '<6T'
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(size_class, ''))) = 'MIDI'
+                        THEN '6<10T'
                         ELSE size_class
                     END AS size_class,
                     artificial_machine_line,
@@ -882,9 +885,12 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     machine_line_code,
                     machine_line_name,
                     CASE
-                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'TMA'
-                         AND UPPER(TRIM(COALESCE(artificial_machine_line, ''))) IN ('MINI', 'MIDI')
-                        THEN artificial_machine_line
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(size_class, ''))) = 'MINI'
+                        THEN '<6T'
+                        WHEN UPPER(TRIM(COALESCE(source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(size_class, ''))) = 'MIDI'
+                        THEN '6<10T'
                         ELSE size_class
                     END,
                     artificial_machine_line,
@@ -1262,9 +1268,12 @@ def get_a10_adjustment_report():
                     frb.machine_line_name AS machine_line_name,
                     COALESCE(mlmm.artificial_machine_line, '') AS artificial_machine_line,
                     CASE
-                        WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'TMA'
-                         AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) IN ('MINI', 'MIDI')
-                        THEN mlmm.artificial_machine_line
+                        WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(frb.size_class, ''))) = 'MINI'
+                        THEN '<6T'
+                        WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'SAL'
+                         AND UPPER(TRIM(COALESCE(frb.size_class, ''))) = 'MIDI'
+                        THEN '6<10T'
                         ELSE frb.size_class
                     END AS size_class,
                     frb.brand_code AS brand_code,
@@ -1923,7 +1932,7 @@ def get_p00_three_check_report():
                 "size_class": _to_text(row.get("size_class")),
                 "source": source,
                 "fid": to_number(row.get("fid")),
-                "tm": to_number(row.get("tm")),
+                "tm": to_number(row.get("tm")) if source == "TMA" else "",
                 "vce_fid": to_number(row.get("vce_fid")),
                 "tm_non_vce": to_number(row.get("tm_non_vce")),
                 "reporter_flag": _to_text(row.get("reporter_flag")),
@@ -1958,9 +1967,9 @@ def get_p00_three_check_report():
                 "size_class": comparison_size_class,
                 "source": _to_text(row.get("source")),
                 "fid": to_number(row.get("fid")),
-                "tm": stats["tm"],
-                "vce_fid": stats["vce_fid"],
-                "tm_non_vce": stats["tm_non_vce"],
+                "tm": "",
+                "vce_fid": "",
+                "tm_non_vce": "",
                 "reporter_flag": _to_text(row.get("reporter_flag")),
                 "deletion_flag": _to_text(row.get("deletion_flag")),
                 "pri_sec": _to_text(row.get("pri_sec")),

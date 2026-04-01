@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type FilterableColumn = {
   key: string;
@@ -21,6 +21,7 @@ type FilterableTableProps = {
   nonEditableColumns?: string[];
   compact?: boolean;
   getRowClassName?: (row: Record<string, string | number | null>, index: number) => string | undefined;
+  virtualize?: boolean;
 };
 
 const EMPTY_FILTER_VALUE = "__EMPTY_FILTER__";
@@ -133,6 +134,7 @@ function FilterableTable({
   nonEditableColumns = [],
   compact = false,
   getRowClassName,
+  virtualize = false,
 }: FilterableTableProps) {
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
@@ -140,7 +142,6 @@ function FilterableTable({
   const [viewportHeight, setViewportHeight] = useState(0);
   const filterMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
-  const deferredFilters = useDeferredValue(filters);
   const showRowActions = editable && typeof onDeleteRow === "function";
   const normalizedFilters = useMemo(() => {
     const next: Record<string, string[]> = {};
@@ -252,8 +253,8 @@ function FilterableTable({
   const filteredRows = useMemo(() => {
     return rows
       .map((row, index) => ({ row, index }))
-      .filter(({ row }) => rowMatchesFilters(row, columns, deferredFilters));
-  }, [columns, deferredFilters, rows]);
+      .filter(({ row }) => rowMatchesFilters(row, columns, filters));
+  }, [columns, filters, rows]);
 
   const summaryItems = useMemo(() => {
     const filteredOnlyRows = filteredRows.map((item) => item.row);
@@ -280,7 +281,8 @@ function FilterableTable({
     }
   }, [filteredRows, onFilteredRowsChange]);
 
-  const shouldVirtualize = Boolean(maxHeight) && filteredRows.length > VIRTUALIZATION_ROW_THRESHOLD;
+  const shouldVirtualize =
+    virtualize && Boolean(maxHeight) && filteredRows.length > VIRTUALIZATION_ROW_THRESHOLD;
   const estimatedRowHeight = compact ? COMPACT_ROW_HEIGHT : DEFAULT_ROW_HEIGHT;
 
   const visibleRange = useMemo(() => {
@@ -311,6 +313,92 @@ function FilterableTable({
   const bottomSpacerHeight = shouldVirtualize
     ? Math.max(0, (filteredRows.length - visibleRange.endIndex) * estimatedRowHeight)
     : 0;
+
+  const tableBodyContent = useMemo(() => {
+    if (filteredRows.length === 0) {
+      return (
+        <tr>
+          <td colSpan={columns.length + (showRowActions ? 1 : 0)}>{emptyMessage}</td>
+        </tr>
+      );
+    }
+
+    return (
+      <>
+        {topSpacerHeight > 0 ? (
+          <tr className="data-table__spacer-row">
+            <td
+              colSpan={columns.length + (showRowActions ? 1 : 0)}
+              style={{ height: `${topSpacerHeight}px` }}
+            />
+          </tr>
+        ) : null}
+        {displayedRows.map(({ row, index }) => (
+          <tr
+            key={`${row.id ?? index}-${index}`}
+            className={getRowClassName?.(row, index)}
+          >
+            {columns.map((column) => (
+              <td key={`${row.id ?? index}-${column.key}`}>
+                {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (
+                  <input
+                    className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
+                    type="text"
+                    value={toCellText(row[column.key])}
+                    onChange={(e) => {
+                      const nextRows = [...rows];
+                      nextRows[index] = {
+                        ...nextRows[index],
+                        [column.key]: e.target.value,
+                      };
+                      onRowsChange(nextRows);
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                ) : (
+                  toCellText(row[column.key])
+                )}
+              </td>
+            ))}
+            {showRowActions ? (
+              <td>
+                <button
+                  type="button"
+                  className={compact ? "data-table__row-delete data-table__row-delete--compact" : "data-table__row-delete"}
+                  onClick={() => onDeleteRow(index)}
+                >
+                  Delete
+                </button>
+              </td>
+            ) : null}
+          </tr>
+        ))}
+        {bottomSpacerHeight > 0 ? (
+          <tr className="data-table__spacer-row">
+            <td
+              colSpan={columns.length + (showRowActions ? 1 : 0)}
+              style={{ height: `${bottomSpacerHeight}px` }}
+            />
+          </tr>
+        ) : null}
+      </>
+    );
+  }, [
+    bottomSpacerHeight,
+    columns,
+    compact,
+    displayedRows,
+    editable,
+    emptyMessage,
+    filteredRows.length,
+    getRowClassName,
+    nonEditableColumns,
+    onDeleteRow,
+    onRowsChange,
+    rows,
+    showRowActions,
+    topSpacerHeight,
+  ]);
 
   return (
     <div className="data-table-shell">
@@ -384,6 +472,20 @@ function FilterableTable({
                               onClick={() =>
                                 setFilters((prev) => ({
                                   ...prev,
+                                  [column.key]: filterOptions[column.key].map((value) =>
+                                    value === "" ? EMPTY_FILTER_VALUE : value
+                                  ),
+                                }))
+                              }
+                            >
+                              Select All
+                            </button>
+                            <button
+                              type="button"
+                              className="data-table__filter-clear"
+                              onClick={() =>
+                                setFilters((prev) => ({
+                                  ...prev,
                                   [column.key]: [],
                                 }))
                               }
@@ -440,72 +542,7 @@ function FilterableTable({
               {showRowActions ? <th /> : null}
             </tr>
           </thead>
-          <tbody>
-            {filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length + (showRowActions ? 1 : 0)}>{emptyMessage}</td>
-              </tr>
-            ) : (
-              <>
-                {topSpacerHeight > 0 ? (
-                  <tr className="data-table__spacer-row">
-                    <td
-                      colSpan={columns.length + (showRowActions ? 1 : 0)}
-                      style={{ height: `${topSpacerHeight}px` }}
-                    />
-                  </tr>
-                ) : null}
-                {displayedRows.map(({ row, index }) => (
-                  <tr
-                    key={`${row.id ?? index}-${index}`}
-                    className={getRowClassName?.(row, index)}
-                  >
-                    {columns.map((column) => (
-                      <td key={`${row.id ?? index}-${column.key}`}>
-                        {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (
-                          <input
-                            className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
-                            type="text"
-                            value={toCellText(row[column.key])}
-                            onChange={(e) => {
-                              const nextRows = [...rows];
-                              nextRows[index] = {
-                                ...nextRows[index],
-                                [column.key]: e.target.value,
-                              };
-                              onRowsChange(nextRows);
-                            }}
-                            style={{ width: "100%" }}
-                          />
-                        ) : (
-                          toCellText(row[column.key])
-                        )}
-                      </td>
-                    ))}
-                    {showRowActions ? (
-                      <td>
-                        <button
-                          type="button"
-                          className={compact ? "data-table__row-delete data-table__row-delete--compact" : "data-table__row-delete"}
-                          onClick={() => onDeleteRow(index)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-                {bottomSpacerHeight > 0 ? (
-                  <tr className="data-table__spacer-row">
-                    <td
-                      colSpan={columns.length + (showRowActions ? 1 : 0)}
-                      style={{ height: `${bottomSpacerHeight}px` }}
-                    />
-                  </tr>
-                ) : null}
-              </>
-            )}
-          </tbody>
+          <tbody>{tableBodyContent}</tbody>
         </table>
       </div>
     </div>

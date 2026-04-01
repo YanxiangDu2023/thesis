@@ -57,19 +57,29 @@ export default function AuthPage() {
         <div className="auth-brand-panel__content">
           <p className="auth-brand-panel__eyebrow">Volvo CE thesis prototype</p>
 
-          <div className="volvo-mark" aria-hidden="true">
-            <div className="volvo-mark__ring" />
-            <div className="volvo-mark__arrow-shaft" />
-            <div className="volvo-mark__arrow-head" />
-            <div className="volvo-mark__word">VOLVO</div>
+          <div className="auth-brand-panel__logo-stage" aria-hidden="true">
+            <div className="auth-brand-panel__logo-shell">
+              <img
+                src="/volvo_construction_equipment_logo.jpg"
+                alt=""
+                className="auth-brand-panel__logo"
+              />
+            </div>
           </div>
 
           <div className="auth-brand-panel__copy">
             <h1 className="auth-brand-panel__title">Access the TMC process workspace</h1>
             <p className="auth-brand-panel__text">
-              A focused entry point for matrix submission, data uploads, and pipeline
-              review with a cleaner Volvo-inspired identity.
+              
+
+
+              
             </p>
+            <div className="auth-brand-panel__feature-row" aria-label="Workspace highlights">
+              <span className="auth-brand-panel__feature">Pipeline visibility</span>
+              <span className="auth-brand-panel__feature">Matrix submission</span>
+              <span className="auth-brand-panel__feature">Data upload entry</span>
+            </div>
           </div>
         </div>
       </section>

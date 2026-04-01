@@ -220,7 +220,8 @@ const CRP_D1_RULE_BULLETS = [
   "All SAL rows are displayed in P00; SAL rows with empty CRP Source are not filtered out from this report.",
   "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
   "Artificial machine line is matched from Machine Line Mapping by machine line + size class + position.",
-  "For TMA rows, Size Class is merged when Machine Line Mapping maps multiple raw size classes to the same artificial class; currently this is used for Compact Excavators (CEX), where <6T rolls up to Mini and 6<10T / 6<11T / <10T roll up to Midi.",
+  "For SAL rows, Size Class is normalized to the TMA bucket when needed; currently this is used for Compact Excavators (CEX), where Mini maps to <6T and Midi maps to 6<10T.",
+  "SAL can include machine lines that do not exist in TMA, so VCE FID can be lower than the total SAL value.",
   "Country mapping first uses country code + year, then falls back to country name + year.",
 ];
 
@@ -419,12 +420,75 @@ const P10_RULE_BULLETS = [
 const A10_RULE_BULLETS = [
   "A10 currently does not run split or re-split logic yet; it summarizes the prepared SAL and TMA rows.",
   "A10 shows one SAL detail row, one TMA detail row, and one derived Result row for each matched Year + Country Group + Country + Region + Machine Line + Size Class combination.",
-  "For TMA rows, Size Class is merged when Machine Line Mapping maps multiple raw size classes to the same artificial class; currently this is used for Compact Excavators (CEX), where <6T rolls up to Mini and 6<10T / 6<11T / <10T roll up to Midi.",
+  "This output includes all Volvo rows with Reporter Flag = Y, together with the matched TMA result for the same group when TMA exists.",
+  "For SAL rows, Size Class is normalized when needed: Mini maps to <6T and Midi maps to 6<10T. TMA Size Class stays unchanged.",
   "Only Volvo/SAL rows with a non-empty CRP Source in Source Matrix can contribute to VCE-related values.",
   "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
   "Result FID = sum of valid Volvo/SAL rows for the group.",
   "Result TM FID = sum of TMA rows for the same group.",
   "Result TM Non VCE = max(TM FID - FID, 0).",
+];
+
+const THREE_CHECK_RULE_BULLETS = [
+  "Check Report combines prepared TMA + SAL rows from P00 with OTH rows from OTH Deletion Flag Report into one review table.",
+  "Source is not merged: TMA, SAL, and OTH stay as separate rows in the final output.",
+  "TM, VCE FID, and TM Non VCE are matched by Year + Country + Machine Line Name + Size Class.",
+  "For TMA and SAL rows, those three values come directly from the prepared P00 combined result.",
+  "For OTH rows, Size Class is first normalized with Machine Line Mapping; when OTH maps to Mini or Midi, that normalized value is used for the TM/VCE lookup.",
+  "TM = matched TMA value for the group.",
+  "VCE FID = matched Volvo/SAL value for the group.",
+  "TM Non VCE = max(TM - VCE FID, 0).",
+  "Artificial machine line is carried from the source row: P00 Combined for TMA/SAL rows and OTH mapping for OTH rows.",
+];
+
+const THREE_CHECK_SQL_MAP_BULLETS = [
+  "`_get_crp_d1_combined_report_data(include_all_sal=True)`: provides prepared TMA + SAL rows with TM / VCE FID / TM Non VCE already calculated.",
+  "`get_oth_deletion_flag_report()`: provides OTH rows with mapped country, machine line, artificial machine line, brand, and control flags.",
+  "`machine_line_mapping_rows`: normalizes OTH Size Class to Mini/Midi when needed before matching stats.",
+  "`stats_by_group`: stores TM / VCE FID / TM Non VCE by Year + Country + Machine Line Name + Size Class.",
+  "`result_rows`: appends TMA, SAL, and OTH into one final table without merging different sources together.",
+];
+
+const THREE_CHECK_KEY_SQL_SNIPPETS: Array<{ title: string; explain: string; sql: string }> = [
+  {
+    title: "Current Implementation Note",
+    explain:
+      "3 Check Report is currently assembled in backend Python from the prepared report outputs. It is not a single standalone SQL statement yet.",
+    sql: `combined = _get_crp_d1_combined_report_data(include_all_sal=True)
+oth = get_oth_deletion_flag_report()`,
+  },
+  {
+    title: "TM / VCE / TM Non VCE Match Key",
+    explain:
+      "TMA and SAL rows first build a stats dictionary keyed by Year + Country + Machine Line Name + Size Class. OTH rows then read TM / VCE FID / TM Non VCE from that same key.",
+    sql: `group_key = (
+    _to_text(row.get("year")),
+    _to_text(row.get("country")),
+    _to_text(row.get("machine_line_name")),
+    _to_text(row.get("size_class")),
+)
+stats_by_group[group_key] = {
+    "tm": to_number(row.get("tm")),
+    "vce_fid": to_number(row.get("vce_fid")),
+    "tm_non_vce": to_number(row.get("tm_non_vce")),
+}`,
+  },
+  {
+    title: "OTH Size-Class Normalization",
+    explain:
+      "Before an OTH row looks up TM / VCE stats, its Size Class can be remapped to Mini or Midi from Machine Line Mapping so it aligns with the prepared TMA/SAL groups.",
+    sql: `comparison_size_class = resolve_oth_size_class(
+    row.get("machine_line_name"),
+    row.get("machine_line_code"),
+    row.get("size_class_flag"),
+)
+group_key = (
+    _to_text(row.get("year")),
+    _to_text(row.get("country")),
+    _to_text(row.get("machine_line_name")),
+    comparison_size_class,
+)`,
+  },
 ];
 
 const REPORT_TABLE_MAX_HEIGHT = "72vh";
@@ -466,6 +530,7 @@ function LayerDetailPage() {
   const [a10ResetToken, setA10ResetToken] = useState(0);
   const [showSqlGuide, setShowSqlGuide] = useState(false);
   const [showOthSqlGuide, setShowOthSqlGuide] = useState(false);
+  const [showThreeCheckSqlGuide, setShowThreeCheckSqlGuide] = useState(false);
 
   const combinedReportColumns = useMemo(
     () => [
@@ -839,7 +904,10 @@ function LayerDetailPage() {
               </div>
             ) : null}
 
-            {layer.highlights.slice(1, 5).map((item) => (
+            <div className="summary-row">
+              <span className="summary-value">{layer.highlights[1]}</span>
+            </div>
+            {layer.highlights.slice(2, 5).map((item) => (
               <div key={item} className="summary-row">
                 <span className="summary-value">{item}</span>
               </div>
@@ -896,6 +964,43 @@ function LayerDetailPage() {
                 />
               </div>
             ) : null}
+            {layer.code === "P00" && showOthSqlGuide ? (
+              <div className="sql-guide">
+                <h4 className="sql-guide__title">OTH Rules (2.1 / 2.2 / 2.3)</h4>
+                <ul className="sql-guide__list">
+                  {OTH_RULE_BULLETS.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+
+                <h4 className="sql-guide__title">SQL Map</h4>
+                <ul className="sql-guide__list">
+                  {OTH_SQL_MAP_BULLETS.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+
+                <h4 className="sql-guide__title">Key SQL Snippets</h4>
+                <div className="sql-guide__snippets">
+                  {OTH_KEY_SQL_SNIPPETS.map((snippet) => (
+                    <div key={snippet.title} className="sql-guide__snippet">
+                      <strong>{snippet.title}</strong>
+                      <p>{snippet.explain}</p>
+                      <pre>
+                        <code>{snippet.sql}</code>
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+
+                <details className="sql-guide__details">
+                  <summary>View Full SQL</summary>
+                  <pre>
+                    <code>{OTH_DELETION_FLAG_SQL}</code>
+                  </pre>
+                </details>
+              </div>
+            ) : null}
             <div className="summary-row">
               <span className="summary-value">{layer.highlights[5]}</span>
             </div>
@@ -906,7 +1011,14 @@ function LayerDetailPage() {
                 onClick={handleRunThreeCheckReport}
                 disabled={runningThreeCheckReport}
               >
-                Run 3 Check Report
+                Run Check Report
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={() => setShowThreeCheckSqlGuide((prev) => !prev)}
+              >
+                {showThreeCheckSqlGuide ? "Hide SQL Logic" : "View SQL Logic"}
               </button>
             </div>
           </div>
@@ -944,43 +1056,6 @@ function LayerDetailPage() {
             </button>
           </div>
         ) : null}
-        {layer.code === "P00" && showOthSqlGuide ? (
-          <div className="sql-guide">
-            <h4 className="sql-guide__title">OTH Rules (2.1 / 2.2 / 2.3)</h4>
-            <ul className="sql-guide__list">
-              {OTH_RULE_BULLETS.map((rule) => (
-                <li key={rule}>{rule}</li>
-              ))}
-            </ul>
-
-            <h4 className="sql-guide__title">SQL Map</h4>
-            <ul className="sql-guide__list">
-              {OTH_SQL_MAP_BULLETS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-
-            <h4 className="sql-guide__title">Key SQL Snippets</h4>
-            <div className="sql-guide__snippets">
-              {OTH_KEY_SQL_SNIPPETS.map((snippet) => (
-                <div key={snippet.title} className="sql-guide__snippet">
-                  <strong>{snippet.title}</strong>
-                  <p>{snippet.explain}</p>
-                  <pre>
-                    <code>{snippet.sql}</code>
-                  </pre>
-                </div>
-              ))}
-            </div>
-
-            <details className="sql-guide__details">
-              <summary>View Full SQL</summary>
-              <pre>
-                <code>{OTH_DELETION_FLAG_SQL}</code>
-              </pre>
-            </details>
-          </div>
-        ) : null}
         {layer.code === "P10" ? (
           <div className="sql-guide">
             <h4 className="sql-guide__title">Calculation Rules</h4>
@@ -1013,7 +1088,7 @@ function LayerDetailPage() {
         {layer.code === "P00" && threeCheckRows.length > 0 ? (
           <div className="section summary-card" style={{ marginTop: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-              <strong>3 Check Report</strong>
+              <strong>Check Report</strong>
               <button
                 type="button"
                 className="btn btn--tiny"
@@ -1034,6 +1109,36 @@ function LayerDetailPage() {
               resetToken={threeCheckResetToken}
               compact
             />
+          </div>
+        ) : null}
+        {layer.code === "P00" && showThreeCheckSqlGuide ? (
+          <div className="sql-guide">
+            <h4 className="sql-guide__title">Check Rules</h4>
+            <ul className="sql-guide__list">
+              {THREE_CHECK_RULE_BULLETS.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ul>
+
+            <h4 className="sql-guide__title">Logic Map</h4>
+            <ul className="sql-guide__list">
+              {THREE_CHECK_SQL_MAP_BULLETS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <h4 className="sql-guide__title">Key Logic Snippets</h4>
+            <div className="sql-guide__snippets">
+              {THREE_CHECK_KEY_SQL_SNIPPETS.map((snippet) => (
+                <div key={snippet.title} className="sql-guide__snippet">
+                  <strong>{snippet.title}</strong>
+                  <p>{snippet.explain}</p>
+                  <pre>
+                    <code>{snippet.sql}</code>
+                  </pre>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
         {layer.code === "P10" && runningP10Report ? (
@@ -1176,4 +1281,3 @@ function LayerDetailPage() {
 }
 
 export default LayerDetailPage;
-

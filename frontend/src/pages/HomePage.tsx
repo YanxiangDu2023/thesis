@@ -12,17 +12,17 @@ const layers: LayerCard[] = [
     code: "P00",
     title: "Preparation Raw Layer",
     bullets: [
-      "For CRP data: Merge latest TMA + SAL, map country fields, and assign reporter/deletion flags.",
-      "For OTH data: mark Deletion flag = Y when Machine Line Code = 390, or when Country + Machine Line Name is not found in Source Matrix.",
+      "Merge latest TMA + SAL and prepare CRP fields.",
+      "Prepare OTH flags and source matching.",
     ],
   },
   {
     code: "P10",
     title: "Prepared Layer",
     bullets: [
-      "Display TMA (Total Market) records at prepared layer granularity.",
-      "Calculate Volvo CE (VCE) from Volvo/SAL rows that have a non-empty CRP Source in Source Matrix for the matched Country + Machine Line Name, exclude Deletion flag = Y, and exclude Motor Graders.",
-      "Compute Non-Volvo CE as max(TMA - VCE, 0) for downstream steps.",
+      "Show prepared TMA values.",
+      "Calculate VCE from valid Volvo/SAL rows.",
+      "Compute Non-Volvo CE as max(TMA - VCE, 0).",
     ],
   },
   {
@@ -146,11 +146,11 @@ function HomePage() {
 
       <section className="section">
         <div className="section-header">
-          <p className="section-tag">Calculation Layers</p>
+          <p className="section-tag">Preparation AND Adjustment Layers</p>
           <h3 className="section-title">Initial scope for the first prototype</h3>
           <p className="section-description">
             The current thesis prototype focuses on the preparation and adjustment
-            stages that are most realistic to implement first.
+            stages.
           </p>
         </div>
 

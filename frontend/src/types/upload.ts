@@ -228,9 +228,9 @@ export type P00ThreeCheckRow = {
   size_class: string;
   source: string;
   fid: number;
-  tm: number;
-  vce_fid: number;
-  tm_non_vce: number;
+  tm: number | "";
+  vce_fid: number | "";
+  tm_non_vce: number | "";
   reporter_flag: string;
   deletion_flag: string;
   pri_sec: string;

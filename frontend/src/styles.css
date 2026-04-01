@@ -191,7 +191,9 @@ button {
   gap: 0;
   padding: 0;
   background:
-    linear-gradient(90deg, #f5f5f5 0, #f5f5f5 calc(100% - 440px), #ffffff calc(100% - 440px), #ffffff 100%),
+    radial-gradient(circle at 18% 22%, rgba(241, 180, 52, 0.12), transparent 22%),
+    radial-gradient(circle at 78% 14%, rgba(23, 59, 122, 0.08), transparent 18%),
+    linear-gradient(90deg, #f4f1eb 0, #f4f1eb calc(100% - 440px), #f8f7f4 calc(100% - 440px), #f8f7f4 100%),
     repeating-linear-gradient(
       0deg,
       rgba(15, 23, 42, 0.03) 0,
@@ -213,18 +215,34 @@ button {
 }
 
 .auth-brand-panel {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
+  padding: 64px 56px;
   border-right: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.auth-brand-panel::before {
+  content: "";
+  position: absolute;
+  inset: 56px 68px 56px 48px;
+  border-radius: 36px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.26)),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.42), transparent 60%);
+  border: 1px solid rgba(23, 59, 122, 0.08);
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+}
+
 .auth-brand-panel__content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
   width: min(100%, 640px);
   text-align: center;
 }
@@ -238,102 +256,128 @@ button {
   text-transform: uppercase;
 }
 
-.volvo-mark {
+.auth-brand-panel__logo {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.auth-brand-panel__logo-stage {
   position: relative;
-  width: 260px;
-  height: 260px;
+  display: grid;
+  place-items: center;
+  width: 320px;
+  height: 320px;
+  max-width: min(320px, 72vw);
+  max-height: min(320px, 72vw);
 }
 
-.volvo-mark__ring {
-  position: absolute;
-  inset: 20px;
-  border: 10px solid #0a0a0a;
-  border-radius: 50%;
-}
-
-.volvo-mark__arrow-shaft {
-  position: absolute;
-  top: 30px;
-  right: 36px;
-  width: 62px;
-  height: 10px;
-  background: #0a0a0a;
-  transform: rotate(41deg);
-  transform-origin: center;
-  border-radius: 999px;
-}
-
-.volvo-mark__arrow-head {
-  position: absolute;
-  top: 17px;
-  right: 18px;
-  width: 0;
-  height: 0;
-  border-left: 26px solid #0a0a0a;
-  border-top: 18px solid transparent;
-  border-bottom: 18px solid transparent;
-  transform: rotate(41deg);
-}
-
-.volvo-mark__word {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #0a0a0a;
-}
-
-.volvo-mark__word::before {
+.auth-brand-panel__logo-stage::before {
   content: "";
   position: absolute;
-  width: 138px;
-  height: 18px;
-  background: #f5f5f5;
-  z-index: -1;
+  inset: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2));
+  border: 1px solid rgba(23, 59, 122, 0.1);
+  box-shadow:
+    inset 0 0 0 18px rgba(255, 255, 255, 0.26),
+    0 24px 50px rgba(15, 23, 42, 0.1);
+}
+
+.auth-brand-panel__logo-stage::after {
+  content: "";
+  position: absolute;
+  width: 116px;
+  height: 116px;
+  top: 12px;
+  right: 22px;
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  transform: rotate(14deg);
+  opacity: 0.72;
+}
+
+.auth-brand-panel__logo-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 236px;
+  height: 236px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff 0%, #faf7f1 100%);
+  border: 1px solid rgba(23, 59, 122, 0.08);
+  box-shadow:
+    0 22px 38px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
 }
 
 .auth-brand-panel__copy {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
 .auth-brand-panel__title {
   margin: 0;
-  max-width: 560px;
+  max-width: 600px;
   color: #111111;
-  font-size: 46px;
-  line-height: 1.02;
+  font-size: clamp(42px, 5vw, 64px);
+  line-height: 0.96;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 .auth-brand-panel__text {
   margin: 0;
   max-width: 520px;
   color: #4b5563;
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.auth-brand-panel__feature-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.auth-brand-panel__feature {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(23, 59, 122, 0.1);
+  color: var(--volvo-blue-deep);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .auth-form-panel,
 .auth-loading-card {
-  background: #ffffff;
+  background: transparent;
 }
 
 .auth-form-panel {
-  padding: 48px 40px;
+  margin: 28px 28px 28px 0;
+  min-height: calc(100vh - 56px);
+  padding: 34px 32px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 24px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(18px);
 }
 
 .auth-loading-card {
@@ -378,8 +422,8 @@ button {
   gap: 8px;
   padding: 4px;
   border-radius: 999px;
-  background: #f5f5f5;
-  border: 1px solid #d4d4d4;
+  background: rgba(245, 245, 245, 0.9);
+  border: 1px solid rgba(31, 41, 55, 0.12);
 }
 
 .auth-mode-toggle__button {
@@ -421,10 +465,10 @@ button {
 
 .auth-field input {
   width: 100%;
-  border: 1.5px solid #1f2937;
-  border-radius: 0;
+  border: 1px solid rgba(31, 41, 55, 0.22);
+  border-radius: 16px;
   padding: 14px 16px;
-  background: #ffffff;
+  background: rgba(245, 248, 255, 0.86);
   font: inherit;
   color: #111111;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -432,8 +476,10 @@ button {
 
 .auth-field input:focus {
   outline: none;
-  border-color: #000000;
-  box-shadow: 6px 6px 0 rgba(17, 17, 17, 0.12);
+  border-color: var(--volvo-blue-soft);
+  box-shadow:
+    0 0 0 4px rgba(23, 59, 122, 0.08),
+    0 14px 24px rgba(23, 59, 122, 0.08);
 }
 
 .auth-field__hint {
@@ -447,13 +493,11 @@ button {
 .auth-form__error {
   margin: 0;
   padding: 12px 14px;
-  border-radius: 0;
-  background: #ffffff;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
   color: #991b1b;
+  border: 1px solid rgba(153, 27, 27, 0.18);
   border-left: 4px solid #991b1b;
-  border-top: 1px solid #e5e7eb;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .auth-form__submit {
@@ -1450,7 +1494,7 @@ button {
     grid-template-columns: 1fr;
     padding: 0;
     background:
-      linear-gradient(180deg, #f5f5f5 0, #f5f5f5 52%, #ffffff 52%, #ffffff 100%),
+      linear-gradient(180deg, #f4f1eb 0, #f4f1eb 52%, #f8f7f4 52%, #f8f7f4 100%),
       repeating-linear-gradient(
         0deg,
         rgba(15, 23, 42, 0.03) 0,
@@ -1478,38 +1522,33 @@ button {
     border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   }
 
-  .volvo-mark {
-    width: 210px;
-    height: 210px;
-  }
-
-  .volvo-mark__ring {
+  .auth-brand-panel::before {
     inset: 16px;
-    border-width: 8px;
+    border-radius: 28px;
   }
 
-  .volvo-mark__arrow-shaft {
-    top: 24px;
-    right: 28px;
-    width: 52px;
-    height: 8px;
+  .auth-brand-panel__content {
+    gap: 24px;
   }
 
-  .volvo-mark__arrow-head {
-    top: 13px;
-    right: 12px;
-    border-left-width: 22px;
-    border-top-width: 15px;
-    border-bottom-width: 15px;
+  .auth-brand-panel__logo-stage {
+    width: min(250px, 68vw);
+    height: min(250px, 68vw);
   }
 
-  .volvo-mark__word {
-    font-size: 22px;
+  .auth-brand-panel__logo-shell {
+    width: min(190px, 54vw);
+    height: min(190px, 54vw);
   }
 
-  .volvo-mark__word::before {
-    width: 118px;
-    height: 14px;
+  .auth-brand-panel__logo {
+    width: min(150px, 42vw);
+  }
+
+  .auth-form-panel {
+    margin: 0 16px 16px;
+    min-height: auto;
+    border-radius: 24px;
   }
 
   .auth-brand-panel__title {
