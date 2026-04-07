@@ -1,0 +1,691 @@
+﻿Calendar Year,Source,source_code,Machine Line,Artificial machine line,Machine Line Code,Brand,Brand Code
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Case,CAS
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,CASE,CAS
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,CASE,CAS
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,CASE,CAS
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Caterpillar,CAT
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Develon,DOO
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Hyundai,HYU
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Hyundai,HYU
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,JCB,JCB
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,JCB,JCB
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,JCB,JCB
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Deere,JOH
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Deere,JOH
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Deere,JOH
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Komatsu,KOM
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Liebherr,LIE
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Linkbelt,LIK
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Linkbelt,LIK
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,Abimaq,ABQ,Compact Wheel Loaders,350,350,Liugong,LIU
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Liugong,LIU
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Muller,MUU
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,New Holland,NEW
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,New Holland,NEW
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,New Holland,NEW
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,New Holland,NEW
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Sany,SNY
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Sany,SNY
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,Sany,SNY
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,SDLG,LIN
+2024,Abimaq,ABQ,Compact Wheel Loaders,350,350,SDLG,LIN
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,SDLG,LIN
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,SDLG,LIN
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,SDLG,LIN
+2024,Abimaq,ABQ,Compact Wheel Loaders,350,350,SEM,SEM
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,SEM,SEM
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,Abimaq,ABQ,Compact Wheel Loaders,350,350,Volvo,VCE
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,XCMG,XCM
+2024,Abimaq,ABQ,GPE Excavators Crawled,GEC,GEC,XCMG,XCM
+2024,Abimaq,ABQ,Wheel Loaders,WLO,WLO,XCMG,XCM
+2024,Abimaq,ABQ,Motor Graders,Motor Graders,380,XCMG,XCM
+2024,Abimaq,ABQ,Compact Excavators,CEX,CEX,Yanmar,YAN
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Atlas Weyhausen,ATW
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Bobcat,BOB
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Bobcat,BOB
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Bobcat,BOB
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Case,CAS
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Case,CAS
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Case,CAS
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Case,CAS
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Case,CAS
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Caterpillar,CAT
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Caterpillar,CAT
+2024,CECE,CEE,Rigid Haulers,Rigid Haulers,340,Caterpillar,CAT
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Caterpillar,CAT
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Claas,CLA
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Cukurova,CUK
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Cukurova,CUK
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Cukurova,CUK
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Cukurova,CUK
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Develon,DOO
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Develon,DOO
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Develon,DOO
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Eurocomach,EUR
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Eurocomach,EUR
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Gehl,GEH
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Hidromek,HID
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Hidromek,HID
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Hidromek,HID
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Hidromek,HID
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Hidromek,HID
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Hitachi,HIT
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Hitachi,HIT
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Hitachi,HIT
+2024,CECE,CEE,Rigid Haulers,Rigid Haulers,340,Hitachi,HIT
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Hitachi,HIT
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Hyundai,HYU
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Hyundai,HYU
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,JCB,JCB
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,JCB,JCB
+2024,CECE,CEE,Compact Excavators,CEX,CEX,JCB,JCB
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,JCB,JCB
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,JCB,JCB
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Kato Imer,KAT
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Kato Imer,KAT
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,CECE,CEE,Rigid Haulers,Rigid Haulers,340,Komatsu,KOM
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Komatsu,KOM
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Komatsu,KOM
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Komatsu,KOM
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Komatsu Mining,KMM
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Komatsu Mining,KMM
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Kramer,KRA
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Kubota,KUB
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Kubota,KUB
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Liebherr,LIE
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Liebherr,LIE
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Liebherr,LIE
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Liebherr,LIE
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Liugong,LIU
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Manitou,MTU
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Mecalac,MEC
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Mecalac,MEC
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Mecalac,MEC
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Mecalac,MEC
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Messersi,MES
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Messersi,MES
+2024,CECE,CEE,Compact Excavators,CEX,CEX,New Holland,NEW
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,New Holland,NEW
+2024,CECE,CEE,Motor Graders,Motor Graders,380,New Holland,NEW
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,New Holland,NEW
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,New Holland,NEW
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Paus,PAU
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Rokbak,ROK
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Sany,SNY
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Sany,SNY
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Sany,SNY
+2024,CECE,CEE,Motor Graders,Motor Graders,380,SEM,SEM
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Sunward,SUN
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Sunward,SUN
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Venieri,VEN
+2024,CECE,CEE,Rigid Haulers,Rigid Haulers,340,Volvo,VCE
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,CECE,CEE,Articulated Haulers,Articulated Haulers,330,Volvo,VCE
+2024,CECE,CEE,Motor Graders,Motor Graders,380,Volvo,VCE
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Wacker Neuson,WAN
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Wacker Neuson,WAN
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Wacker Neuson,WAN
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Wacker Neuson,WAN
+2024,CECE,CEE,Compact Excavators,CEX,CEX,Yanmar,YAN
+2024,CECE,CEE,GPE Excavators Crawled,GEC,GEC,Yanmar,YAN
+2024,CECE,CEE,Wheel Loaders,WLO,WLO,Yanmar,YAN
+2024,CECE,CEE,GPE Excavators Wheeled,GEW,GEW,Yanmar,YAN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Airman,AIR
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Airman,AIR
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Atlas Weyhausen,ATW
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Bell,BEL
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Bell,BEL
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Bell,BEL
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Bobcat,BOB
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Bobcat,BOB
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Bobcat,BOB
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Case,CAS
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Case,CAS
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Case,CAS
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Case,CAS
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Case,CAS
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Caterpillar,CAT
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Caterpillar,CAT
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Caterpillar,CAT
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Caterpillar,CAT
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Claas,CLA
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Cukurova,CUK
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Cukurova,CUK
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Cukurova,CUK
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Cukurova,CUK
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Deere,JOH
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Deere,JOH
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Deere,JOH
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Deere,JOH
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Deere,JOH
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Deere,JOH
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Deere,JOH
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Develon,DOO
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Develon,DOO
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Develon,DOO
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Eurocomach,EUR
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Eurocomach,EUR
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Foton Lovol,FOL
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Foton Lovol,FOL
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Foton Lovol,FOL
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Gehl,GEH
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Gehl,GEH
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Gehl,GEH
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Gradall,GRA
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Gradall,GRA
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Gradall,GRA
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Hidromek,HID
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Hidromek,HID
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Hidromek,HID
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Hidromek,HID
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Hidromek,HID
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Hitachi,HIT
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Hitachi,HIT
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Hitachi,HIT
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Hitachi,HIT
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Hitachi,HIT
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Hyundai,HYU
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Hyundai,HYU
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Hyundai,HYU
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,JCB,JCB
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,JCB,JCB
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,JCB,JCB
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,JCB,JCB
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,JCB,JCB
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Kato Imer,KAT
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Kato Imer,KAT
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Kobelco,KOB
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Kobelco,KOB
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Komatsu,KOM
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Komatsu,KOM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Komatsu,KOM
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Komatsu,KOM
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Komatsu Mining,KMM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Komatsu Mining,KMM
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Kramer,KRA
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Kubota,KUB
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Kubota,KUB
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Liebherr,LIE
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Liebherr,LIE
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Liebherr,LIE
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Liebherr,LIE
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Liebherr,LIE
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Linkbelt,LIK
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Linkbelt,LIK
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Linkbelt,LIK
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Liugong,LIU
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Liugong,LIU
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Liugong,LIU
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Manitou,MTU
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Mecalac,MEC
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Mecalac,MEC
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Mecalac,MEC
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Mecalac,MEC
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Messersi,MES
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Messersi,MES
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Mustang,MUS
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Mustang,MUS
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Mustang,MUS
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,New Holland,NEW
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,New Holland,NEW
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,New Holland,NEW
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,New Holland,NEW
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,New Holland,NEW
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Paus,PAU
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Rokbak,ROK
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Sany,SNY
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Sany,SNY
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Sany,SNY
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Sany,SNY
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Sany,SNY
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Sany,SNY
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,SCMC,SCM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,SCMC,SCM
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,SDLG,LIN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,SDLG,LIN
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,SDLG,LIN
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,SDLG,LIN
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,SDLG,LIN
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,SEM,SEM
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Shantui,SBM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Shantui,SBM
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Shantui,SBM
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Shantui,SBM
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Sumitomo,SUM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Sumitomo,SUM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Sumitomo,SUM
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Sunward,SUN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Sunward,SUN
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Sunward,SUN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Takeuchi,TAK
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Takeuchi,TAK
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Takeuchi,TAK
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Venieri,VEN
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,Volvo,VCE
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,Volvo,VCE
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,Volvo,VCE
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Wacker Neuson,WAN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Wacker Neuson,WAN
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Wacker Neuson,WAN
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Wacker Neuson,WAN
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,XCMG,XCM
+2024,HARGROVE,HVE,Articulated Haulers,Articulated Haulers,330,XCMG,XCM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,XCMG,XCM
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,XCMG,XCM
+2024,HARGROVE,HVE,Motor Graders,Motor Graders,380,XCMG,XCM
+2024,HARGROVE,HVE,Rigid Haulers,Rigid Haulers,340,XCMG,XCM
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,XCMG,XCM
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Yanmar,YAN
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Yanmar,YAN
+2024,HARGROVE,HVE,GPE Excavators Wheeled,GEW,GEW,Yanmar,YAN
+2024,HARGROVE,HVE,Wheel Loaders,WLO,WLO,Yanmar,YAN
+2024,HARGROVE,HVE,Compact Excavators,CEX,CEX,Zoomlion,ZOO
+2024,HARGROVE,HVE,GPE Excavators Crawled,GEC,GEC,Zoomlion,ZOO
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Bell,BEL
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Bobcat,BOB
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Bobcat,BOB
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Case,CAS
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Case,CAS
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Case,CAS
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Case,CAS
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Case,CAS
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Caterpillar,CAT
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Caterpillar,CAT
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Caterpillar,CAT
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Caterpillar,CAT
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Deere,JOH
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Deere,JOH
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Deere,JOH
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Deere,JOH
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Deere,JOH
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Deere,JOH
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Deere,JOH
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Develon,DOO
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Develon,DOO
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Develon,DOO
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Gehl,GEH
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Gehl,GEH
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Gehl,GEH
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Gradall,GRA
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Gradall,GRA
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Gradall,GRA
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Hitachi,HIT
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Hitachi,HIT
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Hitachi,HIT
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Hitachi,HIT
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Hyundai,HYU
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Hyundai,HYU
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,JCB,JCB
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,JCB,JCB
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,JCB,JCB
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,JCB,JCB
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Komatsu,KOM
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Komatsu,KOM
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Komatsu,KOM
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Komatsu,KOM
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Kubota,KUB
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Kubota,KUB
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Liebherr,LIE
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Liebherr,LIE
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Liebherr,LIE
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Liebherr,LIE
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Liebherr,LIE
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Linkbelt,LIK
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Linkbelt,LIK
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Linkbelt,LIK
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Manitou,MTU
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Mecalac,MEC
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Mecalac,MEC
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Mecalac,MEC
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Mecalac,MEC
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Mustang,MUS
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,New Holland,NEW
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,New Holland,NEW
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,New Holland,NEW
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,New Holland,NEW
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Rokbak,ROK
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Sany,SNY
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Sany,SNY
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Sany,SNY
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,SDLG,LIN
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,SEM,SEM
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Sumitomo,SUM
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Sumitomo,SUM
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Sunward,SUN
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Sunward,SUN
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Takeuchi,TAK
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Takeuchi,TAK
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Takeuchi,TAK
+2024,HARGROVE N,HVN,Articulated Haulers,Articulated Haulers,330,Volvo,VCE
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,HARGROVE N,HVN,Motor Graders,Motor Graders,380,Volvo,VCE
+2024,HARGROVE N,HVN,Rigid Haulers,Rigid Haulers,340,Volvo,VCE
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Wacker Neuson,WAN
+2024,HARGROVE N,HVN,GPE Excavators Wheeled,GEW,GEW,Wacker Neuson,WAN
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Wacker Neuson,WAN
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Wacker Neuson,WAN
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,XCMG,XCM
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,XCMG,XCM
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,XCMG,XCM
+2024,HARGROVE N,HVN,Compact Excavators,CEX,CEX,Yanmar,YAN
+2024,HARGROVE N,HVN,Wheel Loaders,WLO,WLO,Yanmar,YAN
+2024,HARGROVE N,HVN,GPE Excavators Crawled,GEC,GEC,Yanmar,YAN
+2024,IN01A,INA,Motor Graders,Motor Graders,380,ACE,ACE
+2024,IN01A,INA,Compact Excavators,CEX,CEX,BEML,BEM
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,BEML,BEM
+2024,IN01A,INA,Compact Wheel Loaders,350,350,BEML,BEM
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,BEML,BEM
+2024,IN01A,INA,Motor Graders,Motor Graders,380,BEML,BEM
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Bobcat,BOB
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Bobcat,BOB
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Bobcat,BOB
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Bobcat,BOB
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Case,CAS
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Caterpillar,CAT
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Caterpillar,CAT
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Caterpillar,CAT
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Caterpillar,CAT
+2024,IN01A,INA,Motor Graders,Motor Graders,380,CNH,CNH
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Develon,DOO
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Develon,DOO
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Eimco Elecon,EIM
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Eimco Elecon,EIM
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,IN01A,INA,Compact Excavators,CEX,CEX,JCB,JCB
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,JCB,JCB
+2024,IN01A,INA,Compact Wheel Loaders,350,350,JCB,JCB
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,JCB,JCB
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,JCB,JCB
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Kobelco,KOB
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Komatsu,KOM
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Komatsu,KOM
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Komatsu,KOM
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Komatsu,KOM
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Kubota,KUB
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,L&T,LTB
+2024,IN01A,INA,Compact Wheel Loaders,350,350,L&T,LTB
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Liebherr,LIE
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Liugong,LIU
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Liugong,LIU
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Liugong,LIU
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,IN01A,INA,Motor Graders,Motor Graders,380,New Holland,NEW
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Rokbak,ROK
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Sany,SNY
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Sany,SNY
+2024,IN01A,INA,Compact Excavators,CEX,CEX,SDLG,LIN
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,SDLG,LIN
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,SDLG,LIN
+2024,IN01A,INA,Motor Graders,Motor Graders,380,SDLG,LIN
+2024,IN01A,INA,Compact Wheel Loaders,350,350,SDLG,LIN
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,SDLG,LIN
+2024,IN01A,INA,Motor Graders,Motor Graders,380,SEM,SEM
+2024,IN01A,INA,Compact Wheel Loaders,350,350,SEM,SEM
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Tata Hitachi (ex. Telcon),TEL
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Terex,TRX
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Terex,TRX
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Terex,TRX
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Terex Trucks,TRT
+2024,IN01A,INA,Articulated Haulers,Articulated Haulers,330,Volvo,VCE
+2024,IN01A,INA,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,IN01A,INA,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,IN01A,INA,Motor Graders,Motor Graders,380,Volvo,VCE
+2024,IN01A,INA,Compact Wheel Loaders,350,350,Volvo,VCE
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,IN01A,INA,Compact Excavators,CEX,CEX,XCMG,XCM
+2024,IN01A,INA,GPE Excavators Crawled,GEC,GEC,XCMG,XCM
+2024,IN01A,INA,Wheel Loaders,WLO,WLO,XCMG,XCM
+2024,IN01A,INA,Compact Wheel Loaders,350,350,XCMG,XCM
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Anhui Heli,ANH
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Bobcat,BOB
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Bobcat,BOB
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Bobcat,BOB
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Case,CAS
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Caterpillar,CAT
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Caterpillar,CAT
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Changlin,CHA
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Develon,DOO
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Ensign,ENS
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Foton Lovol,FOL
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Foton Lovol,FOL
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Foton Lovol,FOL
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Foton Lovol,FOL
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Hitachi,HIT
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Hitachi,HIT
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Hitachi,HIT
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Hitachi,HIT
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Jonyang,JYG
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Jonyang,JYG
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Jonyang,JYG
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Kobelco,KOB
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Komatsu,KOM
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Komatsu,KOM
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Komatsu,KOM
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Kubota,KUB
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Kubota,KUB
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Liebherr,LIE
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Liebherr,LIE
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Liebherr,LIE
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Liebherr,LIE
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Liugong,LIU
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Liugong,LIU
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Liugong,LIU
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Liugong,LIU
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Lonking,LON
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Lonking,LON
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Lonking,LON
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Lonking,LON
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Sany,SNY
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Sany,SNY
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Sany,SNY
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Sany,SNY
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,SDLG,LIN
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,SDLG,LIN
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,SDLG,LIN
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,SDLG,LIN
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,SEM,SEM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Shandong Lishide,LIS
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Shandong Lishide,LIS
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Shandong Lishide,LIS
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Shandong Yineng,YIN
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Shantui,SBM
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Shantui,SBM
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Shantui,SBM
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Shantui,SBM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Sumitomo,SUM
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Sumitomo,SUM
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Sumitomo,SUM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Sunward,SUN
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Sunward,SUN
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Sunward,SUN
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Sunward,SUN
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Total Market Adjustment,ADJ
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,XCMG,XCM
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,XCMG,XCM
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,XCMG,XCM
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,XCMG,XCM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Xiagong XGMA Machinery,XEM
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Xiagong XGMA Machinery,XEM
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Xiagong XGMA Machinery,XEM
+2024,Manual Correction,MAC,Wheel Loaders,WLO,WLO,Xiagong XGMA Machinery,XEM
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Xinyuan,XIY
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Xinyuan,XIY
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Xinyuan,XIY
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Yanmar,YAN
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Yanmar,YAN
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Yanmar,YAN
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Yuchai,YUC
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Yuchai,YUC
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Yuchai,YUC
+2024,Manual Correction,MAC,Compact Excavators,CEX,CEX,Zoomlion,ZOO
+2024,Manual Correction,MAC,GPE Excavators Crawled,GEC,GEC,Zoomlion,ZOO
+2024,Manual Correction,MAC,GPE Excavators Wheeled,GEW,GEW,Zoomlion,ZOO
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Bobcat,BOB
+2024,MOLIT,MOL,Articulated Haulers,Articulated Haulers,330,Caterpillar,CAT
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Caterpillar,CAT
+2024,MOLIT,MOL,Rigid Haulers,Rigid Haulers,340,Caterpillar,CAT
+2024,MOLIT,MOL,Wheel Loaders,WLO,WLO,Caterpillar,CAT
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Develon,DOO
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Develon,DOO
+2024,MOLIT,MOL,Wheel Loaders,WLO,WLO,Develon,DOO
+2024,MOLIT,MOL,GPE Excavators Wheeled,GEW,GEW,Develon,DOO
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Hitachi,HIT
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Horyong,HOR
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Hyundai,HYU
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Hyundai,HYU
+2024,MOLIT,MOL,Wheel Loaders,WLO,WLO,Hyundai,HYU
+2024,MOLIT,MOL,GPE Excavators Wheeled,GEW,GEW,Hyundai,HYU
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Kato Imer,KAT
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Kobelco,KOB
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Kobelco,KOB
+2024,MOLIT,MOL,Rigid Haulers,Rigid Haulers,340,Komatsu,KOM
+2024,MOLIT,MOL,Wheel Loaders,WLO,WLO,Komatsu,KOM
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Kubota,KUB
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Sunward,SUN
+2024,MOLIT,MOL,Articulated Haulers,Articulated Haulers,330,Volvo,VCE
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Volvo,VCE
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Volvo,VCE
+2024,MOLIT,MOL,Wheel Loaders,WLO,WLO,Volvo,VCE
+2024,MOLIT,MOL,GPE Excavators Wheeled,GEW,GEW,Volvo,VCE
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Wacker Neuson,WAN
+2024,MOLIT,MOL,GPE Excavators Crawled,GEC,GEC,Yanmar,YAN
+2024,MOLIT,MOL,Compact Excavators,CEX,CEX,Yanmar,YAN

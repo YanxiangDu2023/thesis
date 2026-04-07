@@ -39,6 +39,15 @@ const layers: LayerCard[] = [
   },
 ];
 
+const machineLineSplitCard: LayerCard = {
+  code: "MLS",
+  title: "Machine Line Split Layer",
+  bullets: [
+    "Apply machine line split logic to the reviewed adjustment output.",
+    "Prepare split-ready result rows for downstream analysis and follow-up review.",
+  ],
+};
+
 function HomePage() {
   return (
     <div className="page">
@@ -172,6 +181,31 @@ function HomePage() {
               </article>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <p className="section-tag">Machine Line Split</p>
+          <h3 className="section-title">Machine Line Split</h3>
+          <p className="section-description">
+            The next planned scope introduces machine line split logic after the
+            current adjustment flow.
+          </p>
+        </div>
+
+        <div className="card-grid card-grid--three">
+          <Link to={`/layers/${machineLineSplitCard.code}`} className="layer-card-link">
+            <article className="card layer-card">
+              <span className="layer-card__code">{machineLineSplitCard.code}</span>
+              <h4 className="card__title">{machineLineSplitCard.title}</h4>
+              <ul className="card__list">
+                {machineLineSplitCard.bullets?.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          </Link>
         </div>
       </section>
 

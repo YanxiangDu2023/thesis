@@ -93,11 +93,13 @@ def init_db():
         source_code TEXT,
         machine_line TEXT,
         machine_code TEXT,
+        artificial_machine_line TEXT,
         brand_name TEXT,
         brand_code TEXT,
         FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
     )
     """)
+    _ensure_column(cursor, "reporter_list_rows", "artificial_machine_line", "TEXT")
 
      
      
@@ -110,6 +112,7 @@ def init_db():
       country_name TEXT,
       machine_line_code TEXT,
       machine_line_name TEXT,
+      artificial_machine_line TEXT,
       primary_source TEXT,
       secondary_source TEXT,
       crp_source TEXT,
@@ -117,6 +120,7 @@ def init_db():
       FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+    _ensure_column(cursor, "source_matrix_rows", "artificial_machine_line", "TEXT")
     
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS size_class_rows (

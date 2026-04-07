@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
-import { getA10AdjustmentReport, getCrpD1CombinedReport, getOthDeletionFlagReport, getP00ThreeCheckReport, getP10VceNonVceReport } from "../api/uploads";
+import { getA10AdjustmentReport, getCrpD1CombinedReport, getExcavatorsSplitCexReport, getOthDeletionFlagReport, getP00ThreeCheckReport, getP10VceNonVceReport } from "../api/uploads";
 import type { A10AdjustmentRow, CrpD1CombinedReportRow, OthDeletionFlagRow, P00ThreeCheckRow, P10VceNonVceRow } from "../types/upload";
 
 type LayerDetail = {
@@ -9,6 +9,417 @@ type LayerDetail = {
   title: string;
   description: string;
   highlights: string[];
+};
+
+type ExcavatorsSplitCaseRow = {
+  year: string;
+  machine_line_name: string;
+  machine_line_code: string;
+  source: string;
+  size_class_flag: string;
+  matched_rows: number;
+  gross_fid: number;
+  volvo_deduction: number;
+  net_fid: number;
+};
+
+type ExcavatorsSplitDetailRow = {
+  row_type: string;
+  year: string;
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line: string;
+  artificial_machine_line: string;
+  brand_code: string;
+  reporter_flag: string;
+  source: string;
+  pri_sec: string;
+  size_class: string;
+  before_split_fid_lt_10t: number | "";
+  copy_fid_lt_10t: number | "";
+  after_split_fid_lt_6t: number | "";
+  after_split_fid_6_10t: number | "";
+  tm_non_vce_lt_6t: number | "";
+  tm_non_vce_6_10t: number | "";
+  before_after_difference: number | "";
+  reference_level?: string;
+  split_ratio?: string;
+};
+
+type ExcavatorsSplitCaseType = "ALL" | "CEX" | "GEC" | "GEW";
+
+function toMatchKey(value: string | number | null | undefined): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/＜/g, "<")
+    .replace(/\s+/g, "")
+    .toUpperCase();
+}
+
+function toNumberValue(value: string | number | null | undefined): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    return 0;
+  }
+
+  const compact = raw.replace(/\s+/g, "");
+  let normalized = compact;
+
+  if (compact.includes(",") && compact.includes(".")) {
+    normalized =
+      compact.lastIndexOf(",") > compact.lastIndexOf(".")
+        ? compact.replace(/\./g, "").replace(",", ".")
+        : compact.replace(/,/g, "");
+  } else if (compact.includes(",")) {
+    const parts = compact.split(",");
+    normalized =
+      parts.length === 2 && parts[1].length <= 4
+        ? `${parts[0].replace(/\./g, "")}.${parts[1]}`
+        : compact.replace(/,/g, "");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function roundTo4(value: number): number {
+  return Number(value.toFixed(4));
+}
+
+function buildExcavatorsSplitCaseRows(
+  rows: OthDeletionFlagRow[],
+  caseType: ExcavatorsSplitCaseType
+): ExcavatorsSplitCaseRow[] {
+  const grouped = new Map<string, ExcavatorsSplitCaseRow>();
+
+  rows.forEach((row) => {
+    const reporterFlagKey = toMatchKey(row.reporter_flag);
+    const machineLineKey = toMatchKey(row.machine_line_name);
+    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
+    const sizeClassKey = toMatchKey(row.size_class_flag);
+
+    if (reporterFlagKey !== "Y") {
+      return;
+    }
+
+    const matchesCase =
+      (caseType === "ALL" &&
+        ((artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
+          (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
+          (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T"))) ||
+      (caseType === "CEX" && artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
+      (caseType === "GEC" && artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
+      (caseType === "GEW" && artificialMachineLineKey === "GEW" && sizeClassKey === ">6T");
+
+    if (!matchesCase) {
+      return;
+    }
+
+    const key = [
+      toMatchKey(row.year),
+      machineLineKey,
+      toMatchKey(row.machine_line_code),
+      toMatchKey(row.source),
+      sizeClassKey,
+    ].join("|");
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        year: String(row.year ?? "").trim(),
+        machine_line_name: String(row.machine_line_name ?? "").trim(),
+        machine_line_code: String(row.machine_line_code ?? "").trim(),
+        source: String(row.source ?? "").trim(),
+        size_class_flag: String(row.size_class_flag ?? "").trim(),
+        matched_rows: 0,
+        gross_fid: 0,
+        volvo_deduction: 0,
+        net_fid: 0,
+      });
+    }
+
+    const current = grouped.get(key);
+    if (!current) {
+      return;
+    }
+
+    current.matched_rows += 1;
+    const fidValue = toNumberValue(row.fid);
+    current.gross_fid += fidValue;
+    if (toMatchKey(row.brand_name) === "VOLVO") {
+      current.volvo_deduction += fidValue;
+      current.net_fid -= fidValue;
+    } else {
+      current.net_fid += fidValue;
+    }
+  });
+
+  return Array.from(grouped.values()).sort((left, right) => {
+    return (
+      left.year.localeCompare(right.year) ||
+      left.machine_line_name.localeCompare(right.machine_line_name) ||
+      left.source.localeCompare(right.source) ||
+      left.size_class_flag.localeCompare(right.size_class_flag)
+    );
+  });
+}
+
+function matchesExcavatorsSplitOthCase(
+  row: Pick<OthDeletionFlagRow, "reporter_flag" | "artificial_machine_line" | "size_class_flag">,
+  caseType: ExcavatorsSplitCaseType
+): boolean {
+  const reporterFlagKey = toMatchKey(row.reporter_flag);
+  const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
+  const sizeClassKey = toMatchKey(row.size_class_flag);
+
+  if (reporterFlagKey !== "Y") {
+    return false;
+  }
+
+  if (caseType === "ALL") {
+    return (
+      (artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
+      (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
+      (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T")
+    );
+  }
+
+  if (caseType === "CEX") {
+    return artificialMachineLineKey === "CEX" && sizeClassKey === "<10T";
+  }
+
+  if (caseType === "GEC") {
+    return artificialMachineLineKey === "GEC" && sizeClassKey === ">6T";
+  }
+
+  return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
+}
+
+function matchesExcavatorsSplitTmaCase(
+  row: P00ThreeCheckRow,
+  caseType: ExcavatorsSplitCaseType
+): boolean {
+  if (toMatchKey(row.source) !== "TMA") {
+    return false;
+  }
+
+  const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
+  const sizeClassKey = toMatchKey(row.size_class);
+
+  if (caseType === "ALL") {
+    return (
+      (artificialMachineLineKey === "CEX" && (sizeClassKey === "<6T" || sizeClassKey === "6<10T" || sizeClassKey === "<10T")) ||
+      (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
+      (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T")
+    );
+  }
+
+  if (caseType === "CEX") {
+    return (
+      artificialMachineLineKey === "CEX" &&
+      (sizeClassKey === "<6T" || sizeClassKey === "6<10T" || sizeClassKey === "<10T")
+    );
+  }
+
+  if (caseType === "GEC") {
+    return artificialMachineLineKey === "GEC" && sizeClassKey === ">6T";
+  }
+
+  return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
+}
+
+function buildExcavatorsSplitDetailRows(
+  threeCheckRows: P00ThreeCheckRow[],
+  caseType: ExcavatorsSplitCaseType
+): ExcavatorsSplitDetailRow[] {
+  const detailRows: ExcavatorsSplitDetailRow[] = [];
+  const cexTmByGroup = new Map<
+    string,
+    {
+      year: string;
+      country_grouping: string;
+      country: string;
+      region: string;
+      machine_line: string;
+      artificial_machine_line: string;
+      tm_non_vce_lt_6t: number;
+      tm_non_vce_6_10t: number;
+    }
+  >();
+
+  threeCheckRows.forEach((row) => {
+    if (!matchesExcavatorsSplitTmaCase(row, caseType)) {
+      return;
+    }
+
+    const groupKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.country_grouping),
+      toMatchKey(row.country),
+      toMatchKey(row.region),
+      toMatchKey(row.machine_line_name),
+      toMatchKey(row.artificial_machine_line),
+    ].join("|");
+
+    if (!cexTmByGroup.has(groupKey)) {
+      cexTmByGroup.set(groupKey, {
+        year: String(row.year ?? "").trim(),
+        country_grouping: String(row.country_grouping ?? "").trim(),
+        country: String(row.country ?? "").trim(),
+        region: String(row.region ?? "").trim(),
+        machine_line: String(row.machine_line_name ?? "").trim(),
+        artificial_machine_line: String(row.artificial_machine_line ?? "").trim(),
+        tm_non_vce_lt_6t: 0,
+        tm_non_vce_6_10t: 0,
+      });
+    }
+
+    const current = cexTmByGroup.get(groupKey);
+    if (!current) {
+      return;
+    }
+
+    const sizeClassKey = toMatchKey(row.size_class);
+    const tmNonVce = toNumberValue(row.tm_non_vce);
+    if (sizeClassKey === "<6T") {
+      current.tm_non_vce_lt_6t += tmNonVce;
+    } else if (sizeClassKey === "6<10T") {
+      current.tm_non_vce_6_10t += tmNonVce;
+    }
+  });
+
+  threeCheckRows.forEach((row) => {
+    const sourceKey = toMatchKey(row.source);
+    const groupKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.country_grouping),
+      toMatchKey(row.country),
+      toMatchKey(row.region),
+      toMatchKey(row.machine_line_name),
+      toMatchKey(row.artificial_machine_line),
+    ].join("|");
+    const tmGroup = cexTmByGroup.get(groupKey);
+
+    if (sourceKey === "TMA") {
+      return;
+    }
+
+    if (
+      !matchesExcavatorsSplitOthCase(
+        {
+          reporter_flag: row.reporter_flag,
+          artificial_machine_line: row.artificial_machine_line,
+          size_class_flag: row.size_class,
+        },
+        caseType
+      )
+    ) {
+      return;
+    }
+
+    const beforeSplitFid = toNumberValue(row.fid);
+    const tmLt6 = tmGroup?.tm_non_vce_lt_6t ?? 0;
+    const tm610 = tmGroup?.tm_non_vce_6_10t ?? 0;
+    const tmTotal = tmLt6 + tm610;
+    const afterSplitLt6 = tmTotal > 0 ? roundTo4((beforeSplitFid * tmLt6) / tmTotal) : 0;
+    const afterSplit610 = tmTotal > 0 ? roundTo4((beforeSplitFid * tm610) / tmTotal) : 0;
+    const difference = roundTo4(beforeSplitFid - afterSplitLt6 - afterSplit610);
+
+    detailRows.push({
+      row_type: "OTH",
+      year: String(row.year ?? "").trim(),
+      country_grouping: String(row.country_grouping ?? "").trim(),
+      country: String(row.country ?? "").trim(),
+      region: String(row.region ?? "").trim(),
+      machine_line: String(row.machine_line_name ?? "").trim(),
+      artificial_machine_line: String(row.artificial_machine_line ?? "").trim(),
+      brand_code: String(row.brand_code ?? "").trim(),
+      reporter_flag: String(row.reporter_flag ?? "").trim(),
+      source: String(row.source ?? "").trim(),
+      pri_sec: String(row.pri_sec ?? "").trim(),
+      size_class: String(row.size_class ?? "").trim(),
+      before_split_fid_lt_10t: roundTo4(beforeSplitFid),
+      copy_fid_lt_10t: 0,
+      after_split_fid_lt_6t: afterSplitLt6,
+      after_split_fid_6_10t: afterSplit610,
+      tm_non_vce_lt_6t: "",
+      tm_non_vce_6_10t: "",
+      before_after_difference: difference,
+    });
+  });
+
+  cexTmByGroup.forEach((tmGroup) => {
+    detailRows.push({
+      row_type: "TMA",
+      year: tmGroup.year,
+      country_grouping: tmGroup.country_grouping,
+      country: tmGroup.country,
+      region: tmGroup.region,
+      machine_line: tmGroup.machine_line,
+      artificial_machine_line: tmGroup.artificial_machine_line,
+      brand_code: "#",
+      reporter_flag: "#",
+      source: "TMA",
+      pri_sec: "#",
+      size_class: "<10T",
+      before_split_fid_lt_10t: "",
+      copy_fid_lt_10t: "",
+      after_split_fid_lt_6t: "",
+      after_split_fid_6_10t: "",
+      tm_non_vce_lt_6t: roundTo4(tmGroup.tm_non_vce_lt_6t),
+      tm_non_vce_6_10t: roundTo4(tmGroup.tm_non_vce_6_10t),
+      before_after_difference: "",
+    });
+  });
+
+  return detailRows.sort((left, right) => {
+    return (
+      left.year.localeCompare(right.year) ||
+      left.country_grouping.localeCompare(right.country_grouping) ||
+      left.country.localeCompare(right.country) ||
+      left.row_type.localeCompare(right.row_type) ||
+      left.source.localeCompare(right.source) ||
+      left.brand_code.localeCompare(right.brand_code)
+    );
+  });
+}
+
+const EXCAVATORS_SPLIT_CASE_DETAILS: Record<
+  ExcavatorsSplitCaseType,
+  { heading: string; buttonLabel: string; panelTitle: string; description: string }
+> = {
+  ALL: {
+    heading: "Excavators Split",
+    buttonLabel: "Excavators Split Case",
+    panelTitle: "Excavators Split Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, with either Artificial machine line = CEX and Size Class Flag = <10T, Artificial machine line = GEC and Size Class Flag = >6T, or Artificial machine line = GEW and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+  CEX: {
+    heading: "1. Split CEX",
+    buttonLabel: "Split CEX Case",
+    panelTitle: "Split CEX Case",
+    description:
+      "Lists CEX OTH rows with Reporter Flag = Y and Size Class Flag = <10T, then splits non-Volvo FID by TMA Non-VCE structure using Country, then Region, then Country Grouping fallback.",
+  },
+  GEC: {
+    heading: "2. Split GEC",
+    buttonLabel: "Split GEC Case",
+    panelTitle: "Split GEC Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = GEC, and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+  GEW: {
+    heading: "3. Split GEW",
+    buttonLabel: "Split GEW Case",
+    panelTitle: "Split GEW Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = GEW, and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
 };
 
 const LAYER_DETAILS: Record<string, LayerDetail> = {
@@ -19,9 +430,9 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
     highlights: [
       "1. For each CRP record, determine whether it should be deleted and whether it is classified as a reporter.",
       "2. For each OTH record, prepare mapped control report fields.",
-      "2.1 Mark Deletion flag: Y if Machine Line Code = 390; otherwise Y when Country + Machine Line Name is not found in Source Matrix.",
-      "2.2 Assign Pri/Sec: match Source + Country + Machine Line Name to Source Matrix (country_name + machine_line_name). If Source equals primary_source then P; if Source equals secondary_source then S; otherwise blank.",
-      "2.3 Assign Reporter flag: first read CRP Source from Source Matrix by Country + Machine Line Name, then match Reporter List by source_code + machine_line + brand_code; if matched, set Y.",
+      "2.1 Mark Deletion flag: Y if Machine Line Code = 390; otherwise Y when Country + Artificial machine line is not found in Source Matrix.",
+      "2.2 Assign Pri/Sec: match Source + Country + Artificial machine line to Source Matrix. If Source equals primary_source then P; if Source equals secondary_source then S; otherwise blank.",
+      "2.3 Assign Reporter flag: first read CRP Source from Source Matrix by Country + Artificial machine line, then match Reporter List by source_code + Artificial machine line + brand_code. If matched, set Y.",
       "3. Build one combined 3 Check Report that puts TMA, SAL, and OTH into one table and shows TM, VCE FID, and TM Non VCE for the matched group.",
     ],
   },
@@ -32,7 +443,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
     highlights: [
       "TMA (Total Market) comes from TMA source records.",
       "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
-      "VCE includes Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
+      "VCE includes Volvo/SAL rows where CRP Source + Artificial machine line + brand_code matches Reporter List, excluding Motor Graders.",
       "Non-VCE = max(TMA - VCE, 0).",
     ],
   },
@@ -56,33 +467,41 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
       "Serves as the final stage in current prototype scope.",
     ],
   },
+  MLS: {
+    code: "MLS",
+    title: "Machine Line Split Layer",
+    description: "Planned machine line split stage that follows the current adjustment flow.",
+    highlights: ["Excavators Split"],
+  },
 };
 
 const CRP_D1_COMBINED_SQL = `WITH latest_tma AS (
-  SELECT id
-  FROM upload_runs
+  SELECT id FROM upload_runs
   WHERE matrix_type = 'tma_data' AND status = 'success'
   ORDER BY uploaded_at DESC, id DESC
   LIMIT 1
 ),
 latest_volvo AS (
-  SELECT id
-  FROM upload_runs
+  SELECT id FROM upload_runs
   WHERE matrix_type = 'volvo_sale_data' AND status = 'success'
   ORDER BY uploaded_at DESC, id DESC
   LIMIT 1
 ),
 latest_group_country AS (
-  SELECT id
-  FROM upload_runs
+  SELECT id FROM upload_runs
   WHERE matrix_type = 'group_country' AND status = 'success'
   ORDER BY uploaded_at DESC, id DESC
   LIMIT 1
 ),
 latest_source_matrix AS (
-  SELECT id
-  FROM upload_runs
+  SELECT id FROM upload_runs
   WHERE matrix_type = 'source_matrix' AND status = 'success'
+  ORDER BY uploaded_at DESC, id DESC
+  LIMIT 1
+),
+latest_machine_line_mapping AS (
+  SELECT id FROM upload_runs
+  WHERE matrix_type = 'machine_line_mapping' AND status = 'success'
   ORDER BY uploaded_at DESC, id DESC
   LIMIT 1
 ),
@@ -159,51 +578,129 @@ all_agg AS (
   UNION ALL
   SELECT * FROM volvo_agg
 ),
-source_matrix_machine_lines AS (
+source_matrix_country_artificial_lines AS (
   SELECT
-    UPPER(TRIM(machine_line_name)) AS machine_line_name_key
+    UPPER(TRIM(country_name)) AS country_name_key,
+    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
+    MAX(
+      CASE
+        WHEN TRIM(COALESCE(crp_source, '')) <> '' THEN TRIM(crp_source)
+        ELSE NULL
+      END
+    ) AS crp_source
   FROM source_matrix_rows
   WHERE upload_run_id = (SELECT id FROM latest_source_matrix)
-    AND TRIM(COALESCE(machine_line_name, '')) <> ''
-  GROUP BY UPPER(TRIM(machine_line_name))
+    AND TRIM(COALESCE(country_name, '')) <> ''
+    AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+  GROUP BY
+    UPPER(TRIM(country_name)),
+    UPPER(TRIM(artificial_machine_line))
+),
+reporter_list_artificial_brand AS (
+  SELECT
+    UPPER(TRIM(source_code)) AS source_code_key,
+    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
+    UPPER(TRIM(brand_code)) AS brand_code_key
+  FROM reporter_list_rows
+  WHERE upload_run_id = (SELECT id FROM upload_runs WHERE matrix_type = 'reporter_list' AND status = 'success' ORDER BY uploaded_at DESC, id DESC LIMIT 1)
+    AND TRIM(COALESCE(source_code, '')) <> ''
+    AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+    AND TRIM(COALESCE(brand_code, '')) <> ''
+  GROUP BY
+    UPPER(TRIM(source_code)),
+    UPPER(TRIM(artificial_machine_line)),
+    UPPER(TRIM(brand_code))
+),
+final_rows_base AS (
+  SELECT
+    ROW_NUMBER() OVER (ORDER BY a.year, a.machine_line_code, a.machine_line_name, a.size_class, a.source) AS base_row_id,
+    a.year,
+    COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
+    COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
+    COALESCE(g_code.country_name, g_name.country_name, a.country_raw) AS country,
+    COALESCE(g_code.region, g_name.region, a.region_raw) AS region,
+    a.machine_line_code,
+    a.machine_line_name,
+    a.size_class,
+    CASE WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE' ELSE '#' END AS brand_code,
+    '#' AS pri_sec,
+    a.source,
+    a.fid
+  FROM all_agg a
+  LEFT JOIN gc_by_code g_code
+    ON UPPER(TRIM(a.end_country_code)) = g_code.country_code_key
+   AND UPPER(TRIM(a.year)) = g_code.year_key
+  LEFT JOIN gc_by_name g_name
+    ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
+   AND UPPER(TRIM(a.year)) = g_name.year_key
+),
+machine_line_mapping_matches AS (
+  SELECT
+    frb.base_row_id,
+    TRIM(mlm.artificial_machine_line) AS artificial_machine_line,
+    ROW_NUMBER() OVER (
+      PARTITION BY frb.base_row_id
+      ORDER BY mlm.row_index ASC, mlm.id ASC
+    ) AS match_rank
+  FROM final_rows_base frb
+  JOIN machine_line_mapping_rows mlm
+    ON mlm.upload_run_id = (SELECT id FROM latest_machine_line_mapping)
+   AND UPPER(TRIM(COALESCE(mlm.size_class, ''))) = UPPER(TRIM(COALESCE(frb.size_class, '')))
+   AND (
+        UPPER(TRIM(COALESCE(frb.machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+     OR UPPER(TRIM(COALESCE(frb.machine_line_code, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+   )
+),
+final_rows AS (
+  SELECT
+    frb.year AS "Year",
+    frb.country_group_code AS "Country Group Code",
+    frb.country_grouping AS "Country Grouping",
+    frb.country AS "Country",
+    frb.region AS "Region",
+    frb.machine_line_code AS "Machine Line Code",
+    frb.machine_line_name AS "Machine Line name",
+    CASE
+      WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'SAL'
+       AND UPPER(TRIM(COALESCE(frb.size_class, ''))) = 'MINI' THEN '<6T'
+      WHEN UPPER(TRIM(COALESCE(frb.source, ''))) = 'SAL'
+       AND UPPER(TRIM(COALESCE(frb.size_class, ''))) = 'MIDI' THEN '6<10T'
+      ELSE frb.size_class
+    END AS "Size Class",
+    COALESCE(mlmm.artificial_machine_line, '') AS "Artificial machine line",
+    frb.brand_code AS "Brand Code",
+    CASE
+      WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
+      WHEN UPPER(TRIM(frb.source)) = 'SAL'
+           AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
+           AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+      ELSE ''
+    END AS "Reporter Flag",
+    frb.pri_sec AS "Pri/Sec",
+    frb.source AS "Source",
+    CASE
+      WHEN UPPER(TRIM(frb.source)) = 'SAL'
+           AND TRIM(CAST(frb.machine_line_code AS TEXT)) = '390' THEN 'Y'
+      WHEN UPPER(TRIM(frb.source)) = 'SAL'
+           AND TRIM(COALESCE(mlmm.artificial_machine_line, '')) <> ''
+           AND sm_artificial.country_name_key IS NULL THEN 'Y'
+      ELSE ''
+    END AS "Deletion flag",
+    frb.fid AS "fid"
+  FROM final_rows_base frb
+  LEFT JOIN machine_line_mapping_matches mlmm
+    ON frb.base_row_id = mlmm.base_row_id
+   AND mlmm.match_rank = 1
+  LEFT JOIN source_matrix_country_artificial_lines sm_artificial
+    ON UPPER(TRIM(COALESCE(frb.country, ''))) = sm_artificial.country_name_key
+   AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = sm_artificial.artificial_machine_line_key
+  LEFT JOIN reporter_list_artificial_brand rl_artificial
+    ON UPPER(TRIM(COALESCE(sm_artificial.crp_source, ''))) = rl_artificial.source_code_key
+   AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = rl_artificial.artificial_machine_line_key
+   AND UPPER(TRIM(COALESCE(frb.brand_code, ''))) = rl_artificial.brand_code_key
 )
-SELECT
-  a.year AS "Year",
-  COALESCE(g_code.group_code, g_name.group_code, '') AS "Country Group Code",
-  COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS "Country Grouping",
-  COALESCE(g_code.country_name, g_name.country_name, a.country_raw) AS "Country",
-  COALESCE(g_code.region, g_name.region, a.region_raw) AS "Region",
-  a.machine_line_code AS "Machine Line Code",
-  a.machine_line_name AS "Machine Line name",
-  a.size_class AS "Size Class",
-  CASE
-    WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
-    ELSE '#'
-  END AS "Brand Code",
-  CASE
-    WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
-    ELSE 'Y'
-  END AS "Reporter Flag",
-  '#' AS "Pri/Sec",
-  a.source AS "Source",
-  CASE
-    WHEN UPPER(TRIM(a.source)) = 'SAL'
-         AND TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
-    WHEN UPPER(TRIM(a.source)) = 'SAL'
-         AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
-         AND sm.machine_line_name_key IS NULL THEN 'Y'
-    ELSE ''
-  END AS "Deletion flag",
-  a.fid AS "fid"
-FROM all_agg a
-LEFT JOIN gc_by_code g_code
-  ON UPPER(TRIM(a.end_country_code)) = g_code.country_code_key
- AND UPPER(TRIM(a.year)) = g_code.year_key
-LEFT JOIN gc_by_name g_name
-  ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
- AND UPPER(TRIM(a.year)) = g_name.year_key
-LEFT JOIN source_matrix_machine_lines sm
-  ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
+SELECT *
+FROM final_rows
 ORDER BY
   "Country Grouping",
   "Country Group Code",
@@ -215,8 +712,8 @@ ORDER BY
 const CRP_D1_RULE_BULLETS = [
   "Deletion flag is only evaluated for SAL records.",
   "Deletion flag = Y when Source = SAL and Machine Line Code = 390.",
-  "Deletion flag = Y when Source = SAL and Machine Line name is not found in latest Source Matrix.",
-  "Reporter Flag = # for TMA records; for SAL records it is Y only when Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, otherwise it stays blank.",
+  "Deletion flag = Y when Source = SAL and Country + Artificial machine line is not found in latest Source Matrix.",
+  "Reporter Flag = # for TMA records; for SAL records it is Y only when Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, otherwise it stays blank.",
   "All SAL rows are displayed in P00; SAL rows with empty CRP Source are not filtered out from this report.",
   "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
   "Artificial machine line is matched from Machine Line Mapping by machine line + size class + position.",
@@ -228,32 +725,32 @@ const CRP_D1_RULE_BULLETS = [
 const OTH_DELETION_FLAG_SQL = `WITH source_matrix_base AS (
   SELECT
     UPPER(TRIM(country_name)) AS country_name_key,
-    UPPER(TRIM(machine_line_name)) AS machine_line_name_key,
+    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
     UPPER(TRIM(primary_source)) AS primary_source_key,
     UPPER(TRIM(secondary_source)) AS secondary_source_key
   FROM source_matrix_rows
   WHERE upload_run_id = :latest_source_matrix_upload_run_id
     AND TRIM(COALESCE(country_name, '')) <> ''
-    AND TRIM(COALESCE(machine_line_name, '')) <> ''
+    AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
 ),
 source_matrix_keys AS (
-  SELECT country_name_key, machine_line_name_key
+  SELECT country_name_key, artificial_machine_line_key
   FROM source_matrix_base
-  GROUP BY country_name_key, machine_line_name_key
+  GROUP BY country_name_key, artificial_machine_line_key
 ),
 source_matrix_source_flags AS (
-  SELECT country_name_key, machine_line_name_key, primary_source_key AS source_key, 'P' AS pri_sec
+  SELECT country_name_key, artificial_machine_line_key, primary_source_key AS source_key, 'P' AS pri_sec
   FROM source_matrix_base
   WHERE TRIM(COALESCE(primary_source_key, '')) <> ''
   UNION ALL
-  SELECT country_name_key, machine_line_name_key, secondary_source_key AS source_key, 'S' AS pri_sec
+  SELECT country_name_key, artificial_machine_line_key, secondary_source_key AS source_key, 'S' AS pri_sec
   FROM source_matrix_base
   WHERE TRIM(COALESCE(secondary_source_key, '')) <> ''
 ),
 source_matrix_source_flags_dedup AS (
   SELECT
     country_name_key,
-    machine_line_name_key,
+    artificial_machine_line_key,
     source_key,
     CASE
       WHEN SUM(CASE WHEN pri_sec = 'P' THEN 1 ELSE 0 END) > 0 THEN 'P'
@@ -261,7 +758,7 @@ source_matrix_source_flags_dedup AS (
       ELSE ''
     END AS pri_sec
   FROM source_matrix_source_flags
-  GROUP BY country_name_key, machine_line_name_key, source_key
+  GROUP BY country_name_key, artificial_machine_line_key, source_key
 )
 SELECT
   o.year AS year,
@@ -285,12 +782,12 @@ SELECT
       FROM source_matrix_rows sm
       JOIN reporter_list_rows rl
         ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
-        AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
+        AND UPPER(TRIM(COALESCE(rl.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(m.artificial_machine_line, '')))
         AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(b.brand_code, '')))
         AND rl.upload_run_id = :latest_reporter_list_upload_run_id
       WHERE sm.upload_run_id = :latest_source_matrix_upload_run_id
         AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(g.country_name, o.country, '')))
-        AND UPPER(TRIM(COALESCE(sm.machine_line_name, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
+        AND UPPER(TRIM(COALESCE(sm.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(m.artificial_machine_line, '')))
         AND TRIM(COALESCE(sm.crp_source, '')) <> ''
     ) THEN 'Y'
     ELSE ''
@@ -308,47 +805,47 @@ LEFT JOIN brand_mapping_rows b
   ON UPPER(TRIM(o.brand_name)) = UPPER(TRIM(b.brand_name))
 LEFT JOIN source_matrix_keys smk
   ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smk.country_name_key
- AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smk.machine_line_name_key
+ AND UPPER(TRIM(COALESCE(m.artificial_machine_line, ''))) = smk.artificial_machine_line_key
 LEFT JOIN source_matrix_source_flags_dedup smsf
   ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smsf.country_name_key
- AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smsf.machine_line_name_key
+ AND UPPER(TRIM(COALESCE(m.artificial_machine_line, ''))) = smsf.artificial_machine_line_key
  AND UPPER(TRIM(COALESCE(o.source, ''))) = smsf.source_key
 WHERE o.upload_run_id = :latest_oth_upload_run_id
 ORDER BY o.row_index ASC;`;
 
 const OTH_RULE_BULLETS = [
-  "2.1 Deletion flag: set Y when Machine Line Code = 390, or when Country + Machine Line Name is missing in Source Matrix.",
-  "2.2 Pri/Sec: match Source + Country + Machine Line Name to Source Matrix. Match primary_source -> P, match secondary_source -> S, no match -> blank.",
-  "2.3 Reporter flag: get CRP Source from Source Matrix by Country + Machine Line Name, then match Reporter List by source_code + machine_line + brand_code. If matched, set Y.",
+  "2.1 Deletion flag: set Y when Machine Line Code = 390, or when Country + Artificial machine line is missing in Source Matrix.",
+  "2.2 Pri/Sec: match Source + Country + Artificial machine line to Source Matrix. Match primary_source -> P, match secondary_source -> S, no match -> blank.",
+  "2.3 Reporter flag: get CRP Source from Source Matrix by Country + Artificial machine line, then match Reporter List by source_code + Artificial machine line + brand_code. If matched, set Y.",
 ];
 
 const OTH_SQL_MAP_BULLETS = [
-  "`source_matrix_keys`: checks whether Country + Machine Line Name exists in Source Matrix (for 2.1).",
-  "`source_matrix_source_flags_dedup`: resolves Pri/Sec by Source + Country + Machine Line Name (for 2.2).",
+  "`source_matrix_keys`: checks whether Country + Artificial machine line exists in Source Matrix (for 2.1).",
+  "`source_matrix_source_flags_dedup`: resolves Pri/Sec by Source + Country + Artificial machine line (for 2.2).",
   "`EXISTS` join with `source_matrix_rows` + `reporter_list_rows`: resolves Reporter flag (for 2.3).",
 ];
 
 const OTH_KEY_SQL_SNIPPETS: Array<{ title: string; explain: string; sql: string }> = [
   {
     title: "2.2 Pri/Sec Rule",
-    explain: "Pri/Sec is assigned by matching Source on top of Country + Machine Line Name.",
+    explain: "Pri/Sec is assigned by matching Source on top of Country + Artificial machine line.",
     sql: `COALESCE(smsf.pri_sec, '') AS pri_sec
 ...
 LEFT JOIN source_matrix_source_flags_dedup smsf
   ON UPPER(TRIM(COALESCE(g.country_name, o.country))) = smsf.country_name_key
- AND UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line))) = smsf.machine_line_name_key
+ AND UPPER(TRIM(COALESCE(m.artificial_machine_line, ''))) = smsf.artificial_machine_line_key
  AND UPPER(TRIM(COALESCE(o.source, ''))) = smsf.source_key`,
   },
   {
     title: "2.3 Reporter Flag Rule",
-    explain: "Reporter flag becomes Y only when Source Matrix CRP Source links to Reporter List for same machine line + brand.",
+    explain: "Reporter flag becomes Y only when Source Matrix CRP Source links to Reporter List for the same Artificial machine line + brand.",
     sql: `CASE
   WHEN EXISTS (
     SELECT 1
     FROM source_matrix_rows sm
     JOIN reporter_list_rows rl
       ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
-     AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(m.machine_line_name, o.machine_line, '')))
+     AND UPPER(TRIM(COALESCE(rl.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(m.artificial_machine_line, '')))
      AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(b.brand_code, '')))
     WHERE ...
   ) THEN 'Y'
@@ -360,7 +857,8 @@ END AS reporter_flag`,
 const CRP_D1_SQL_MAP_BULLETS = [
   "`gc_by_code` and `gc_by_name`: build country lookup tables from Group Country upload.",
   "`tma_agg` and `volvo_agg`: normalize + aggregate TMA and SAL rows into the same shape.",
-  "`source_matrix_country_line` and `source_matrix_machine_lines`: resolve CRP Source availability and validate Machine Line names against latest Source Matrix.",
+  "`source_matrix_country_artificial_lines`: resolves CRP Source availability and validates Country + Artificial machine line against the latest Source Matrix.",
+  "`reporter_list_artificial_brand`: stores Reporter List keys by source_code + Artificial machine line + brand_code.",
   "`machine_line_mapping_matches`: matches Artificial machine line from Machine Line Mapping using machine line + size class + position.",
   "`all_agg`, `final_rows_base`, `final_rows`, and `display_rows`: union TMA + SAL, apply business flags, match artificial machine line, and merge TMA Mini/Midi rows for display.",
 ];
@@ -369,27 +867,28 @@ const CRP_D1_KEY_SQL_SNIPPETS: Array<{ title: string; explain: string; sql: stri
   {
     title: "Deletion Flag Rule",
     explain:
-      "Only SAL rows can be marked for deletion: code 390, or machine line name missing from Source Matrix.",
+      "Only SAL rows can be marked for deletion: code 390, or Country + Artificial machine line missing from Source Matrix.",
     sql: `CASE
-  WHEN UPPER(TRIM(a.source)) = 'SAL'
-       AND TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
-  WHEN UPPER(TRIM(a.source)) = 'SAL'
-       AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
-       AND sm.machine_line_name_key IS NULL THEN 'Y'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL'
+       AND TRIM(CAST(frb.machine_line_code AS TEXT)) = '390' THEN 'Y'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL'
+       AND TRIM(COALESCE(mlmm.artificial_machine_line, '')) <> ''
+       AND sm_artificial.country_name_key IS NULL THEN 'Y'
   ELSE ''
 END AS "Deletion flag"`,
   },
   {
     title: "Reporter + Brand Rules",
-    explain: "Brand depends on source type. Reporter Flag is # for TMA, Y only for SAL rows with non-empty CRP Source, and blank for the remaining SAL rows.",
+    explain: "Brand depends on source type. Reporter Flag is # for TMA, Y only for SAL rows whose Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, and blank for the remaining SAL rows.",
     sql: `CASE
-  WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'VCE'
   ELSE '#'
 END AS "Brand Code",
 CASE
-  WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
-  WHEN UPPER(TRIM(a.source)) = 'SAL'
-       AND TRIM(COALESCE(sm_country_line.crp_source, '')) <> '' THEN 'Y'
+  WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL'
+       AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
+       AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
   ELSE ''
 END AS "Reporter Flag"`,
   },
@@ -413,7 +912,7 @@ LEFT JOIN gc_by_name g_name
 const P10_RULE_BULLETS = [
   "Total Market (TMA): sum of rows where Source = TMA.",
   "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
-  "VCE: sum of Volvo/SAL rows where Source Matrix has a non-empty CRP Source for the matched Country + Machine Line Name, excluding Motor Graders.",
+  "VCE: sum of Volvo/SAL rows where Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, excluding Motor Graders.",
   "Non-VCE: max(TMA - VCE, 0).",
 ];
 
@@ -422,7 +921,7 @@ const A10_RULE_BULLETS = [
   "A10 shows one SAL detail row, one TMA detail row, and one derived Result row for each matched Year + Country Group + Country + Region + Machine Line + Size Class combination.",
   "This output includes all Volvo rows with Reporter Flag = Y, together with the matched TMA result for the same group when TMA exists.",
   "For SAL rows, Size Class is normalized when needed: Mini maps to <6T and Midi maps to 6<10T. TMA Size Class stays unchanged.",
-  "Only Volvo/SAL rows with a non-empty CRP Source in Source Matrix can contribute to VCE-related values.",
+  "Only Volvo/SAL rows whose Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List can contribute to VCE-related values.",
   "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
   "Result FID = sum of valid Volvo/SAL rows for the group.",
   "Result TM FID = sum of TMA rows for the same group.",
@@ -531,6 +1030,15 @@ function LayerDetailPage() {
   const [showSqlGuide, setShowSqlGuide] = useState(false);
   const [showOthSqlGuide, setShowOthSqlGuide] = useState(false);
   const [showThreeCheckSqlGuide, setShowThreeCheckSqlGuide] = useState(false);
+  const [runningExcavatorsSplitCase, setRunningExcavatorsSplitCase] = useState(false);
+  const [excavatorsSplitCaseMessage, setExcavatorsSplitCaseMessage] = useState("");
+  const [excavatorsSplitCaseError, setExcavatorsSplitCaseError] = useState("");
+  const [excavatorsSplitCaseRows, setExcavatorsSplitCaseRows] = useState<ExcavatorsSplitCaseRow[]>([]);
+  const [excavatorsSplitDetailRows, setExcavatorsSplitDetailRows] = useState<ExcavatorsSplitDetailRow[]>([]);
+  const [excavatorsSplitCaseResetToken, setExcavatorsSplitCaseResetToken] = useState(0);
+  const [showExcavatorsSplitCasePanel, setShowExcavatorsSplitCasePanel] = useState(false);
+  const [activeExcavatorsSplitCase, setActiveExcavatorsSplitCase] =
+    useState<ExcavatorsSplitCaseType>("ALL");
 
   const combinedReportColumns = useMemo(
     () => [
@@ -647,6 +1155,48 @@ function LayerDetailPage() {
     []
   );
 
+  const excavatorsSplitCaseColumns = useMemo(
+    () => [
+      { key: "year", label: "Year" },
+      { key: "machine_line_name", label: "Machine Line" },
+      { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "source", label: "Source" },
+      { key: "size_class_flag", label: "Size Class Flag" },
+      { key: "matched_rows", label: "Matched Rows", summarizable: true },
+      { key: "gross_fid", label: "Gross FID", summarizable: true },
+      { key: "volvo_deduction", label: "Volvo Deduction", summarizable: true },
+      { key: "net_fid", label: "Net FID", summarizable: true },
+    ],
+    []
+  );
+
+  const excavatorsSplitDetailColumns = useMemo(
+    () => [
+      { key: "row_type", label: "Row Type" },
+      { key: "year", label: "Year" },
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "country", label: "Country" },
+      { key: "region", label: "Region" },
+      { key: "machine_line", label: "Machine Line" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "reporter_flag", label: "Reporter Flag" },
+      { key: "source", label: "Source" },
+      { key: "pri_sec", label: "Pri/Sec" },
+      { key: "size_class", label: "Size Class" },
+      { key: "before_split_fid_lt_10t", label: "Before Split FID <10T", summarizable: true },
+      { key: "copy_fid_lt_10t", label: "Copy FID <10T", summarizable: true },
+      { key: "after_split_fid_lt_6t", label: "After Split FID <6T", summarizable: true },
+      { key: "after_split_fid_6_10t", label: "After Split FID 6<10T", summarizable: true },
+      { key: "tm_non_vce_lt_6t", label: "TM Non-VCE <6T", summarizable: true },
+      { key: "tm_non_vce_6_10t", label: "TM Non-VCE 6<10T", summarizable: true },
+      { key: "reference_level", label: "Split Level" },
+      { key: "split_ratio", label: "Split Ratio" },
+      { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
+    ],
+    []
+  );
+
   const p10Share = useMemo(() => {
     const rowsForShare = p10FilteredRows ?? p10Rows;
     const totalMarketRaw = rowsForShare.reduce((sum, row) => sum + Number(row.total_market || 0), 0);
@@ -665,6 +1215,27 @@ function LayerDetailPage() {
       nonVcePct,
     };
   }, [p10FilteredRows, p10Rows]);
+
+  const excavatorsSplitCaseSummary = useMemo(() => {
+    return excavatorsSplitCaseRows.reduce(
+      (summary, row) => ({
+        groupedRows: summary.groupedRows + 1,
+        matchedRows: summary.matchedRows + row.matched_rows,
+        grossFidTotal: summary.grossFidTotal + row.gross_fid,
+        volvoDeductionTotal: summary.volvoDeductionTotal + row.volvo_deduction,
+        netFidTotal: summary.netFidTotal + row.net_fid,
+      }),
+      {
+        groupedRows: 0,
+        matchedRows: 0,
+        grossFidTotal: 0,
+        volvoDeductionTotal: 0,
+        netFidTotal: 0,
+      }
+    );
+  }, [excavatorsSplitCaseRows]);
+
+  const activeExcavatorsSplitCaseDetail = EXCAVATORS_SPLIT_CASE_DETAILS[activeExcavatorsSplitCase];
 
   const handleRunCrpD1CombinedReport = async () => {
     try {
@@ -775,6 +1346,48 @@ function LayerDetailPage() {
       setA10Error(error instanceof Error ? error.message : "Failed to run A10 Adjustment Report.");
     } finally {
       setRunningA10Report(false);
+    }
+  };
+
+  const handleRunExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
+    try {
+      setShowExcavatorsSplitCasePanel(true);
+      setRunningExcavatorsSplitCase(true);
+      setExcavatorsSplitCaseError("");
+      setExcavatorsSplitCaseMessage("");
+      setActiveExcavatorsSplitCase(caseType);
+
+      if (caseType === "CEX") {
+        const result = await getExcavatorsSplitCexReport();
+        setExcavatorsSplitCaseRows(result.summary_rows);
+        setExcavatorsSplitDetailRows(result.detail_rows);
+        setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+        setExcavatorsSplitCaseMessage(
+          `Run successful. Matching grouped rows: ${result.summary.grouped_rows}`
+        );
+        return;
+      }
+
+      const [othResult, threeCheckResult] = await Promise.all([
+        getOthDeletionFlagReport(),
+        getP00ThreeCheckReport(),
+      ]);
+      const rows = buildExcavatorsSplitCaseRows(othResult.rows, caseType);
+      const detailRows = buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType);
+      setExcavatorsSplitCaseRows(rows);
+      setExcavatorsSplitDetailRows(detailRows);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsSplitCaseMessage(`Run successful. Matching grouped rows: ${rows.length}`);
+    } catch (error) {
+      console.error(error);
+      setExcavatorsSplitCaseRows([]);
+      setExcavatorsSplitDetailRows([]);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsSplitCaseError(
+        error instanceof Error ? error.message : "Failed to build Excavators Split Case."
+      );
+    } finally {
+      setRunningExcavatorsSplitCase(false);
     }
   };
 
@@ -1022,6 +1635,41 @@ function LayerDetailPage() {
               </button>
             </div>
           </div>
+        ) : layer.code === "MLS" ? (
+          <div className="summary-card">
+            <div
+              style={{
+                display: "flex",
+                gap: "52px",
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginTop: "20px",
+                marginBottom: "8px",
+              }}
+            >
+              <div className="summary-row" style={{ marginBottom: 0 }}>
+                <span className="summary-value">{EXCAVATORS_SPLIT_CASE_DETAILS.ALL.heading}</span>
+              </div>
+              {(["CEX", "GEC", "GEW"] as const).map((caseType) => (
+                <div key={caseType} className="summary-row" style={{ marginBottom: 0 }}>
+                  <span className="summary-value">{EXCAVATORS_SPLIT_CASE_DETAILS[caseType].heading}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: "24px", display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+              {(["ALL", "CEX", "GEC", "GEW"] as ExcavatorsSplitCaseType[]).map((caseType) => (
+                <button
+                  key={caseType}
+                  type="button"
+                  className="btn btn--overview"
+                  onClick={() => handleRunExcavatorsSplitCase(caseType)}
+                  disabled={runningExcavatorsSplitCase}
+                >
+                  {EXCAVATORS_SPLIT_CASE_DETAILS[caseType].buttonLabel}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="summary-card">
             {layer.highlights.map((item) => (
@@ -1075,6 +1723,109 @@ function LayerDetailPage() {
               ))}
             </ul>
           </div>
+        ) : null}
+        {layer.code === "MLS" && runningExcavatorsSplitCase ? (
+          <p style={{ color: "blue" }}>Running {activeExcavatorsSplitCaseDetail.panelTitle}...</p>
+        ) : null}
+        {layer.code === "MLS" && excavatorsSplitCaseMessage ? (
+          <p style={{ color: "green" }}>{excavatorsSplitCaseMessage}</p>
+        ) : null}
+        {layer.code === "MLS" && excavatorsSplitCaseError ? (
+          <p style={{ color: "red" }}>Error: {excavatorsSplitCaseError}</p>
+        ) : null}
+        {layer.code === "MLS" && showExcavatorsSplitCasePanel ? (
+          <>
+            <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+              <article className="card">
+                <h4 className="card__title">Grouped Rows</h4>
+                <p className="summary-value">{excavatorsSplitCaseSummary.groupedRows}</p>
+              </article>
+              <article className="card">
+                <h4 className="card__title">Matched OTH Rows</h4>
+                <p className="summary-value">{excavatorsSplitCaseSummary.matchedRows}</p>
+              </article>
+              <article className="card">
+                <h4 className="card__title">Net FID</h4>
+                <p className="summary-value">
+                  {excavatorsSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </article>
+            </div>
+            <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+              <article className="card">
+                <h4 className="card__title">Gross FID</h4>
+                <p className="summary-value">
+                  {excavatorsSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </article>
+              <article className="card">
+                <h4 className="card__title">Volvo Deduction</h4>
+                <p className="summary-value">
+                  {excavatorsSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </article>
+              <article className="card">
+                <h4 className="card__title">Net FID Check</h4>
+                <p className="summary-value">
+                  {(excavatorsSplitCaseSummary.grossFidTotal - excavatorsSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </article>
+            </div>
+            <div className="section summary-card" style={{ marginTop: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                <div>
+                  <strong>{activeExcavatorsSplitCaseDetail.panelTitle}</strong>
+                  <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>
+                    {activeExcavatorsSplitCaseDetail.description}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--tiny"
+                  onClick={() => {
+                    setShowExcavatorsSplitCasePanel(false);
+                    setExcavatorsSplitCaseRows([]);
+                    setExcavatorsSplitDetailRows([]);
+                    setExcavatorsSplitCaseMessage("");
+                    setExcavatorsSplitCaseError("");
+                  }}
+                  aria-label={`Close ${activeExcavatorsSplitCaseDetail.panelTitle}`}
+                >
+                  x
+                </button>
+              </div>
+              <FilterableTable
+                columns={excavatorsSplitCaseColumns}
+                rows={excavatorsSplitCaseRows}
+                maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                resetToken={excavatorsSplitCaseResetToken}
+                compact
+              />
+              {activeExcavatorsSplitCase === "CEX" ? (
+                <div style={{ marginTop: "20px" }}>
+                  <strong>CEX Split Detail</strong>
+                  <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px", marginBottom: "12px" }}>
+                    Lists the CEX OTH rows to split for &lt;10T together with the related CEX TMA rows.
+                  </div>
+                  <FilterableTable
+                    columns={excavatorsSplitDetailColumns}
+                    rows={excavatorsSplitDetailRows}
+                    maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                    resetToken={excavatorsSplitCaseResetToken}
+                    compact
+                  />
+                </div>
+              ) : null}
+            </div>
+          </>
         ) : null}
         {layer.code === "P00" && runningThreeCheckReport ? (
           <p style={{ color: "blue" }}>Running 3 Check Report...</p>

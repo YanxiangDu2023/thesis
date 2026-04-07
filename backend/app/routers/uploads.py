@@ -47,6 +47,36 @@ def _to_text(value: Any) -> str:
     return "" if text.lower() == "nan" else text
 
 
+def _to_case_insensitive_key(value: Any) -> str:
+    return _to_text(value).upper()
+
+
+def _normalize_saved_value(column: str, value: Any) -> str:
+    text = _to_text(value)
+    if column in {"size_class", "size_class_mapping"}:
+        return text.upper()
+    return text
+
+
+def _to_number(value: Any) -> float:
+    text = _to_text(value).replace(",", "")
+    if not text:
+        return 0.0
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
+
+
+def _to_size_class_key(value: Any) -> str:
+    return _to_text(value).replace(" ", "").upper()
+
+
+def _round_to_4(value: float) -> float:
+    rounded = round(value, 4)
+    return 0.0 if abs(rounded) < 0.00005 else rounded
+
+
 def _get_table_insert_columns(cursor, table_name: str) -> list[str]:
     cursor.execute(f"PRAGMA table_info({table_name})")
     columns = [row["name"] for row in cursor.fetchall()]
@@ -101,7 +131,10 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
             writer = csv.writer(f)
             writer.writerow(insert_columns)
             for row in payload.rows:
-                writer.writerow([_to_text(row.get(column, "")) for column in insert_columns])
+                writer.writerow([
+                    _normalize_saved_value(column, row.get(column, ""))
+                    for column in insert_columns
+                ])
 
         cursor.execute("""
             INSERT INTO upload_runs (
@@ -131,7 +164,7 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
         """
 
         for idx, row in enumerate(payload.rows, start=1):
-            values = [_to_text(row.get(column, "")) for column in insert_columns]
+            values = [_normalize_saved_value(column, row.get(column, "")) for column in insert_columns]
             cursor.execute(insert_sql, (upload_run_id, idx, *values))
 
         row_count = len(payload.rows)
@@ -598,6 +631,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
     latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
     latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
     latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -610,6 +644,8 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
         missing_types.append("source_matrix")
     if latest_machine_line_mapping_upload_run_id is None:
         missing_types.append("machine_line_mapping")
+    if latest_reporter_list_upload_run_id is None:
+        missing_types.append("reporter_list")
 
     if missing_types:
         conn.close()
@@ -619,12 +655,20 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
         )
 
     try:
-        sal_visibility_clause = ""
+        filtered_rows_cte = """
+            filtered_rows AS (
+                SELECT * FROM final_rows
+            ),
+        """
         if not include_all_sal:
-            sal_visibility_clause = """
-                WHERE UPPER(TRIM(a.source)) <> 'SAL'
-                   OR TRIM(COALESCE(sm_country_line.crp_source, '')) <> ''
-            """
+            filtered_rows_cte = """
+            filtered_rows AS (
+                SELECT *
+                FROM final_rows
+                WHERE UPPER(TRIM(source)) <> 'SAL'
+                   OR TRIM(COALESCE(reporter_flag, '')) <> ''
+            ),
+        """
 
         cursor.execute(f"""
             WITH gc_by_code AS (
@@ -704,10 +748,10 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                 UNION ALL
                 SELECT * FROM volvo_agg
             ),
-            source_matrix_country_line AS (
+            source_matrix_country_artificial_lines AS (
                 SELECT
                     UPPER(TRIM(country_name)) AS country_name_key,
-                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key,
+                    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     MAX(
                         CASE
                             WHEN TRIM(COALESCE(crp_source, '')) <> '' THEN TRIM(crp_source)
@@ -717,18 +761,25 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                 FROM source_matrix_rows
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
-                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
+                  AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
                 GROUP BY
                     UPPER(TRIM(country_name)),
-                    UPPER(TRIM(machine_line_name))
+                    UPPER(TRIM(artificial_machine_line))
             ),
-            source_matrix_machine_lines AS (
+            reporter_list_artificial_brand AS (
                 SELECT
-                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key
-                FROM source_matrix_rows
+                    UPPER(TRIM(source_code)) AS source_code_key,
+                    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
+                    UPPER(TRIM(brand_code)) AS brand_code_key
+                FROM reporter_list_rows
                 WHERE upload_run_id = ?
-                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
-                GROUP BY UPPER(TRIM(machine_line_name))
+                  AND TRIM(COALESCE(source_code, '')) <> ''
+                  AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+                  AND TRIM(COALESCE(brand_code, '')) <> ''
+                GROUP BY
+                    UPPER(TRIM(source_code)),
+                    UPPER(TRIM(artificial_machine_line)),
+                    UPPER(TRIM(brand_code))
             ),
             final_rows_base AS (
                 SELECT
@@ -757,22 +808,8 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                         WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
                         ELSE '#'
                     END AS brand_code,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_country_line.crp_source, '')) <> '' THEN 'Y'
-                        ELSE ''
-                    END AS reporter_flag,
                     '#' AS pri_sec,
                     a.source AS source,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
-                             AND sm.machine_line_name_key IS NULL THEN 'Y'
-                        ELSE ''
-                    END AS deletion_flag,
                     a.fid AS fid
                 FROM all_agg a
                 LEFT JOIN gc_by_code g_code
@@ -781,12 +818,6 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                 LEFT JOIN gc_by_name g_name
                   ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
                  AND UPPER(TRIM(a.year)) = g_name.year_key
-                LEFT JOIN source_matrix_country_line sm_country_line
-                  ON UPPER(TRIM(COALESCE(g_code.country_name, g_name.country_name, a.country_raw))) = sm_country_line.country_name_key
-                 AND UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm_country_line.machine_line_name_key
-                LEFT JOIN source_matrix_machine_lines sm
-                  ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
-                {sal_visibility_clause}
             ),
             machine_line_mapping_matches AS (
                 SELECT
@@ -840,16 +871,37 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     frb.size_class AS size_class,
                     COALESCE(mlmm.artificial_machine_line, '') AS artificial_machine_line,
                     frb.brand_code AS brand_code,
-                    frb.reporter_flag AS reporter_flag,
+                    CASE
+                        WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
+                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        ELSE ''
+                    END AS reporter_flag,
                     frb.pri_sec AS pri_sec,
                     frb.source AS source,
-                    frb.deletion_flag AS deletion_flag,
+                    CASE
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(CAST(frb.machine_line_code AS TEXT)) = '390' THEN 'Y'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(COALESCE(mlmm.artificial_machine_line, '')) <> ''
+                             AND sm_artificial.country_name_key IS NULL THEN 'Y'
+                        ELSE ''
+                    END AS deletion_flag,
                     frb.fid AS fid
                 FROM final_rows_base frb
                 LEFT JOIN machine_line_mapping_matches mlmm
                   ON frb.base_row_id = mlmm.base_row_id
                  AND mlmm.match_rank = 1
+                LEFT JOIN source_matrix_country_artificial_lines sm_artificial
+                  ON UPPER(TRIM(COALESCE(frb.country, ''))) = sm_artificial.country_name_key
+                 AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = sm_artificial.artificial_machine_line_key
+                LEFT JOIN reporter_list_artificial_brand rl_artificial
+                  ON UPPER(TRIM(COALESCE(sm_artificial.crp_source, ''))) = rl_artificial.source_code_key
+                 AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = rl_artificial.artificial_machine_line_key
+                 AND UPPER(TRIM(COALESCE(frb.brand_code, ''))) = rl_artificial.brand_code_key
             ),
+            {filtered_rows_cte}
             display_rows AS (
                 SELECT
                     year,
@@ -875,7 +927,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     source,
                     deletion_flag,
                     SUM(COALESCE(fid, 0)) AS fid
-                FROM final_rows
+                FROM filtered_rows
                 GROUP BY
                     year,
                     country_group_code,
@@ -994,7 +1046,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
             latest_tma_upload_run_id,
             latest_volvo_upload_run_id,
             latest_source_matrix_upload_run_id,
-            latest_source_matrix_upload_run_id,
+            latest_reporter_list_upload_run_id,
             latest_machine_line_mapping_upload_run_id,
         ))
 
@@ -1007,6 +1059,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
             "group_country_upload_run_id": latest_group_country_upload_run_id,
             "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
             "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
+            "reporter_list_upload_run_id": latest_reporter_list_upload_run_id,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1029,6 +1082,7 @@ def get_a10_adjustment_report():
     latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
     latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
     latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -1041,6 +1095,8 @@ def get_a10_adjustment_report():
         missing_types.append("source_matrix")
     if latest_machine_line_mapping_upload_run_id is None:
         missing_types.append("machine_line_mapping")
+    if latest_reporter_list_upload_run_id is None:
+        missing_types.append("reporter_list")
 
     if missing_types:
         conn.close()
@@ -1128,10 +1184,10 @@ def get_a10_adjustment_report():
                 UNION ALL
                 SELECT * FROM volvo_agg
             ),
-            source_matrix_country_line AS (
+            source_matrix_country_artificial_lines AS (
                 SELECT
                     UPPER(TRIM(country_name)) AS country_name_key,
-                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key,
+                    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     MAX(
                         CASE
                             WHEN TRIM(COALESCE(crp_source, '')) <> '' THEN TRIM(crp_source)
@@ -1141,18 +1197,25 @@ def get_a10_adjustment_report():
                 FROM source_matrix_rows
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
-                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
+                  AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
                 GROUP BY
                     UPPER(TRIM(country_name)),
-                    UPPER(TRIM(machine_line_name))
+                    UPPER(TRIM(artificial_machine_line))
             ),
-            source_matrix_machine_lines AS (
+            reporter_list_artificial_brand AS (
                 SELECT
-                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key
-                FROM source_matrix_rows
+                    UPPER(TRIM(source_code)) AS source_code_key,
+                    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
+                    UPPER(TRIM(brand_code)) AS brand_code_key
+                FROM reporter_list_rows
                 WHERE upload_run_id = ?
-                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
-                GROUP BY UPPER(TRIM(machine_line_name))
+                  AND TRIM(COALESCE(source_code, '')) <> ''
+                  AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+                  AND TRIM(COALESCE(brand_code, '')) <> ''
+                GROUP BY
+                    UPPER(TRIM(source_code)),
+                    UPPER(TRIM(artificial_machine_line)),
+                    UPPER(TRIM(brand_code))
             ),
             final_rows_base AS (
                 SELECT
@@ -1181,27 +1244,8 @@ def get_a10_adjustment_report():
                         WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
                         ELSE '#'
                     END AS brand_code,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'TMA' THEN '#'
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_country_line.crp_source, '')) <> '' THEN 'Y'
-                        ELSE ''
-                    END AS reporter_flag,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_country_line.crp_source, '')) <> '' THEN 'Y'
-                        ELSE '#'
-                    END AS vce_flag,
                     '#' AS pri_sec,
                     a.source AS source,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(CAST(a.machine_line_code AS TEXT)) = '390' THEN 'Y'
-                        WHEN UPPER(TRIM(a.source)) = 'SAL'
-                             AND TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), '')) <> ''
-                             AND sm.machine_line_name_key IS NULL THEN 'Y'
-                        ELSE ''
-                    END AS deletion_flag,
                     a.fid AS raw_fid
                 FROM all_agg a
                 LEFT JOIN gc_by_code g_code
@@ -1210,13 +1254,6 @@ def get_a10_adjustment_report():
                 LEFT JOIN gc_by_name g_name
                   ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
                  AND UPPER(TRIM(a.year)) = g_name.year_key
-                LEFT JOIN source_matrix_country_line sm_country_line
-                  ON UPPER(TRIM(COALESCE(g_code.country_name, g_name.country_name, a.country_raw))) = sm_country_line.country_name_key
-                 AND UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm_country_line.machine_line_name_key
-                LEFT JOIN source_matrix_machine_lines sm
-                  ON UPPER(TRIM(COALESCE(CAST(a.machine_line_name AS TEXT), ''))) = sm.machine_line_name_key
-                WHERE UPPER(TRIM(a.source)) <> 'SAL'
-                   OR TRIM(COALESCE(sm_country_line.crp_source, '')) <> ''
             ),
             machine_line_mapping_matches AS (
                 SELECT
@@ -1277,16 +1314,47 @@ def get_a10_adjustment_report():
                         ELSE frb.size_class
                     END AS size_class,
                     frb.brand_code AS brand_code,
-                    frb.reporter_flag AS reporter_flag,
-                    frb.vce_flag AS vce_flag,
+                    CASE
+                        WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
+                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        ELSE ''
+                    END AS reporter_flag,
+                    CASE
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
+                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        ELSE '#'
+                    END AS vce_flag,
                     frb.pri_sec AS pri_sec,
                     frb.source AS source,
-                    frb.deletion_flag AS deletion_flag,
+                    CASE
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(CAST(frb.machine_line_code AS TEXT)) = '390' THEN 'Y'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
+                             AND TRIM(COALESCE(mlmm.artificial_machine_line, '')) <> ''
+                             AND sm_artificial.country_name_key IS NULL THEN 'Y'
+                        ELSE ''
+                    END AS deletion_flag,
                     frb.raw_fid AS raw_fid
                 FROM final_rows_base frb
                 LEFT JOIN machine_line_mapping_matches mlmm
                   ON frb.base_row_id = mlmm.base_row_id
                  AND mlmm.match_rank = 1
+                LEFT JOIN source_matrix_country_artificial_lines sm_artificial
+                  ON UPPER(TRIM(COALESCE(frb.country, ''))) = sm_artificial.country_name_key
+                 AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = sm_artificial.artificial_machine_line_key
+                LEFT JOIN reporter_list_artificial_brand rl_artificial
+                  ON UPPER(TRIM(COALESCE(sm_artificial.crp_source, ''))) = rl_artificial.source_code_key
+                 AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = rl_artificial.artificial_machine_line_key
+                 AND UPPER(TRIM(COALESCE(frb.brand_code, ''))) = rl_artificial.brand_code_key
+            ),
+            filtered_rows AS (
+                SELECT *
+                FROM final_rows
+                WHERE UPPER(TRIM(source)) <> 'SAL'
+                   OR TRIM(COALESCE(reporter_flag, '')) <> ''
             ),
             display_rows AS (
                 SELECT
@@ -1306,7 +1374,7 @@ def get_a10_adjustment_report():
                     source,
                     deletion_flag,
                     SUM(COALESCE(raw_fid, 0)) AS raw_fid
-                FROM final_rows
+                FROM filtered_rows
                 GROUP BY
                     year,
                     country_group_code,
@@ -1474,7 +1542,7 @@ def get_a10_adjustment_report():
             latest_tma_upload_run_id,
             latest_volvo_upload_run_id,
             latest_source_matrix_upload_run_id,
-            latest_source_matrix_upload_run_id,
+            latest_reporter_list_upload_run_id,
             latest_machine_line_mapping_upload_run_id,
         ))
 
@@ -1487,6 +1555,7 @@ def get_a10_adjustment_report():
             "group_country_upload_run_id": latest_group_country_upload_run_id,
             "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
             "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
+            "reporter_list_upload_run_id": latest_reporter_list_upload_run_id,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1532,27 +1601,27 @@ def get_oth_deletion_flag_report():
             WITH source_matrix_base AS (
                 SELECT
                     UPPER(TRIM(country_name)) AS country_name_key,
-                    UPPER(TRIM(machine_line_name)) AS machine_line_name_key,
+                    UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     UPPER(TRIM(primary_source)) AS primary_source_key,
                     UPPER(TRIM(secondary_source)) AS secondary_source_key
                 FROM source_matrix_rows
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
-                  AND TRIM(COALESCE(machine_line_name, '')) <> ''
+                  AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
             ),
             source_matrix_keys AS (
                 SELECT
                     country_name_key,
-                    machine_line_name_key
+                    artificial_machine_line_key
                 FROM source_matrix_base
                 GROUP BY
                     country_name_key,
-                    machine_line_name_key
+                    artificial_machine_line_key
             ),
             source_matrix_source_flags AS (
                 SELECT
                     country_name_key,
-                    machine_line_name_key,
+                    artificial_machine_line_key,
                     primary_source_key AS source_key,
                     'P' AS pri_sec
                 FROM source_matrix_base
@@ -1560,7 +1629,7 @@ def get_oth_deletion_flag_report():
                 UNION ALL
                 SELECT
                     country_name_key,
-                    machine_line_name_key,
+                    artificial_machine_line_key,
                     secondary_source_key AS source_key,
                     'S' AS pri_sec
                 FROM source_matrix_base
@@ -1569,7 +1638,7 @@ def get_oth_deletion_flag_report():
             source_matrix_source_flags_dedup AS (
                 SELECT
                     country_name_key,
-                    machine_line_name_key,
+                    artificial_machine_line_key,
                     source_key,
                     CASE
                         WHEN SUM(CASE WHEN pri_sec = 'P' THEN 1 ELSE 0 END) > 0 THEN 'P'
@@ -1579,7 +1648,7 @@ def get_oth_deletion_flag_report():
                 FROM source_matrix_source_flags
                 GROUP BY
                     country_name_key,
-                    machine_line_name_key,
+                    artificial_machine_line_key,
                     source_key
             ),
             brand_mapping_dedup AS (
@@ -1754,7 +1823,7 @@ def get_oth_deletion_flag_report():
                     CASE
                         WHEN TRIM(COALESCE(fr.machine_line_code, '')) = '390' THEN 'Y'
                         WHEN TRIM(COALESCE(fr.country, '')) <> ''
-                         AND TRIM(COALESCE(fr.machine_line_name, '')) <> ''
+                         AND TRIM(COALESCE(fr.artificial_machine_line, '')) <> ''
                          AND smk.country_name_key IS NULL THEN 'Y'
                         ELSE ''
                     END AS deletion_flag,
@@ -1765,12 +1834,12 @@ def get_oth_deletion_flag_report():
                             FROM source_matrix_rows sm
                             JOIN reporter_list_rows rl
                               ON UPPER(TRIM(COALESCE(rl.source_code, ''))) = UPPER(TRIM(COALESCE(sm.crp_source, '')))
-                             AND UPPER(TRIM(COALESCE(rl.machine_line, ''))) = UPPER(TRIM(COALESCE(fr.machine_line_name, '')))
+                             AND UPPER(TRIM(COALESCE(rl.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(fr.artificial_machine_line, '')))
                              AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(fr.brand_code, '')))
                              AND rl.upload_run_id = ?
                             WHERE sm.upload_run_id = ?
                               AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(fr.country, '')))
-                              AND UPPER(TRIM(COALESCE(sm.machine_line_name, ''))) = UPPER(TRIM(COALESCE(fr.machine_line_name, '')))
+                              AND UPPER(TRIM(COALESCE(sm.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(fr.artificial_machine_line, '')))
                               AND TRIM(COALESCE(sm.crp_source, '')) <> ''
                         ) THEN 'Y'
                         ELSE ''
@@ -1778,10 +1847,10 @@ def get_oth_deletion_flag_report():
                 FROM final_rows fr
                 LEFT JOIN source_matrix_keys smk
                     ON UPPER(TRIM(COALESCE(fr.country, ''))) = smk.country_name_key
-                   AND UPPER(TRIM(COALESCE(fr.machine_line_name, ''))) = smk.machine_line_name_key
+                   AND UPPER(TRIM(COALESCE(fr.artificial_machine_line, ''))) = smk.artificial_machine_line_key
                 LEFT JOIN source_matrix_source_flags_dedup smsf
                     ON UPPER(TRIM(COALESCE(fr.country, ''))) = smsf.country_name_key
-                   AND UPPER(TRIM(COALESCE(fr.machine_line_name, ''))) = smsf.machine_line_name_key
+                   AND UPPER(TRIM(COALESCE(fr.artificial_machine_line, ''))) = smsf.artificial_machine_line_key
                    AND UPPER(TRIM(COALESCE(fr.source, ''))) = smsf.source_key
             )
             GROUP BY
@@ -1903,10 +1972,10 @@ def get_p00_three_check_report():
 
         for row in combined["rows"]:
             group_key = (
-                _to_text(row.get("year")),
-                _to_text(row.get("country")),
-                _to_text(row.get("machine_line_name")),
-                _to_text(row.get("size_class")),
+                _to_case_insensitive_key(row.get("year")),
+                _to_case_insensitive_key(row.get("country")),
+                _to_case_insensitive_key(row.get("machine_line_name")),
+                _to_case_insensitive_key(row.get("size_class")),
             )
             if group_key not in stats_by_group:
                 stats_by_group[group_key] = {
@@ -1947,10 +2016,10 @@ def get_p00_three_check_report():
                 row.get("size_class_flag"),
             )
             group_key = (
-                _to_text(row.get("year")),
-                _to_text(row.get("country")),
-                _to_text(row.get("machine_line_name")),
-                comparison_size_class,
+                _to_case_insensitive_key(row.get("year")),
+                _to_case_insensitive_key(row.get("country")),
+                _to_case_insensitive_key(row.get("machine_line_name")),
+                _to_case_insensitive_key(comparison_size_class),
             )
             stats = stats_by_group.get(group_key, {"tm": 0.0, "vce_fid": 0.0, "tm_non_vce": 0.0})
 
@@ -2013,15 +2082,15 @@ def get_p10_vce_non_vce_report():
         else:
             p10_size_class = raw_size_class
         key = (
-            row.get("year", ""),
-            row.get("country_group_code", ""),
-            row.get("country_grouping", ""),
-            row.get("country", ""),
-            row.get("region", ""),
-            row.get("machine_line_code", ""),
-            row.get("machine_line_name", ""),
-            artificial_machine_line,
-            p10_size_class,
+            _to_case_insensitive_key(row.get("year", "")),
+            _to_case_insensitive_key(row.get("country_group_code", "")),
+            _to_case_insensitive_key(row.get("country_grouping", "")),
+            _to_case_insensitive_key(row.get("country", "")),
+            _to_case_insensitive_key(row.get("region", "")),
+            _to_case_insensitive_key(row.get("machine_line_code", "")),
+            _to_case_insensitive_key(row.get("machine_line_name", "")),
+            _to_case_insensitive_key(artificial_machine_line),
+            _to_case_insensitive_key(p10_size_class),
         )
         if key not in grouped:
             grouped[key] = {
@@ -2108,6 +2177,248 @@ def get_p10_vce_non_vce_report():
         "group_country_upload_run_id": combined["group_country_upload_run_id"],
         "source_matrix_upload_run_id": combined["source_matrix_upload_run_id"],
     }
+
+
+def _build_cex_split_case_report():
+    oth = get_oth_deletion_flag_report()
+    p10 = get_p10_vce_non_vce_report()
+
+    source_size_key = "<10T"
+    target_lt_6t_key = "<6T"
+    target_6_10t_key = "6<10T"
+
+    def add_reference_value(target: dict[tuple[str, str, str], float], key_parts: tuple[str, str], size_key: str, value: float):
+        target[(key_parts[0], key_parts[1], size_key)] = target.get((key_parts[0], key_parts[1], size_key), 0.0) + value
+
+    country_reference: dict[tuple[str, str, str], float] = {}
+    region_reference: dict[tuple[str, str, str], float] = {}
+    country_grouping_reference: dict[tuple[str, str, str], float] = {}
+
+    for row in p10["rows"]:
+        if _to_case_insensitive_key(row.get("artificial_machine_line")) != "CEX":
+            continue
+
+        size_key = _to_size_class_key(row.get("size_class"))
+        if size_key not in {target_lt_6t_key, target_6_10t_key}:
+            continue
+
+        non_vce = _to_number(row.get("non_vce"))
+        year_key = _to_case_insensitive_key(row.get("year"))
+        country_key = _to_case_insensitive_key(row.get("country"))
+        region_key = _to_case_insensitive_key(row.get("region"))
+        country_grouping_key = _to_case_insensitive_key(row.get("country_grouping"))
+
+        if year_key and country_key:
+            add_reference_value(country_reference, (year_key, country_key), size_key, non_vce)
+        if year_key and region_key:
+            add_reference_value(region_reference, (year_key, region_key), size_key, non_vce)
+        if year_key and country_grouping_key:
+            add_reference_value(country_grouping_reference, (year_key, country_grouping_key), size_key, non_vce)
+
+    def get_reference_distribution(row: dict[str, Any]) -> tuple[str, float, float]:
+        year_key = _to_case_insensitive_key(row.get("year"))
+        country_key = _to_case_insensitive_key(row.get("country"))
+        region_key = _to_case_insensitive_key(row.get("region"))
+        country_grouping_key = _to_case_insensitive_key(row.get("country_grouping"))
+
+        lookup_chain = [
+            ("Country", country_reference, (year_key, country_key)),
+            ("Region", region_reference, (year_key, region_key)),
+            ("Country Grouping", country_grouping_reference, (year_key, country_grouping_key)),
+        ]
+
+        for level, source_map, key_parts in lookup_chain:
+            if not key_parts[0] or not key_parts[1]:
+                continue
+
+            tm_non_vce_lt_6t = source_map.get((key_parts[0], key_parts[1], target_lt_6t_key), 0.0)
+            tm_non_vce_6_10t = source_map.get((key_parts[0], key_parts[1], target_6_10t_key), 0.0)
+            if tm_non_vce_lt_6t + tm_non_vce_6_10t > 0:
+                return level, tm_non_vce_lt_6t, tm_non_vce_6_10t
+
+        return "", 0.0, 0.0
+
+    def build_split_ratio_text(tm_non_vce_lt_6t: float, tm_non_vce_6_10t: float) -> str:
+        total_reference = tm_non_vce_lt_6t + tm_non_vce_6_10t
+        if total_reference <= 0:
+            return ""
+        lt_6t_ratio = (tm_non_vce_lt_6t / total_reference) * 100
+        ratio_6_10t = (tm_non_vce_6_10t / total_reference) * 100
+        return f"<6T {lt_6t_ratio:.4f}% | 6<10T {ratio_6_10t:.4f}%"
+
+    summary_by_group: dict[str, dict[str, Any]] = {}
+    detail_rows: list[dict[str, Any]] = []
+    tma_rows_by_group: dict[str, dict[str, Any]] = {}
+
+    for row in oth["rows"]:
+        if _to_case_insensitive_key(row.get("reporter_flag")) != "Y":
+            continue
+        if _to_case_insensitive_key(row.get("artificial_machine_line")) != "CEX":
+            continue
+        if _to_size_class_key(row.get("size_class_flag")) != source_size_key:
+            continue
+
+        summary_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("machine_line_name")),
+            _to_case_insensitive_key(row.get("machine_line_code")),
+            _to_case_insensitive_key(row.get("source")),
+            _to_size_class_key(row.get("size_class_flag")),
+        ])
+        if summary_key not in summary_by_group:
+            summary_by_group[summary_key] = {
+                "year": _to_text(row.get("year")),
+                "machine_line_name": _to_text(row.get("machine_line_name")),
+                "machine_line_code": _to_text(row.get("machine_line_code")),
+                "source": _to_text(row.get("source")),
+                "size_class_flag": _to_text(row.get("size_class_flag")),
+                "matched_rows": 0,
+                "gross_fid": 0.0,
+                "volvo_deduction": 0.0,
+                "net_fid": 0.0,
+            }
+
+        summary_row = summary_by_group[summary_key]
+        fid = _to_number(row.get("fid"))
+        summary_row["matched_rows"] += 1
+        summary_row["gross_fid"] += fid
+
+        if _to_case_insensitive_key(row.get("brand_name")) == "VOLVO":
+            summary_row["volvo_deduction"] += fid
+        else:
+            summary_row["net_fid"] += fid
+
+        if _to_case_insensitive_key(row.get("brand_name")) == "VOLVO":
+            continue
+
+        reference_level, tm_non_vce_lt_6t, tm_non_vce_6_10t = get_reference_distribution(row)
+        total_reference = tm_non_vce_lt_6t + tm_non_vce_6_10t
+        split_ratio = build_split_ratio_text(tm_non_vce_lt_6t, tm_non_vce_6_10t)
+        after_split_fid_lt_6t = (
+            _round_to_4((fid * tm_non_vce_lt_6t) / total_reference)
+            if total_reference > 0
+            else 0.0
+        )
+        after_split_fid_6_10t = (
+            _round_to_4((fid * tm_non_vce_6_10t) / total_reference)
+            if total_reference > 0
+            else 0.0
+        )
+        before_after_difference = _round_to_4(
+            fid - after_split_fid_lt_6t - after_split_fid_6_10t
+        )
+
+        detail_rows.append({
+            "row_type": "OTH",
+            "year": _to_text(row.get("year")),
+            "country_grouping": _to_text(row.get("country_grouping")),
+            "country": _to_text(row.get("country")),
+            "region": _to_text(row.get("region")),
+            "machine_line": _to_text(row.get("machine_line_name")),
+            "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+            "brand_code": _to_text(row.get("brand_code")),
+            "reporter_flag": _to_text(row.get("reporter_flag")),
+            "source": _to_text(row.get("source")),
+            "pri_sec": _to_text(row.get("pri_sec")),
+            "size_class": _to_text(row.get("size_class_flag")),
+            "before_split_fid_lt_10t": _round_to_4(fid),
+            "copy_fid_lt_10t": 0.0,
+            "after_split_fid_lt_6t": after_split_fid_lt_6t,
+            "after_split_fid_6_10t": after_split_fid_6_10t,
+            "tm_non_vce_lt_6t": "",
+            "tm_non_vce_6_10t": "",
+            "before_after_difference": before_after_difference,
+            "reference_level": reference_level,
+            "split_ratio": split_ratio,
+        })
+
+        detail_group_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("country_grouping")),
+            _to_case_insensitive_key(row.get("country")),
+            _to_case_insensitive_key(row.get("region")),
+            _to_case_insensitive_key(row.get("machine_line_name")),
+            _to_case_insensitive_key(row.get("artificial_machine_line")),
+        ])
+        if detail_group_key not in tma_rows_by_group:
+            tma_rows_by_group[detail_group_key] = {
+                "row_type": "TMA",
+                "year": _to_text(row.get("year")),
+                "country_grouping": _to_text(row.get("country_grouping")),
+                "country": _to_text(row.get("country")),
+                "region": _to_text(row.get("region")),
+                "machine_line": _to_text(row.get("machine_line_name")),
+                "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+                "brand_code": "#",
+                "reporter_flag": "#",
+                "source": "TMA",
+                "pri_sec": "#",
+                "size_class": _to_text(row.get("size_class_flag")),
+                "before_split_fid_lt_10t": "",
+                "copy_fid_lt_10t": "",
+                "after_split_fid_lt_6t": "",
+                "after_split_fid_6_10t": "",
+                "tm_non_vce_lt_6t": _round_to_4(tm_non_vce_lt_6t),
+                "tm_non_vce_6_10t": _round_to_4(tm_non_vce_6_10t),
+                "before_after_difference": "",
+                "reference_level": reference_level,
+                "split_ratio": build_split_ratio_text(tm_non_vce_lt_6t, tm_non_vce_6_10t),
+            }
+
+    detail_rows.extend(tma_rows_by_group.values())
+
+    summary_rows = sorted(
+        summary_by_group.values(),
+        key=lambda item: (
+            item["year"],
+            item["machine_line_name"],
+            item["source"],
+            item["size_class_flag"],
+        ),
+    )
+    detail_rows.sort(
+        key=lambda item: (
+            item["year"],
+            item["country_grouping"],
+            item["country"],
+            item["region"],
+            item["row_type"],
+            item["source"],
+            item["brand_code"],
+        )
+    )
+
+    grouped_rows = len(summary_rows)
+    matched_rows = sum(int(item["matched_rows"]) for item in summary_rows)
+    gross_fid_total = sum(float(item["gross_fid"]) for item in summary_rows)
+    volvo_deduction_total = sum(float(item["volvo_deduction"]) for item in summary_rows)
+    net_fid_total = sum(float(item["net_fid"]) for item in summary_rows)
+
+    return {
+        "case_type": "CEX",
+        "summary_rows": summary_rows,
+        "detail_rows": detail_rows,
+        "summary": {
+            "grouped_rows": grouped_rows,
+            "matched_rows": matched_rows,
+            "gross_fid_total": gross_fid_total,
+            "volvo_deduction_total": volvo_deduction_total,
+            "net_fid_total": net_fid_total,
+        },
+        "source_row_count": len(detail_rows),
+        "oth_row_count": oth["row_count"],
+        "p10_row_count": p10["row_count"],
+    }
+
+
+@router.get("/reports/excavators-split-cex")
+def get_excavators_split_cex_report():
+    try:
+        return _build_cex_split_case_report()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/uploads/latest/{matrix_type}")
 def get_latest_upload_by_matrix_type(matrix_type: str):

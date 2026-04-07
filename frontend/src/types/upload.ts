@@ -277,3 +277,55 @@ export type P10VceNonVceResponse = {
   group_country_upload_run_id: number;
   source_matrix_upload_run_id: number;
 };
+
+export type ExcavatorsSplitCaseRow = {
+  year: string;
+  machine_line_name: string;
+  machine_line_code: string;
+  source: string;
+  size_class_flag: string;
+  matched_rows: number;
+  gross_fid: number;
+  volvo_deduction: number;
+  net_fid: number;
+};
+
+export type ExcavatorsSplitDetailRow = {
+  row_type: string;
+  year: string;
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line: string;
+  artificial_machine_line: string;
+  brand_code: string;
+  reporter_flag: string;
+  source: string;
+  pri_sec: string;
+  size_class: string;
+  before_split_fid_lt_10t: number | "";
+  copy_fid_lt_10t: number | "";
+  after_split_fid_lt_6t: number | "";
+  after_split_fid_6_10t: number | "";
+  tm_non_vce_lt_6t: number | "";
+  tm_non_vce_6_10t: number | "";
+  before_after_difference: number | "";
+  reference_level?: string;
+  split_ratio?: string;
+};
+
+export type ExcavatorsSplitCaseReportResponse = {
+  case_type: "CEX";
+  summary_rows: ExcavatorsSplitCaseRow[];
+  detail_rows: ExcavatorsSplitDetailRow[];
+  summary: {
+    grouped_rows: number;
+    matched_rows: number;
+    gross_fid_total: number;
+    volvo_deduction_total: number;
+    net_fid_total: number;
+  };
+  source_row_count: number;
+  oth_row_count: number;
+  p10_row_count: number;
+};

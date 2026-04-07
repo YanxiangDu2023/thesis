@@ -37,6 +37,10 @@ function toCellText(value: string | number | null | undefined): string {
   return String(value);
 }
 
+function toFilterMatchKey(value: string | number | null | undefined): string {
+  return toCellText(value).toLocaleUpperCase();
+}
+
 function toNumericValue(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -99,11 +103,12 @@ function rowMatchesFilters(
     }
 
     const cellText = toCellText(row[column.key]);
+    const cellMatchKey = toFilterMatchKey(cellText);
     return selected.some((value) => {
       if (value === EMPTY_FILTER_VALUE) {
         return cellText === "";
       }
-      return cellText === value;
+      return cellMatchKey === toFilterMatchKey(value);
     });
   });
 }
@@ -225,26 +230,41 @@ function FilterableTable({
 
     columns.forEach((column) => {
       if (openFilterKey && column.key !== openFilterKey) {
-        options[column.key] = ((filters[column.key] ?? []).map((value) =>
-          value === EMPTY_FILTER_VALUE ? "" : value
-        )).sort((a, b) => a.localeCompare(b));
+        const selectedOptions = new Map<string, string>();
+        (filters[column.key] ?? []).forEach((value) => {
+          const displayValue = value === EMPTY_FILTER_VALUE ? "" : value;
+          selectedOptions.set(toFilterMatchKey(displayValue), displayValue);
+        });
+        options[column.key] = Array.from(selectedOptions.values()).sort((a, b) =>
+          a.localeCompare(b)
+        );
         return;
       }
 
-      const uniqueValues = new Set<string>();
+      const uniqueValues = new Map<string, string>();
       const relevantRows = rows.filter((row) =>
         rowMatchesFilters(row, columns, filters, column.key)
       );
 
       relevantRows.forEach((row) => {
-        uniqueValues.add(toCellText(row[column.key]));
+        const displayValue = toCellText(row[column.key]);
+        const matchKey = toFilterMatchKey(displayValue);
+        if (!uniqueValues.has(matchKey)) {
+          uniqueValues.set(matchKey, displayValue);
+        }
       });
 
       (filters[column.key] ?? []).forEach((selectedValue) => {
-        uniqueValues.add(selectedValue === EMPTY_FILTER_VALUE ? "" : selectedValue);
+        const displayValue = selectedValue === EMPTY_FILTER_VALUE ? "" : selectedValue;
+        const matchKey = toFilterMatchKey(displayValue);
+        if (!uniqueValues.has(matchKey)) {
+          uniqueValues.set(matchKey, displayValue);
+        }
       });
 
-      options[column.key] = Array.from(uniqueValues).sort((a, b) => a.localeCompare(b));
+      options[column.key] = Array.from(uniqueValues.values()).sort((a, b) =>
+        a.localeCompare(b)
+      );
     });
 
     return options;

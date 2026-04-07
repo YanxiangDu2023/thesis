@@ -6,9 +6,31 @@ import FilterableTable from "../table/FilterableTable";
 type UploadFormProps = {
   label: string;
   title: string;
+  compact?: boolean;
 };
 
 const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
+  source_matrix: [
+    "country_grouping",
+    "country_name",
+    "machine_line_code",
+    "machine_line_name",
+    "artificial_machine_line",
+    "primary_source",
+    "secondary_source",
+    "crp_source",
+    "change_indicator",
+  ],
+  reporter_list: [
+    "calendar",
+    "source",
+    "source_code",
+    "machine_line",
+    "machine_code",
+    "artificial_machine_line",
+    "brand_name",
+    "brand_code",
+  ],
   oth_data: [
     "year",
     "source",
@@ -100,6 +122,12 @@ const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, strin
     artificial_machine_line: "Artificial machine line",
     position: "Position",
   },
+  source_matrix: {
+    artificial_machine_line: "Artificial machine line",
+  },
+  reporter_list: {
+    artificial_machine_line: "Artificial machine line",
+  },
 };
 
 const LATEST_TABLE_MAX_HEIGHT = "72vh";
@@ -155,7 +183,7 @@ function buildCsvContent(label: string, columns: string[], rows: UploadRow[]): s
   return [header, ...dataLines].join("\r\n");
 }
 
-function UploadForm({ label, title }: UploadFormProps) {
+function UploadForm({ label, title, compact = false }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -172,7 +200,7 @@ function UploadForm({ label, title }: UploadFormProps) {
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
   const [tableFilters, setTableFilters] = useState<Record<string, string[]>>({});
-  const useCompactTable = label === "source_matrix";
+  const useCompactTable = compact;
 
   const latestRowsForDisplay = useMemo(() => {
     return getRowsForDisplay(label, latestRows);
@@ -359,7 +387,7 @@ function UploadForm({ label, title }: UploadFormProps) {
   };
 
   return (
-    <div className="upload-card">
+    <div className={compact ? "upload-card upload-card--compact" : "upload-card"}>
       <h3>{title}</h3>
 
       <input

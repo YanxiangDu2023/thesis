@@ -1,6 +1,7 @@
 import type {
   A10AdjustmentResponse,
   CrpD1CombinedReportResponse,
+  ExcavatorsSplitCaseReportResponse,
   LatestCrpTmaReportCleanDataResponse,
   LatestControlReportCleanDataResponse,
   LatestUploadResponse,
@@ -70,26 +71,26 @@ function buildOthDeletionFlagRowsFallback(
   const sourceMatrixCrpSourcesByKey = new Map<string, Set<string>>();
   sourceMatrixRows.forEach((row) => {
     const country = toKey(row.country_name);
-    const machineLine = toKey(row.machine_line_name);
-    if (country && machineLine) {
-      sourceMatrixKeys.add(`${country}|${machineLine}`);
+    const artificialMachineLine = toKey(row.artificial_machine_line);
+    if (country && artificialMachineLine) {
+      sourceMatrixKeys.add(`${country}|${artificialMachineLine}`);
     }
 
     const primarySource = toKey(row.primary_source);
     const secondarySource = toKey(row.secondary_source);
-    if (country && machineLine && primarySource) {
-      sourceMatrixPriSecByKey.set(`${country}|${machineLine}|${primarySource}`, "P");
+    if (country && artificialMachineLine && primarySource) {
+      sourceMatrixPriSecByKey.set(`${country}|${artificialMachineLine}|${primarySource}`, "P");
     }
-    if (country && machineLine && secondarySource) {
-      const key = `${country}|${machineLine}|${secondarySource}`;
+    if (country && artificialMachineLine && secondarySource) {
+      const key = `${country}|${artificialMachineLine}|${secondarySource}`;
       if (!sourceMatrixPriSecByKey.has(key)) {
         sourceMatrixPriSecByKey.set(key, "S");
       }
     }
 
     const crpSource = toKey(row.crp_source);
-    if (country && machineLine && crpSource) {
-      const key = `${country}|${machineLine}`;
+    if (country && artificialMachineLine && crpSource) {
+      const key = `${country}|${artificialMachineLine}`;
       if (!sourceMatrixCrpSourcesByKey.has(key)) {
         sourceMatrixCrpSourcesByKey.set(key, new Set<string>());
       }
@@ -100,10 +101,10 @@ function buildOthDeletionFlagRowsFallback(
   const reporterListKeys = new Set<string>();
   reporterListRows.forEach((row) => {
     const sourceCode = toKey(row.source_code);
-    const machineLine = toKey(row.machine_line);
+    const artificialMachineLine = toKey(row.artificial_machine_line);
     const brandCode = toKey(row.brand_code);
-    if (sourceCode && machineLine && brandCode) {
-      reporterListKeys.add(`${sourceCode}|${machineLine}|${brandCode}`);
+    if (sourceCode && artificialMachineLine && brandCode) {
+      reporterListKeys.add(`${sourceCode}|${artificialMachineLine}|${brandCode}`);
     }
   });
 
@@ -122,23 +123,24 @@ function buildOthDeletionFlagRowsFallback(
     const country = toText(g?.country_name) || toText(o.country);
     const machineLineName = toText(m?.machine_line_name) || toText(o.machine_line);
     const machineLineCode = toText(m?.machine_line_code);
+    const artificialMachineLine = toText(m?.artificial_machine_line);
 
-    const sourceMatrixKey = `${toKey(country)}|${toKey(machineLineName)}`;
-    const sourcePriSecKey = `${toKey(country)}|${toKey(machineLineName)}|${toKey(o.source)}`;
-    const sourceMatrixCrpKey = `${toKey(country)}|${toKey(machineLineName)}`;
+    const sourceMatrixKey = `${toKey(country)}|${toKey(artificialMachineLine)}`;
+    const sourcePriSecKey = `${toKey(country)}|${toKey(artificialMachineLine)}|${toKey(o.source)}`;
+    const sourceMatrixCrpKey = `${toKey(country)}|${toKey(artificialMachineLine)}`;
     let deletionFlag = "";
     if (toText(machineLineCode) === "390") {
       deletionFlag = "Y";
-    } else if (country && machineLineName && !sourceMatrixKeys.has(sourceMatrixKey)) {
+    } else if (country && artificialMachineLine && !sourceMatrixKeys.has(sourceMatrixKey)) {
       deletionFlag = "Y";
     }
 
     let reporterFlag = "";
     const crpSources = sourceMatrixCrpSourcesByKey.get(sourceMatrixCrpKey);
     const brandCode = toKey(b?.brand_code);
-    if (crpSources && brandCode) {
+    if (crpSources && artificialMachineLine && brandCode) {
       for (const crpSource of crpSources) {
-        const reporterKey = `${crpSource}|${toKey(machineLineName)}|${brandCode}`;
+        const reporterKey = `${crpSource}|${toKey(artificialMachineLine)}|${brandCode}`;
         if (reporterListKeys.has(reporterKey)) {
           reporterFlag = "Y";
           break;
@@ -156,7 +158,7 @@ function buildOthDeletionFlagRowsFallback(
       market_area: toText(g?.market_area),
       machine_line_name: machineLineName,
       machine_line_code: machineLineCode,
-      artificial_machine_line: toText(m?.artificial_machine_line),
+      artificial_machine_line: artificialMachineLine,
       brand_name: toText(b?.brand_name) || toText(o.brand_name),
       brand_code: toText(b?.brand_code),
       size_class_flag: toText(o.size_class),
@@ -387,4 +389,15 @@ export async function getP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
   }
 
   return result as P00ThreeCheckResponse;
+}
+
+export async function getExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseReportResponse> {
+  const response = await apiFetch("/reports/excavators-split-cex");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch Split CEX Case report");
+  }
+
+  return result as ExcavatorsSplitCaseReportResponse;
 }

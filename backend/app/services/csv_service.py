@@ -123,6 +123,18 @@ SOURCE_MATRIX_MACHINE_LINE_NAME_ALIASES = [
     "Unnamed: 3",
     "machine_line_name",
 ]
+SOURCE_MATRIX_ARTIFICIAL_MACHINE_LINE_ALIASES = [
+    "Artificial machine line",
+    "Artificial Machine Line",
+    "artificial_machine_line",
+    "Unnamed: 4",
+]
+REPORTER_LIST_ARTIFICIAL_MACHINE_LINE_ALIASES = [
+    "Artificial machine line",
+    "Artificial Machine Line",
+    "artificial_machine_line",
+    "Unnamed: 5",
+]
 SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES = [
     "Primary Source",
     "primary_source",
@@ -166,6 +178,13 @@ def _clean_cell(value) -> str:
         return ""
     text = unicodedata.normalize("NFKC", str(value)).strip()
     return "" if text.lower() == "nan" else text
+
+
+def _normalize_uploaded_value(field_name: str, value) -> str:
+    text = _clean_cell(value)
+    if field_name in {"size_class", "size_class_mapping"}:
+        return text.upper()
+    return text
 
 
 def _normalize_header(value) -> str:
@@ -569,9 +588,10 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         source_code,
                         machine_line,
                         machine_code,
+                        artificial_machine_line,
                         brand_name,
                         brand_code
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
@@ -603,12 +623,17 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
-                        ["Brand", "Brand Name", "Brand Code", "Unnamed: 5"]
+                        REPORTER_LIST_ARTIFICIAL_MACHINE_LINE_ALIASES
                     ),
                     _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
-                        ["Unnamed: 6", "Brand Code", "brand_code", "Brand_Code"]
+                        ["Brand", "Brand Name", "Brand Code", "Unnamed: 6"]
+                    ),
+                    _get_cell_by_header_aliases(
+                        row,
+                        reporter_column_lookup,
+                        ["Unnamed: 7", "Brand Code", "brand_code", "Brand_Code"]
                     )
                 ))
 
@@ -625,11 +650,12 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         country_name,
                         machine_line_code,
                         machine_line_name,
+                        artificial_machine_line,
                         primary_source,
                         secondary_source,
                         crp_source,
                         change_indicator
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     upload_run_id,
                     idx + 1,
@@ -664,29 +690,36 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES,
+                        SOURCE_MATRIX_ARTIFICIAL_MACHINE_LINE_ALIASES,
                         4,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES,
+                        SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES,
                         5,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_CRP_SOURCE_ALIASES,
+                        SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES,
                         6,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES,
+                        SOURCE_MATRIX_CRP_SOURCE_ALIASES,
                         7,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES,
+                        8,
                         source_matrix_columns,
                     ),
                 ))
@@ -719,7 +752,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.get("machine_code", "")),
                     _clean_cell(row.get("brand_name", "")),
                     _clean_cell(row.get("brand_code", "")),
-                    _clean_cell(row.get("size_class", ""))
+                    _normalize_uploaded_value("size_class", row.get("size_class", ""))
                 ))
 
         elif matrix_type == "brand_mapping":
@@ -813,7 +846,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     idx + 1,
                     _clean_cell(row.get("machine_line_name", "")),
                     _clean_cell(row.get("machine_line_code", "")),
-                    _clean_cell(row.get("size_class", "")),
+                    _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("artificial_machine_line", "")),
                     _clean_cell(row.get("position", ""))
                 ))
@@ -843,7 +876,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.get("brand_name", "")),
                     _clean_cell(row.get("machine_line", "")),
                     _clean_cell(row.get("country", "")),
-                    _clean_cell(row.get("size_class", "")),
+                    _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("quantity", ""))
                 ))
 
@@ -879,7 +912,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.get("country", "")),
                     _clean_cell(row.get("machine", "")),
                     _clean_cell(row.get("machine_line", "")),
-                    _clean_cell(row.get("size_class", "")),
+                    _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("brand_owner_code", "")),
                     _clean_cell(row.get("brand_owner", "")),
                     _clean_cell(row.get("brand", "")),
@@ -920,8 +953,8 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     _clean_cell(row.get("machine_family", "")),
                     _clean_cell(row.get("machine_line", "")),
                     _clean_cell(row.get("machine_line_code", "")),
-                    _clean_cell(row.get("size_class", "")),
-                    _clean_cell(row.get("size_class_mapping", "")),
+                    _normalize_uploaded_value("size_class", row.get("size_class", "")),
+                    _normalize_uploaded_value("size_class_mapping", row.get("size_class_mapping", "")),
                     _clean_cell(row.get("total_market_fid_sales", ""))
                 ))
 
