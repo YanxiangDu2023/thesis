@@ -7,6 +7,12 @@ type LayerCard = {
   bullets?: string[];
 };
 
+type TimelineStep = {
+  code: string;
+  title: string;
+  description: string;
+};
+
 const layers: LayerCard[] = [
   {
     code: "P00",
@@ -31,12 +37,6 @@ const layers: LayerCard[] = [
     description:
       "Summarizes prepared SAL and TMA rows into reviewable A10 result rows before later split logic.",
   },
-  {
-    code: "A20",
-    title: "Final Adjustment Layer",
-    description:
-      "Represents a more finalized adjusted result for downstream review and analysis.",
-  },
 ];
 
 const machineLineSplitCard: LayerCard = {
@@ -47,6 +47,49 @@ const machineLineSplitCard: LayerCard = {
     "Prepare split-ready result rows for downstream analysis and follow-up review.",
   ],
 };
+
+const tmcTimeline: TimelineStep[] = [
+  {
+    code: "SET",
+    title: "Input Setup",
+    description: "Maintain matrix rules and load source data for the run.",
+  },
+  {
+    code: "TMC",
+    title: "Total Market Calculation",
+    description: "Start the core TMC process and define the calculation scope.",
+  },
+  {
+    code: "P00",
+    title: "Raw Preparation",
+    description: "Merge TMA, SAL, OTH, and CRP-ready fields into a clean base.",
+  },
+  {
+    code: "P10",
+    title: "Prepared Output",
+    description: "Calculate prepared market values, VCE, and non-Volvo CE.",
+  },
+  {
+    code: "A10",
+    title: "Adjustment Build",
+    description: "Group prepared records into adjustment-ready result rows.",
+  },
+  {
+    code: "SPL",
+    title: "Machine Line Split",
+    description: "Split adjusted results into machine-line level output.",
+  },
+  {
+    code: "RES",
+    title: "Restatement",
+    description: "Restate the split result for reporting consistency.",
+  },
+  {
+    code: "RPT",
+    title: "Reporting",
+    description: "Publish the final numbers for business review and reporting.",
+  },
+];
 
 function HomePage() {
   return (
@@ -80,9 +123,6 @@ function HomePage() {
               <Link to="/pipeline" className="btn btn--primary">
                 Open Pipeline
               </Link>
-              <Link to="/matrix" className="btn btn--secondary">
-                Submit Matrix
-              </Link>
             </div>
           </div>
         </div>
@@ -92,37 +132,60 @@ function HomePage() {
         <div className="section-header">
           <p className="section-tag">Overview</p>
           <h3 className="section-title">What this prototype aims to do</h3>
-          <p className="section-description">
+          {/* <p className="section-description">
             This first version focuses on showing hidden SAP calculation logic in
             a clearer interface, while leaving room for future matrix submission
             and run management.
-          </p>
+          </p> */}
         </div>
 
         <div className="card-grid card-grid--three">
           <article className="card">
             <h4 className="card__title">Transparent Pipeline Steps</h4>
             <p className="card__text">
-              Show hidden SAP calculation layers step by step instead of keeping
-              the process as a black box.
+              Show SAP calculation layers step by step.
             </p>
           </article>
 
           <article className="card">
             <h4 className="card__title">Matrix Submission Entry</h4>
             <p className="card__text">
-              Reserve a place for future matrix upload and maintenance, including
-              source rules and business input structures.
+              Future entry for matrix upload and maintenance.
             </p>
           </article>
 
           <article className="card">
             <h4 className="card__title">Run Tracking</h4>
             <p className="card__text">
-              Prepare for future run setup, monitoring, and result comparison
-              across different calculation scenarios.
+              Future support for run setup and tracking.
             </p>
           </article>
+        </div>
+
+        <div className="tmc-timeline">
+          <div className="tmc-timeline__header">
+            <p className="tmc-timeline__eyebrow">TMC sequence</p>
+            <p className="tmc-timeline__intro">
+              A compact view of how the workflow moves from setup to reporting.
+            </p>
+          </div>
+
+          <div className="tmc-timeline__scroller">
+            <div className="tmc-timeline__track">
+              {tmcTimeline.map((step) => (
+                <article key={step.code} className="tmc-timeline__step">
+                  <div className="tmc-timeline__marker">
+                    <span className="tmc-timeline__dot" aria-hidden="true" />
+                    <span className="tmc-timeline__code">{step.code}</span>
+                  </div>
+                  <div className="tmc-timeline__card">
+                    <h4 className="tmc-timeline__title">{step.title}</h4>
+                    <p className="tmc-timeline__text">{step.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -206,27 +269,6 @@ function HomePage() {
               </ul>
             </article>
           </Link>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-header">
-          <p className="section-tag">Pipeline Overview</p>
-          <h3 className="section-title">Current visualized flow</h3>
-          <p className="section-description">
-            The current frontend mockup illustrates a simplified progression from
-            preparation to adjustment.
-          </p>
-        </div>
-
-        <div className="pipeline-flow">
-          <div className="pipeline-node">P00</div>
-          <div className="pipeline-arrow">{"\u2192"}</div>
-          <div className="pipeline-node">P10</div>
-          <div className="pipeline-arrow">{"\u2192"}</div>
-          <div className="pipeline-node">A10</div>
-          <div className="pipeline-arrow">{"\u2192"}</div>
-          <div className="pipeline-node">A20</div>
         </div>
       </section>
     </div>

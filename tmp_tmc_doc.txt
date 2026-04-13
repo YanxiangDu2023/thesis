@@ -1,0 +1,2167 @@
+﻿
+TMC Documentation
+Contents
+1. Dictionary
+2
+1.1 Calculation Steps
+2
+1.2 Country Group Matrix
+2
+1.3 Reporter List
+4
+1.4 Size Class Flag by Source
+5
+1.5 Source Matrix
+6
+2. Documentation
+9
+2.1 Architecture
+9
+2.1.1 Matrixes
+9
+2.1.2 TMC Model and Data Flow
+12
+2.2 Calculation Data Flows
+21
+2.3 Technical Documentation
+23
+2.3.1 Source Data Upload
+23
+2.3.2 Preparation Step
+29
+2.3.3 Adjustment Step
+34
+2.3.4 Split
+35
+2.3.5 Total Market Calculation
+44
+2.3.6 Restatement
+46
+2.3.7 Reporting
+53
+2.4 Roles and Authorizations
+53
+2.4.1 Roles
+53
+2.4.2 Authorizations
+57
+2.4.3 TMC Authorization Profile
+59
+2.5 Maintenance
+61
+2.5.1 Monthly Regular Exercise
+61
+2.5.2 Yearly Regular Exercise
+61
+2.6 Code Excerpts
+63
+3 Interfaces
+63
+4 Rules and Restrictions
+66
+4.1 Files
+66
+4.1.1 DES
+66
+1. Dictionary
+1.1 Calculation Steps
+The TMC application involves multiple calculation steps to process data. The Calculation Step dimension (Y44CALST) allows users to track data at each step, aiding in monitoring the calculation process.
+Calculation Step
+Code
+Description
+Preparation
+P00
+Set Primary/Secondary flag and Reporter flag
+TM Non VCE
+P10
+Total Market Non VCE and Total Market for Split purposes
+Adjustment
+A10
+Adjust VCE FID value from TMD
+Del VCE FID
+A20
+Delete VCE FID from OTH and TMD
+Split by ML
+M00
+Copied data for split
+Split by Size
+M10
+Data after Split
+Split - Restatement
+M20
+Re-allocation after deletion of FID (based on size class matrix)
+Final List
+F00
+Data ready for restatement
+TM Non VCE
+F05
+Total Market Non VCE
+Restatement
+F10
+The value from restatement
+1.2 Country Group Matrix
+The ADSO Y44CD059 ([TMC] Matrixes. Country Grouping) stores initial country groupings by year, with regions used instead of market areas post-BTT project.
+Mandatory Fields:
+0CALYEAR: Calendar year for calculations
+YD4REGMKT: Region (mandatory, post-BTT project)
+YD4SUBRE: Market Area
+Y44TMCCNT: Country Group
+0COUNTRY: Country
+Obsolete (from 2024):
+*!!!!*
+If country is added with a type of calculation 
+D
+ (donor) in a donor matrix 
+ADSO Y44CD062
+and in a source matrix 
+ADSO Y44CD066 
+Primary source (Y
+44DTSCP
+) = 
+RCL
+– after all calculations new group will be assigned to this country – will be assigned group from donor matrix for which we use this country for donor type calculation.
+As example Belgium BE – initially it has group GBE:
+Country grouping matrix:
+A screenshot of a computer
+AI-generated content may be incorrect.
+After final calculations 
+BE
+ country data will have new group – 
+GBL
+ (from donor matrix rule for Donors)
+A screenshot of a computer
+AI-generated content may be incorrect.
+So, on step P00 - initial data - data will be as is based on master data and matrixes, but on F00 - final step - everything will be different:
+A screenshot of a computer
+AI-generated content may be incorrect.
+1.3 Reporter List
+The table Y44_TMC_TRPT ([TMC] Reporter List) identifies which brand is a reporter per CRP source.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Fields:
+TYEAR: Year for which calculation is running
+CSOURCE: CRP Source of data
+MLINECODE: Machine line code
+This table contains artificial ML codes only(!)
+BRANDCODE: Brand code
+A screenshot of a data
+AI-generated content may be incorrect.
+1.4 Size Class Flag by Source
+The table
+Y44_TMC_TSICL ([TMC] Size Class List by Brand, to be deleted)
+specifies which brands do not produce certain size classes for specific machine lines. This data is used post-split to remove invalid combinations.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Fields:
+TYEAR: Year for which calculation is running
+DATASOURCE: CRP Source
+MLINECODE: Machine Line code (
+artificial codes only, e.g., WLO, CEX, GEC, GEW
+)
+BRANDCODE: Brand code
+TMCPLCODE: Size class flag
+A screenshot of a computer
+AI-generated content may be incorrect.
+Example:
+First record means that for CRP source CEE Machine line CEX for Brand CUK and size class 6<10T does not exist at all. It means that if we get such combination of data after split process - new record which has such data will be deleted from processing like not real combination. It happens as when we get 
+OTH
+ data we don't have right size class flags and that is why we have a list of rules where we assign data from OTH files to artificial ML codes like WLO, CEX, GEC and GEW and then we are running split operation based on TMA data and it can create combinations with size class flags which not real and that is why we need to delete such records to get correct new FIDs.
+1.5 Source Matrix
+The ADSO Y44CD066 ([TMC] Matrixes. Sources) defines primary and secondary sources for country groupings and machine lines, with CRP Source indicating total market value in CRP.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Fields:
+0CALYEAR: Year for calculations
+Y44TMCCNT: Country Group
+YD4IPLINE: Machine line code (real codes like 300, 310, not artificial like WLO, CEX)
+Y44DTSCP: Primary source for competitor data (OTH sources)
+Y44DTSCS: Secondary source for competitor data
+Y44DTSCC: CRP source
+Y44INDPL: TMC Indicator (marks changed lines)
+YD4FLGDEL: Deletion flag
+A screenshot of a computer
+AI-generated content may be incorrect.
+Rules/Limitations:
+When we run preparation step (P00) and do upload of other data - system checks primary and secondary source using FM 
+Y44_TMC_IP_SMTRX
+.If source not in list - data won't be used for any future calculations. Only 2 sources are allowed. 
+We have problems with OTH data integration with this matrix - as we receive data from OTH files using artificial groups like WLO for future split, but Source matrix is using real ML codes. The problem appears in a case when we have different sources for ML as FM 
+Y44_TMC_IP_SMTRX 
+reads data for CEX GEC GEW using ML = 300, and for WLO using ML = 350 only.  So, if ML=300 has CNX and ML=310 has DES - DES file data will be ignored as we read sources for it from ML = 300. Example:
+A screenshot of a computer
+AI-generated content may be incorrect.
+Obsolete Rules:
+Primary source object (
+Y44DTSCP
+) has to have value RCL if we need to run calculation for this group using donor matrix. 
+RCL can be primary source only(!)
+. If we put 
+RCL
+ like secondary source(
+Y44DTSCS
+) - it will be ignored at all.
+If we need to use Donor type (
+D
+) or Rest of (
+R
+) calculation, then in this matrix we need to put 
+Y44DTSCP
+ = 
+RCL
+ and Secondary source (
+Y44DTSCS
+) could be 
+CNX
+. If secondary source will be <> 
+CNX 
+- these data wont be used in calculation. 
+CNX
+ only(!) is allowed to be like secondary source for Rest of (
+R
+) or Donor (
+D
+) types of calculation. To use 
+CNX
+ as secondary source we need to add country flag attribute in Country group 
+Y44TMCCNT
+ master data. Without it 
+RCL
+ will be used only and 
+CNX
+ will be ignored. This 
+CNX
+ data has to be confirmed value as we are not running a restatement for it.
+2. Documentation
+2.1 Architecture
+2.1.1 Matrixes
+A diagram of a company
+AI-generated content may be incorrect.
+Matrixes for mapping and derivation rules are populated via Analysis for Office input queries or file uploads.
+#
+Technical Name
+Name
+Description
+1
+Y44CD059
+[TMC] Matrixes. Country Grouping
+Store initial country grouping by year. Country group for country could be change if Country is marked like a donor for another one country group in Donor matrix
+* 
+Donor matrix not used anymore. Country groups now are same like in master data for countries
+2
+Y44CD062
+[TMC] Matrixes. Donor / Rest of
+(Obsolete) Stored mapping for restatement logic for Donor/Rest of calculations.
+3
+Y44CD063
+[TMC] Matrixes. Brand - Clean/Dirty Mapping
+Maps brand names from OTH files to TMC brand codes.
+4
+Y44CD064
+[TMC] Matrixes. Machine Line - Clean/Dirty Mapping
+Maps machine line names from OTH files to TMC machine line codes.
+5
+Y44CD066
+[TMC] Matrixes. Sources
+Defines primary, secondary, and CRP sources for each machine line per country group.
+Y44CD059 [TMC] Matrixes. Country Grouping
+Fields:
+0COUNTRY, 0CALYEAR, Y44TMCCNT, YD4FLGDEL, YD4REGMKT, YD4SUBRE, Y44INDPL
+A screenshot of a computer
+AI-generated content may be incorrect.
+Y44CD062 [TMC] Matrixes. Donor / Rest of (Obsolete)
+Fields:
+YD4IPLINE, 0CALYEAR, Y44DCNTGR, Y44DNCNT, Y44RECNUM, Y44CGFLAG, Y44TMCCNT, YD4FLGDEL, Y44INDPL
+A screenshot of a computer
+AI-generated content may be incorrect.
+Y44CD063 [TMC] Matrixes. Brand - Clean/Dirty Mapping
+Fields:
+Y44BRCODD, Y44BRCODE, YD4FLGDEL, Y44INDPL
+A screenshot of a computer
+AI-generated content may be incorrect.
+Y44CD064 [TMC] Matrixes. Machine Line - Clean/Dirty Mapping
+Fields:
+Y44MLINED, YD4IPLINE, YD4FLGDEL, Y44INDPL
+A screenshot of a computer
+AI-generated content may be incorrect.
+Y44CD066 [TMC] Matrixes. Sources
+Fields:
+Y44TMCCNT, YD4IPLINE, 0CALYEAR, Y44DTSCC, Y44DTSCP, Y44DTSCS, YD4FLGDEL, Y44INDPL
+A table of data
+AI-generated content may be incorrect.
+2.1.2 TMC Model and Data Flow
+A diagram of a model
+AI-generated content may be incorrect.
+2.1.2.1 TMC Planning Objects
+#
+Technical Name
+Name
+Description
+1
+YD4CC044
+TMC - Total Market by Brand (Others)
+Cube with data from external files (OTH). It stores data from external sources uploaded via files. It is used by planning functions on a data preparation step.
+2
+YD4CC046
+TMC - Total Market by Brand (CRP)
+Cube with data from CRP system. It combines  TMA, TMD and Sales data from different sources.  It is used by planning functions on a data preparation step.
+3
+YD4CC045
+4C Volume by Brand (TMC) - Real Time
+Cube for TMC planning and data collection.
+4
+YD4CC045R
+4C Volume by Brand (TMC) - Reporting
+Cube for reporting purposes - uploads data from planning cube with specific data processing for reporting purposes (ex. Country group changes based on a current year data)
+YD4CC044 TMC - Total Market by Brand (Others)
+Fields:
+0CALYEAR, Y44TMCPL, YD4IPLINE, Y44MLINED, YD4SICLAS, 0COUNTRY, YD4SUBRE, YD4REGMKT, Y44TMCCNT, Y44BRCODE, Y44BRCODD, Y44RPFLAG, Y44DTSC, Y44FID, Y44MS
+A screenshot of a computer
+AI-generated content may be incorrect.
+YD4CC046 TMC - Total Market by Brand (CRP)
+Fields:
+0CALYEAR, Y44TMCPL, YD4IPLINE, YD4CSICL, YD4SICLAS, 0COUNTRY, YD4SUBRE, YD4REGMKT, Y44TMCCNT, Y44BRCODE, YD4PBRAND, Y44RPFLAG, Y44DTSC, Y44FID, Y44TM
+A screenshot of a computer
+AI-generated content may be incorrect.
+YD4CC045 4C Volume by Brand (TMC) - Real Time
+Fields:
+0CALYEAR, Y44TMCPL, YD4IPLINE, YD4SICLAS, 0COUNTRY, YD4SUBRE, YD4REGMKT, Y44TMCCNT, Y44BRCODE, Y44RPFLAG, Y44DTSC, Y44CALST, Y44SCFLG, Y44DELFLG, 0AMODE, 0AUSER, 0ASOURCE, 0ATIMSTMP, Y44FID, Y44TM, Y44VTM, Y44NVTM, Y44MS, Y44FIDRF
+0CALYEAR
+Calendar Year
+Infoobject
+Y44TMCPL
+Size Class Flag
+Infoobject
+YD4IPLINE
+Machine Line (TMF)
+Infoobject
+YD4SICLAS
+Size Class
+Infoobject
+0COUNTRY
+Country
+Infoobject
+YD4SUBRE
+Market Area
+Infoobject
+YD4REGMKT
+Region
+Infoobject
+Y44TMCCNT
+Country Grouping
+Infoobject
+Y44BRCODE
+Brand Code
+Infoobject
+Y44RPFLAG
+Reporter Flag
+Infoobject
+Y44DTSC
+Source
+Infoobject
+Y44CALST
+Calculation Step
+Infoobject
+Y44SCFLG
+Primary/Secondary
+Infoobject
+Y44DELFLG
+Delete Flag
+Infoobject
+0AMODE
+Audit Mode
+Infoobject
+0AUSER
+User
+Infoobject
+0ASOURCE
+Source of Data
+Infoobject
+0ATIMSTMP
+Audit Time Stamp
+Infoobject
+Y44FID
+FID
+Key Figure
+Y44TM
+TM FID
+Key Figure
+Y44VTM
+TM FID VCE
+Key Figure
+Y44NVTM
+TM FID non-VCE
+Key Figure
+Y44MS
+MS (%)
+Key Figure
+Y44FIDRF
+FID Reference
+Key Figure
+YD4CC045R 4C Volume by Brand (TMC) - Reporting
+Fields:
+Same as YD4CC045
+2.1.2.2 Sources
+#
+Target Object
+Item
+Name
+Type
+Technical Name
+Description
+1
+YD4CC044
+1
+[TMC] - Interface (Other)
+ADSO
+Y44CD065
+Data from OTH sources (PIN, DES, CNX) via AFO workbook.
+2
+YD4CC046
+1
+Sales (Int) HANA
+ADSO
+YD4CD109
+Sales actual data from CRP system.
+2
+TMA (Int)
+ODSO
+YD4CD011
+TMA data from CRP system.
+3
+4C - TMC Interface (CRP-TM Details)
+ODSO
+YD4CD041
+TM details from CRP system.
+3
+YD4CC045R
+1
+4C Volume by Brand (TMC) - Real Time
+Cube
+YD4CC045
+Cube with TMC planning data.
+Y44CD065 [TMC] - Interface (Other)
+Fields:
+0COUNTRY, 0CALYEAR, Y44TMCCNT, Y44BRCODD, Y44DTSC, Y44MLINED, Y44TMCPL, YD4REGMKT, Y44FID, Y44MS
+A screenshot of a computer
+AI-generated content may be incorrect.
+YD4CD041 4C - TMC Interface (CRP-TM Details)
+Fields:
+0CALMONTH, 0COUNTRY, YD4CSICL, YD4IPLINE, Y44BRCODE, Y44DTSCN, YD4STAT1, Y44FID
+A screenshot of a computer
+AI-generated content may be incorrect.
+YD4CD109 Sales (Int) HANA
+Fields:
+0CS_CHART, 0CS_ITEM, Y44CHANN, YD4CNTRY, YD4CNTY3, YD4CSICL, YD4DEAID, YD4DEAIDP, YD4ECNTRY, YD4ESUBRE, YD4FUNC, YD4PFUNC, YD4PRODC, YD4REGMKT, YD4SMDVRD, YD4STAT1, 0CALMONTH, 0COUNTRY, 0PLANT, YD4BUY, YD4CSIMO, YD4ECTRY, YD4SELL, YD4SICLAS, YD4SMODEL, YD4SUBRE, 0UNIT, YD4CQTY
+0CS_CHART
+Consolidation Chart of Accounts
+Key
+0CS_ITEM
+FS Item
+Key
+Y44CHANN
+Channel
+Key
+YD4CNTRY
+Country (GID)
+Key
+YD4CNTY3
+County
+Key
+YD4CSICL
+Size Class (BIV)
+Key
+YD4DEAID
+Dealer
+Key
+YD4DEAIDP
+Partner Dealer
+Key
+YD4ECNTRY
+End Customer Country (GID)
+Key
+YD4ESUBRE
+End Customer Hub
+Key
+YD4FUNC
+Function
+Key
+YD4PFUNC
+Partner Function
+Key
+YD4PRODC
+Production Company
+Key
+YD4REGMKT
+Region
+Key
+YD4SMDVRD
+Model Version (BIV)
+Key
+YD4STAT1
+State
+Key
+0CALMONTH
+Calendar year/month
+Key
+0COUNTRY
+Country
+Data
+0PLANT
+Plant
+Data
+YD4BUY
+Sold-to-party
+Data
+YD4CSIMO
+Model (BIV)
+Data
+YD4ECTRY
+End Customer Country
+Data
+YD4SELL
+Seller
+Data
+YD4SICLAS
+Size Class
+Data
+YD4SMODEL
+Model Version
+Data
+YD4SUBRE
+Market Area
+Data
+0UNIT
+Unit of measure
+Data
+YD4CQTY
+Quantity
+Key Figure
+YD4CD011 TMA (Int)
+Fields:
+0CS_ITEM, 0CS_CHART, YD4CSICL, YD4SELL, YD4FUNC, YD4CNTRY, YD4STAT1, YD4CNTY3, 0CALMONTH, 0VERSION, YD4IPLINE, Y44DTSCN, Y44BRCODE, YD4SMODEL, YD4SICLAS, 0COUNTRY, 0UNIT, YD4CQTY
+0CS_ITEM
+FS Item
+Key
+0CS_CHART
+Consolidation Chart of Accounts
+Key
+YD4CSICL
+Size Class (BIV)
+Key
+YD4SELL
+Seller
+Key
+YD4FUNC
+Function
+Key
+YD4CNTRY
+Country (GID)
+Key
+YD4STAT1
+State
+Key
+YD4CNTY3
+County
+Key
+0CALMONTH
+Calendar year/month
+Key
+0VERSION
+Version
+Key
+YD4IPLINE
+Machine Line (TMF)
+Key
+Y44DTSCN
+Source Name
+Key
+Y44BRCODE
+Brand Code
+Key
+YD4SMODEL
+Model Version
+Data
+YD4SICLAS
+Size Class
+Data
+0COUNTRY
+Country
+Data
+0UNIT
+Unit of measure
+Data
+YD4CQTY
+Quantity
+Key Figure
+2.1.2.3 Data Sources for TMC Application
+#
+Data Source
+Name
+Type
+Description
+1
+Y44_DS_CRPORAC_01
+CRP Oracle - Interface for 4C
+Data Source / SAP HANA SDA
+Data source based on SAP HANA SDA reads data from CRP Oracle system (rsa1: Data Sources SDA HANA → SDA_ORACRP)
+Y44_DS_CRPORAC_01 CRP Oracle - Interface for 4C
+#
+Field
+Field Name
+Source
+Schema
+View/Table
+1
+EXP_4C_FILE
+EXP_4C_FILE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+2
+EXP_4C_ITEM
+EXP_4C_ITEM
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+3
+EXP_4C_ITEM_
+EXP_4C_ITEM_CODE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+4
+EXP_4C_VERSI
+EXP_4C_VERSION
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+5
+EXP_4C_SELLE
+EXP_4C_SELLER
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+6
+EXP_4C_SELL1
+EXP_4C_SELLER_FUNCTI
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+7
+EXP_4C_BUYER
+EXP_4C_BUYER
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+8
+EXP_4C_PARTN
+EXP_4C_PARTNER_FUNCT
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+9
+EXP_4C_SALES
+EXP_4C_SALES_MODEL
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+10
+EXP_4C_SALE1
+EXP_4C_SALES_MODEL_V
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+11
+EXP_4C_PRODU
+EXP_4C_PRODUCT_LINE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+12
+EXP_4C_PROD1
+EXP_4C_PRODUCT_LINE_
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+13
+EXP_4C_PROD2
+EXP_4C_PRODUCT_LINE1
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+14
+EXP_4C_SIZE_
+EXP_4C_SIZE_CLASS
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+15
+EXP_4C_DEALE
+EXP_4C_DEALER
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+16
+EXP_4C_DEAL1
+EXP_4C_DEALER_ID
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+17
+EXP_4C_DEAL2
+EXP_4C_DEALER_SUB_RE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+18
+EXP_4C_DEAL3
+EXP_4C_DEALER_STATE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+19
+EXP_4C_DEAL4
+EXP_4C_DEALER_REGION
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+20
+EXP_4C_PLANT
+EXP_4C_PLANT
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+21
+EXP_4C_PLAN1
+EXP_4C_PLANT_REGISTR
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+22
+EXP_4C_PLAN2
+EXP_4C_PLANT_LAST_CO
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+23
+EXP_4C_REG_C
+EXP_4C_REG_CONF_DEL_
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+24
+EXP_4C_PERIO
+EXP_4C_PERIOD
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+25
+EXP_4C_QUANT
+EXP_4C_QUANTITY
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+26
+EXP_4C_OPERA
+EXP_4C_OPERATIONS_EN
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+27
+EXP_4C_CHANN
+EXP_4C_CHANNEL1
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+28
+EXP_4C_BRAND
+EXP_4C_BRAND_BUSINES
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+29
+EXP_4C_SOURC
+EXP_4C_SOURCE_CODE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+30
+REFRESH_DATE
+REFRESH_DATE
+ORACRP
+IDW_CONREAD
+V_EXP_4C_EXPORT
+Filters for TMC Application:
+EXP_4C_FILE = TMA-TMF: Returns Total market data
+EXP_4C_FILE = SALES: Returns Actual Sales Data
+2.2 Calculation Data Flows
+Upload Data from Files and CRP
+This is the initial step to prepare the basis for calculations. On these steps, Y44_TMC_TCGMTRX “[TMC] Country Group Matrix” is used to derive country group by country and region.
+We use data from one certain year only; historical data is not used in any calculation.
+A diagram of a diagram
+AI-generated content may be incorrect.
+Calculations
+Step
+Description
+Preparation
+There are 2 values for this step - P00 and P10. Preparation step has 2 steps - CRP data copy and processing and OTH data (Other data from files) copy and processing.
+CRP data has to be processed before OTH data(!)
+. OTH data processing is not possible without CRP data. On this step we also prepare data for split – copy into M00 calculation step data (with artificial machine lines CEX, GEC, GEW and WLO). For data from DES files, we are calculating FIDs based on MS% from file and value of total market from CRP.
+Adjustment
+This step creates calculations using calculation step A10. Its purpose – to adjust values to have sum of all FIDs = TM. Here we do regard TMD source data, replace VCE data with one from SAL source; add adjustment value to make same with total market value from TMA. Formula: Adjustment value = Total Market – Total Market Non VCE – VCE; Assign Calculation Step as “A10”; Assign Brand Code as “ADJ”.
+Split
+This step is M00. Here we do split artificial machine lines CEX, GEC, GEW and WLO into real TMC machine lines using TMA data as reference and certain rules. On this step we also check matrix Y44_TMC_TSICL [TMC] Size Class List by Brand (To be deleted) to delete non real combinations derived on this step.
+Calculate Total Market (TM)
+For certain machine lines, there is no total market value in TMA system. So in Calculate Total Market step, gather all data and delete double brand, then replace VCE FID from SAL, after all sum up all value to make final total market value. If machine line has source matrix information, then only data from primary and secondary source is considered as FID to be summed up.
+Restatement
+In Restatement step we gather all Volvo portfolio machine line (Only for restatement) data and delete double brand, then replace VCE FID from SAL, after all FIDs from OTH is recalculated based on ratio, to make final total market value. Final FIDs are recalculated using TM value –> sum of all FIDs = TM. This step is running calculation of new FIDs for country groups which are not donors or rest of (master data check).
+Donor/ Rest of Hub
+There is no market share information for some countries. For this case, HQ chooses which combination of geographical grouping can be base value for those countries, and TMC system creates FID data based on that information. Processing steps: deletion of double brand and then restatement. Additionally, CNX could be used if CNX is added as secondary source in a source matrix. All FIDs from CNX source must be confirmed values, so not for restatement. This step runs for country groups which have value R or D in their master data only.
+Final Reports
+Data must be uploaded into Reporting cube YD4CC045R to be available in Final reports. Transformation contains routine which derives Region and Market area from Country group matrix and process historical data to derive actual country group and region.
+2.3 Technical Documentation
+2.3.1 Source Data Upload
+Data for TMC application is uploaded from CRP system (TMA, TMD, SAL) and from files (OTH).
+2.3.1.1 OTH - Upload Data
+Source files from other system have different formats, so HQ has to convert them with proper format to upload to TMC. Uploading function deletes all previous data by selected condition. After uploading, HQ can check results in “Control Report – Raw Data” menu. In this step, maintenance team had better check total FID value in files is same as one in control report.
+Every country has only one unique data source. We do upload by detailed data source(like CNX, DES) but in source matrix we use OTH for it.
+Application:
+BSP: Y44_TMC_UP
+AFO Workbook: TMC Interface - File Upload (OTH)
+ADSO: Y44CD065, Y44CD063, Y44CD064
+File Structure:
+#
+Field ID
+Field Name
+1
+Calyear
+Year
+2
+/bic/y44dtsc
+Data source
+3
+/bic/y44brcodd
+Brand name (before cleaning)
+4
+/bic/y44mlined
+Machine line name (before cleaning)
+5
+/bic/YD4REGMKT
+Region
+6
+Country
+Country
+7
+/bic/y44tmccnt
+Country group
+8
+/bic/y44tmcpl
+Size Class Flag
+9
+/bic/y44fid
+FID
+10
+/bic/y44ms
+MS%
+11
+/bic/y44rpflag
+Reporter Flag (obsolete)
+Processing:
+Planning sequence deletes previous data from ADSO 
+Y44CD065
+ using selected year and data source. If data sources were not selected - functionality deletes whole year from ADSO
+Planning function reads selected file from user workstation (
+*.csv
+) and checks codes with master data in BW system, excl. brand name and machine line name. These two fields are text and will be added to mapping matrixes.
+Planning function checks brands name field if it already exists in the ADSO 
+Y44CD063
+ "[TMC] Matrixes. Brand - Clean/Dirty Mapping". If yes - does nothing,
+if does not exist - new record is added.  Same for machine line, just system checks ADSO 
+Y44CD064
+ "[TMC] Matrixes. Machine Line - Clean/Dirty Mapping"
+After all data processing - raw data is saved in ADSO 
+Y44CD065
+.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Data Cleaning:
+Clean Brand Name:
+After uploading of raw data via files is completed, user has to check if there is brand name not cleaned and assign proper brand code.
+Brand name not cleaned means that on a sheet "
+Brands
+" in a column "Brand Code" there is not any value: 
+A screen shot of a computer
+AI-generated content may be incorrect.
+If brand name is already mapped - it will has value in the column "
+Brand Code
+".
+Clean Machine Line Name:
+After uploading raw data via files is completed, user has to check if there is machine line name not cleaned and assign proper machine line code. Machine line name not cleaned means that on a sheet "
+Machine Lines
+" in a column " 
+Machine Line
+" there is no any value: 
+A screenshot of a computer
+AI-generated content may be incorrect.
+If machine line name is already mapped - it will has value in a column "
+Machine Line
+" .
+Clean Data Upload:
+Uploads from ADSO Y44CD065 to Cube YD4CC044. Process chain deletes previous request. Check in “Control Report – Clean Data”
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Application:
+BSP: Y44_TMC_LOAD
+Pages: Load_OTH.htm, statusoth.htm
+Cube: YD4CC044
+Process Chain: Y44_TMC_OTH (Event ID: Y44_TMC_OTH)
+2.3.1.2 CRP Data Upload
+There are three different data from CRP, to upload to TMC. “TMA” is total market data without brand information, and TMD is FID data with brand information, and SAL is FID data with VCE brand information. Due to changes in the CRP system, HQ will upload CRP data whenever they want to see the latest data, usually on monthly base.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Source Objects:
+#
+Source Data
+Target Cube
+1
+ADSO YD4CD109
+CUBE YD4CC046
+2
+ADSO YD4CD112
+3
+DSO YD4CD041
+4
+DSO YD4CD042
+5
+ADSO YD4CD011
+6
+ADSO YD4CD045
+Application:
+BSP: Y44_TMC_LOAD
+Pages: Load_CRP.htm, statuscrp.htm
+Cube: YD4CC046
+Process Chains: Y44_TMC_SAL, Y44_TMC_TMD, Y44_TMC_TMA (Event IDs: Y44_TMC_SAL, Y44_TMC_TMD, Y44_TMC_TMA)
+2.3.2 Preparation Step
+There are 2 values for this step - P00 and P10.
+Preparation step has 2 steps - CRP data copy and processing and OTH data (Other data from files) copy and processing.
+CRP data must be processed before OTH data(!).
+OTH data processing is not possible without CRP data.
+P00 Preparation - CRP Data
+Planning Sequence Y44_TMC_PS010_RH
+On this step we copy CRP data into TMC application, deriving different flags from master data and matrixes.
+As a result of this step - we will have calculated VCE Total market and non-VCE total market for OTH data processing and data basis for split processing on step M00 and restatement F00.
+VCE Total Market = sum of all VCE FIDs, where VCE FID - FID for brand which has flag VCE - BRVFLAG = 'Y' (VCE)
+Non-VCE Total market = Total Market (TMA) - Total market VCE
+Step
+Agg. Level
+Filter
+Function
+Description
+0
+YD4VAL006
+YD4VAL006_FT000
+YD4VAL006_DELETE
+Delete data for whole year
+1
+YD4VAL006
+YD4VAL006_FT012
+YD4VAL006_PF005_RH
+[ML in SMTX] P00 P/S + Reporter
+2
+YD4VAL006
+YD4VAL006_FT013
+YD4VAL006_PF001
+[Other ML] P00 P/S + Reporter
+3
+YD4VAL006
+YD4VAL006_FT021
+YD4VAL006_PF007
+[ML FC] P00 Copy Sources (TMA)
+4
+YD4VAL006
+YD4VAL006_FT022
+YD4VAL006_PF002
+[ML FC] P10-1 Cal. TM Non VCE
+5
+YD4VAL006
+YD4VAL006_FT022
+YD4VAL006_PF016
+[ML FC] P10-2 Cal. TM Non VCE (TMA) - In case no SAL
+6
+YD4VAL006
+YD4VAL006_FT006
+YD4VAL006_PF009
+[MS%] P10 Copy TM - Temp ML
+7
+YD4VAL007
+YD4VAL007_FT005
+YD4VAL007_PF005
+[ML FC] M00 Copy for Split - TM Non VCE
+8
+YD4VAL007
+YD4VAL007_FT003
+YD4VAL007_PF009
+[ML:FC] F00 Ready for Final List - TMA/SAL
+Steps
+STEP 0
+Delete calculated data for the whole event (year).
+STEP 1
+It runs for SAL and TMD data where we have brand code information.
+It does:
+If Machine Line = 
+390
+ then it assigns deletion flag 
+D1
+Checks source matrix, if data source = primary source put source flag = 
+P
+, if secondary - 
+S
+, else empty. If empty - such data wont be processed future. 
+* for CRP data no flag.
+Set reporter flag = 
+Y
+.
+Copy data with all key figures from CRP cube  YD4CC046.  
+STEP 2
+It runs for SAL and TMD data where we have brand code information excluding Machine lines from 
+STEP 1
+.
+It does copy data CRP data as is and assigning deletion flag 
+D1
+STEP 3
+It runs for TMA only.  It copies data from CRP info cube into TMC application assigning 
+step P00
+.
+STEP 4
+It runs for SAL and TMA only.
+Processing steps:
+ calculates Total FID amount for every brand for SAL data source which has attribute value  
+ BRVFLAG
+ = 'Y' (VCE) and assign it to Y
+44VTM
+(VCE Total Market) and step 
+P10
+Read TMA value from P00 step (Y
+44TM
+ Total Market value)
+Calculate non-VCE Total market (Y
+44NVTM
+) as Total Market (
+Y44TM
+) - VCE Total Market (
+Y44VT
+) and put on calculation step 
+P10
+Copy TM from P00 into P10 TM Reference for split purposes 
+STEP 5
+Calculate TM non VCE TMA in cases where there is no SAL data.
+STEP 6
+This step is running to prepare a basis for P10 step calculation. It copies TMA data Non
+VCE Total Market value
+ into step P10 for artificial machine lines 
+WLO, CEX, GEC 
+and
+ GEW.
+We are coping with TMA from real machine lines classes into artificial using such rules:
+A screenshot of a computer
+AI-generated content may be incorrect.
+It is needed to calculate FIDs using market share (MS%) values - for DES files several countries sending data using MS% information instead of FID. Now in a filter we have list of functions, 
+but such calculation should be rebuilt. 
+STEP 7
+This step copies TMA data into calculation step 
+M00
+ - data preparation for split processing. Here we assign real machine lines to artificial ones  for future processing:
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 8
+This step copies TMA and SAL data into calculation step F00 (final). As TMA and SAL data won't be split and will be used on a 
+restatement step
+.
+A screenshot of a computer
+AI-generated content may be incorrect.
+P00 Preparation - OTH Data
+Planning Sequence Y44_TMC_PS011_RH
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL006
+YD4VAL006_FT001
+YD4VAL006_PF005_RH
+[ML in SMTX] P00 P/S + Reporter
+2
+YD4VAL006
+YD4VAL006_FT004
+YD4VAL006_PF001
+[Other ML] P00 P/S + Reporter
+3
+YD4VAL010
+YD4VAL010_FT001
+YD4VAL010_PF004
+[ML All] A20 Delete VCE - OTH
+4
+YD4VAL007
+YD4VAL007_FT020
+YD4VAL007_PF020
+[ML FC] M00/M10/M20 Delete
+5
+YD4VAL007
+YD4VAL007_FT007
+YD4VAL007_PF008
+[ML FC] M00 Copy for Split - Others
+6
+YD4VAL007
+YD4VAL007_FT004
+YD4VAL007_PF031
+[ML FC] M00 Non-reporters: Split
+Steps:
+Step 1:
+It runs for 
+OTH
+ data where we have brand code information.
+It does:
+If Machine Line = 
+390
+ then it assigns deletion flag 
+D1
+Checks source matrix, if data source = primary source put 
+source flag
+ = 
+P
+, if secondary - 
+S
+, else empty. If empty - such data won’t be processed future. 
+Set 
+reporter flag
+ = 
+Y 
+if such combination is in a reporter list matrix (check CRP source exists), in other case no value.
+Copy data with all key figures from OTH cube YD4CC044.  
+Step 2:
+Runs for OTH data excluding Step 1 MLs. Copies as is, assigns D1.
+Step 3:
+For brands with VCE flag 'Y', reverses value on A20: A20 = P00 * -1.
+Step 4:
+Deletes FIDs from M00, M10, M20.
+Step 5:
+Copies to M00 from P00 and A20 for split.
+Step 6:
+Distributes for non-reporters (CEX, WLO, GEC, GEW) using TM values.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+2.3.3 Adjustment Step
+A10 and A20 - Adjustment steps
+In adjustment step, regarding TMD source data, we replace VCE data with one from SAL source, and add adjustment value to make same with total market value from TMA.
+During this process new lines are created with artificial brand code ADJ and step = A10. TMC does not trust VCE values from TMD and that is why reverse such records using step A20.
+This includes:
+Apply adjustment value
+Delete VCE FID from TMD
+Example:
+A screenshot of a computer
+AI-generated content may be incorrect.
+Here we have created line with artificial brand ADJ and Step A10 where FID = 4. TMC does not trust VCE value from TMD, so replace it with one from SAL - New line with step A20 is created for such purpose. After adjustment FID and Total Market FID are equal.
+Planning Sequence Y44_TMC_PS020_RH
+A screenshot of a computer
+AI-generated content may be incorrect.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL010
+YD4VAL010_FT004
+YD4VAL010_PF001
+[ML FC] A10 Cal. Adjustment FID
+2
+YD4VAL010
+YD4VAL010_FT011
+YD4VAL010_PF002
+[ML FC] A20 Delete VCE – TMD
+3
+YD4VAL013
+YD4VAL013_FT013
+YD4VAL013_PF006
+Copy to reference data
+Steps:
+Step 1:
+Calculate adjustment FID if Primary source equals CRP source. Adjustment value = Total Market – Total Market Non VCE – VCE; Assign “A10”; Brand “ADJ”.
+Step 2:
+Delete VCE FID (trust only SAL); Assign “A20” from “P00”.
+Step 3:
+Copy FID to FID reference for double brand deletion reference.
+2.3.4 Split
+In machine line split step, regarding excavators and wheel loader data from OTH source data, split size class flag which does not fit proper size class flag, based on Total Market value (non-
+VCE). After split, if there is FID value with certain size class flag which is not produced by certain brand, system delete that value based on additional information. Then system reallocates split value to match the origin amount from previous deletion work. This splits works only for Reporter brands. Non-reporters must be uploaded in a right size class flag.
+This includes:
+Split FID by size class flag
+Delete FID by size class flag to be deleted matrix, and reallocate it
+Rules for Split:
+Source
+Source Name
+Machine Line
+Size Class Flag
+From
+to
+OTH
+OTH Files
+CEX
+<10T
+<6T
+6<10T
+OTH
+OTH Files
+GEC
+>6T
+6<10T
+>10T
+OTH
+OTH Files
+GEW
+>6T
+6<11T
+>11T
+OTH
+OTH Files
+WLO
+#
+<7
+7<10, 10<12, >12
+OTH
+OTH Files
+WLO
+>80HP
+80<120HP
+>120HP
+OTH
+OTH Files
+WLO
+>10
+10<12
+>12
+OTH
+OTH Files
+WLO
+<12
+<7
+7<10, 10<12
+OTH
+OTH Files
+WLO
+<10
+<7
+7<10
+There are two steps: Split and Re-split.
+When running split - system splits data using TMA as reference. Cases where not all data split if no TMA, then manual split possible.
+After split only, run Re-split. System checks final data with size class flag matrix; deletes FID if matched and re-splits.
+A screenshot of a computer
+AI-generated content may be incorrect.
+2.3.4.1 Excavators Split
+Planning Sequence Y44_TMC_PS030 "[TMC] 03. Split CEX"
+Processes Machine Line = CEX only.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF010
+Split CEX (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF002
+Split CEX (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF002
+Split CEX (Compact Excavator) by Country Grouping
+Steps:
+Step 1:
+Split by Country. Reference: Non VCE in TMA. Distribution Rule.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Step 2:
+Split by Region. Reference: Non VCE in TMA. Distribution Rule.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Step 3:
+Split by Country Grouping. Reference: Non VCE in TMA. Distribution Rule.
+A screenshot of a computer
+AI-generated content may be incorrect.
+Planning Sequence Y44_TMC_PS031 "[TMC] 03. Split GEC"
+Processes Machine Line = GEC only.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF011
+Split GEC (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF001
+Split GEC (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF001
+Split GEC (Compact Excavator) by Country Grouping
+Steps:
+STEP 1
+Split by Country.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Split by Region.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Split by Country Grouping.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+Planning Sequence Y44_TMC_PS032 "[TMC] 03. Split GEW"
+Processes Machine Line = GEW only.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF001
+Split GEW (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF003
+Split GEW (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF003
+Split GEW (Compact Excavator) by Country Grouping
+Steps:
+STEP 1
+Split by Country.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Split by Region.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screen shot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Split by Country Grouping.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screen shot of a computer
+AI-generated content may be incorrect.
+2.3.4.2 Wheel Loaders Split
+Mapping between old and new size classes:
+#
+HP
+New
+1
+<60HP
+<7
+2
+60<80HP
+7<10
+3
+80<120HP
+10<12
+4
+>120HP
+>12
+Old size classes removed from 2024.
+Planning Sequence Y44_TMC_PS034C "[TMC] 03. Split WLO (>10)"
+Processes Machine Line = WLO and size class >10 only.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF014C
+Split WLO (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF006C
+Split WLO (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF006C
+Split WLO (Compact Excavator) by Country Grouping
+Steps:
+STEP 1
+Split by Country.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screen shot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Split by Region.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screen shot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Split by Country Grouping.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screen shot of a computer
+AI-generated content may be incorrect.
+Planning Sequence Y44_TMC_PS035C "[TMC] 03. Split WLO (<10)"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF016C
+Split WLO (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF008C
+Split WLO (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF008C
+Split WLO (Compact Excavator) by Country Grouping
+Steps
+STEP 1
+Split by Country.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Split by Region.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Split by Country Grouping.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+Planning Sequence Y44_TMC_PS036C "[TMC] 03. Split WLO (<12)"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT001
+YD4VAL007_PF015C
+Split WLO (Compact Excavator) by Country
+2
+YD4VAL011
+YD4VAL011_FT001
+YD4VAL011_PF007C
+Split WLO (Compact Excavator) by Region
+3
+YD4VAL011
+YD4VAL011_FT002
+YD4VAL011_PF007C
+Split WLO (Compact Excavator) by Country Grouping
+Steps
+STEP 1
+Split by Country.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Split by Region.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Split by Country Grouping.
+Reference data: Non VCE in TMA source
+Distribution Rule
+A screenshot of a computer
+AI-generated content may be incorrect.
+2.3.4.3 Re-Split
+Planning Sequence Y44_TMC_PS037 "[TMC] 03. Delete & Re-Split"
+Function runs for any machine line and for reporters’ brands only.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL007
+YD4VAL007_FT002
+YD4VAL007_PF002
+Delete and Re-split
+Steps:
+Step 1:
+Delete FID of certain size class flag not available with ML. Delete based on "To be deleted List" by CRP Source; Assign “M10”. Re-Split to match origin after deletion; Assign “M20”.
+2.3.5 Total Market Calculation
+There is no total market value in TMA system for certain machine line. So in Calculate Total Market step, gather all data and delete double brand, then replace VCE FID from SAL, after all sum up all value to make final total market value. If machine line has source matrix information, then only data from primary and secondary source is considered as FID to be summed up.
+This includes:
+Check report for double brand
+Delete double brand data
+Calculate total market
+A screenshot of a computer
+AI-generated content may be incorrect.
+Double Brand Deletion
+There are four types:
+YBR/PIN Case
+Planning Sequence
+Y44_TMC_PS039
+Checks YBR and PIN only. Excludes LIU, SNY, XCM (manual deletion).
+If country CN: Use PIN, delete YBR. Else: Use YBR, delete PIN.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT001
+YD4VAL013_PF001
+Runs for PIN and YBR only. Excludes LIU, SNY, XCM.
+OCN/OTN Case
+Planning Sequence
+Y44_TMC_PS039_OCN
+If sources are different:
+OCN FID < OTN FID → Replace OTN with difference
+OCN FID > OTN FID → Delete OTN
+Equal → Delete OTN
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT004
+YD4VAL013_PF002
+Checks OCN vs OTN
+CMA/OHR Case
+Planning Sequence
+Y44_TMC_PS039_CMA
+Processes CMA, CMM, OHR only.
+If CMM or CMA and ML <> 390/400 and country <> CN → delete
+If OHR and ML = 390/400 and country = CN → delete
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT007
+YD4VAL013_PF003
+Runs on country level, checks CMM vs OHR
+CNX Case
+Planning Sequence
+Y44_TMC_PS039_CNX
+CNX deleted always (not trusted).
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT010
+YD4VAL013_PF004
+Runs on country level
+2
+YD4VAL013
+YD4VAL013_FT010
+YD4VAL013_PF005
+Runs on country group for NAM and ZAR
+Calculate Total Market
+Planning Sequence
+Y44_TMC_PS040_RH
+Sums FID as TM VCE and non-VCE for certain MLs only. Saved as F00.
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL012
+YD4VAL012_FT001
+YD4VAL012_PF001
+Runs for MLs not in source matrix
+2
+YD4VAL012
+YD4VAL012_FT005
+YD4VAL012_PF005
+Runs for ML=390 only
+A screenshot of a spreadsheet
+AI-generated content may be incorrect.
+2.3.6 Restatement
+On this step happens:
+Collection of all Volvo portfolio machine line data for country groups not marked as Rest of or Donor
+Deletion of double brands
+Replacement of VCE FID from SAL
+FID from OTH recalculated based on ratio (Total market NON-VCE)
+Machine Lines for Restatement:
+Volvo Portfolio (Full Calculation)
+Code
+Compact Excavators
+300
+GPE Crawler Excavators
+310
+GPE Wheel Excavators
+320
+Compact Wheel Loaders
+350
+GPE Wheel Loaders
+360
+Articulated Haulers
+330
+Rigid Haulers
+340
+Motor Graders
+380
+Paving Machines
+400
+Backhoe Loaders
+410
+Skid Steer Loaders
+420
+Example of new FID calculation based on Total market data.
+A screenshot of a computer
+AI-generated content may be incorrect.
+There are three sequential steps in restatement process:
+This includes:
+Create final list for restatement
+Delete double brand data
+Restatement (new FID calculation)
+Final List Creation
+Planning Sequence Y44_TMC_PS050_RH "[TMC] 05.Create Final List for Restatement"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL008
+YD4VAL008_FT023
+YD4VAL008_PF007
+Copy TMA and SAL data
+2
+YD4VAL008
+YD4VAL008_FT024
+YD4VAL008_PF004
+Copy TMD data
+3
+YD4VAL008
+YD4VAL008_FT010
+YD4VAL008_PF018
+Copy OTH data for Excavators and Wheel Loaders
+4
+YD4VAL008
+YD4VAL008_FT025
+YD4VAL008_PF006
+Copy OTH data without Excavators and Wheel Loaders
+5
+YD4VAL013
+YD4VAL013_FT014
+YD4VAL013_PF006
+Copy to reference data
+Steps
+STEP 1
+Copy FID from TMA/SAL source
+Convert Size class flag as final version
+Assign Calculation Step as “F00”
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 2
+Copy FID from TMD source
+Copy Primary/Secondary Source
+Convert Size class flag as final version
+Assign Deletion Flag as “D2”
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 3
+Copy FID from OTH source for Excavators and Wheel Loaders
+Copy Primary/Secondary Source + Excluding Country Grouping Flag = R or D
+Convert Size class flag and Machine Line as final version
+Assign Deletion Flag as “D2”
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 4
+Copy FID from OTH source excluding Excavators and Wheel Loaders
+Copy Primary/Secondary Source + Excluding Country Grouping Flag = R or D
+Assign Deletion Flag as “D2”
+A screenshot of a computer
+AI-generated content may be incorrect.
+STEP 5
+Copy to reference FID for comparison
+Double Brand Deletion
+A screenshot of a computer
+AI-generated content may be incorrect.
+There are four types of double brand deletion functions:
+YBR/PIN Case
+Planning sequence Y44_TMC_PS050_RHD
+System checks data from two sources - YBR and PIN only. Brands LIU, SNY and XCM are excluded from the processing. For these brands we do manual deletion.
+If brand country is China (CN) - we use data from PIN source and delete from YBR. For all other countries - we use YBR source data and delete PIN source data.
+Planning Sequence Y44_TMC_PS050_YBR "[TMC] 05. Double Brand - YBR/PIN"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT002
+YD4VAL013_PF001
+Runs for PIN and YBR only. Excluded LIU, SNY, XCM.
+OCN/OTN Case
+Planning sequence Y44_TMC_PS050_OCN
+System checks if for brands OCN and OTN sources are different and then:
+OCN FID < OTN FID → For brand OTN replace FID on a difference (Fid OTN - Fid OCN) 
+OCN FID > OTN FID → Delete data for OTN FID
+OCN FID = OTN FID → Delete data for OTN FID
+Planning Sequence Y44_TMC_PS050_OCN "[TMC] 05. Double Brand - OCN/OTN"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT005
+YD4VAL013_PF002
+Checks OCN vs OTN
+CMA/OHR Case
+Planning Sequence Y44_TMC_PS050_CMA "[TMC] 05. Double Brand - CMA/OHR"
+Function process data where brand code = CMA, CMM and OHR only.
+If Source is CMM or CMA and Machine Line <> (390 or 400) and brand country <> CN → delete data
+If Source = OHR and Machine line = (390 or 400) and brand country = CN → delete data
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT008
+YD4VAL013_PF003
+Runs on country level, checks CMM vs OHR
+CNX Case
+Planning sequence Y44_TMC_PS050_CNX
+CNX is always deleted. We don't trust CNX data.
+Planning Sequence Y44_TMC_PS050_CNX "[TMC] 05. Double Brand - CNX"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL013
+YD4VAL013_FT011
+YD4VAL013_PF004
+Runs on country level
+2
+YD4VAL013
+YD4VAL013_FT011
+YD4VAL013_PF005
+Runs on country group for NAM and ZAR
+Restatement
+Planning Sequence Y44_TMC_PS051_RH "[TMC] 05. Restatement - RH all brands"
+Step
+Agg. Level
+Filter
+Function
+Description
+1
+YD4VAL008
+YD4VAL008_FT026
+YD4VAL008_PF001
+F00 Cal. FID
+2
+YD4VAL014
+YD4VAL014_FT002
+YD4VAL014_PF001
+F05 Calculate TM Non-VCE for Restatement
+3
+YD4VAL008
+YD4VAL008_FT027
+YD4VAL008_PF002N
+[VP-FC] F10 Calculate Final FID
+Process steps
+ 1   Calculate final FID after double brand deletion
+- Sum up all calculation item before restatement
+Sum up P00 + A10 + A20 + M00 + M10 + M20 + # (Delete Flag = D2)
+Assign Calculation Step as “F00”
+2   Calculate TM Non VCE for Restatement
+- Copy TM Non VCE
+Total Market Non VCE = Total Market – VCE
+Assign Calculation Step as “F05”
+3   Calculate Final FID
+- Calculate Final FID by Country
+FID = Origin FID – New FID
+New FID = TM Non VCE(TMA) * (FID / TM non VCE(OTH))
+Assign Calculation Step as “F10”
+- Calculate Final FID by Country Grouping (NAM,ZAR)
+FID = Origin FID – New FID
+New FID = TM Non VCE(TMA) * (FID / TM non VCE(OTH))
+-  Assign Calculation Step as “F10”
+2.3.7 Reporting
+2.4 Roles and Authorizations
+There are 3 steps to grant authorization to a user for TMC application:
+User Creation:
+SAP user ID created via SAP GUI by basis person.
+Role, Menu, and User Assignment:
+Grant TMC role and menu structure via SAP GUI by maintenance team. Portal menu assigned to PFCG role Y44_TMC_S_EP_ACCESS_00x.
+Authorization Definition:
+Grant profiles to new user. Without this, no selection criteria visible.
+To control access, use User Mgmt web application. TMC authorization profile is maintained in Y4G_AUTH_PROFILE table.
+2.4.1 Roles
+1 Composite Role Y44_TMC_C_001
+Technical name:
+Y44_TMC_C_001
+Description:
+TMC HQ User
+Single Roles:
+Name:
+Description:
+Y44_TMC_S_BASIS_001
+TMC - Single - BASIS
+Y44_TMC_S_BEX_001
+TMC - Single - BEX - Reporting
+Y44_TMC_S_BW_001
+TMC - Single - BW Workbench
+Y44_TMC_S_DA_001
+TMC - Single - Data Access
+Y44_TMC_S_P_001
+TMC - Single - Planning
+Y44_TMC_S_Q_001
+TMC - Single - Queries
+Y44_TMC_S_EP_ACCESS_001
+NAL - Single Access on EP - HQ
+Y4G_S_DA
+CDW BW - Single - Data Access - Characteristics to be deactivated (interim role)
+2 Composite Role Y44_TMC_C_002
+Technical name:
+Y44_TMC_C_002
+Description:
+TMC HQ User
+Single Roles:
+Name:
+Description:
+Y44_TMC_S_BASIS_001
+TMC - Single - BASIS
+Y44_TMC_S_BEX_001
+TMC - Single - BEX - Reporting
+Y44_TMC_S_BW_001
+TMC - Single - BW Workbench
+Y44_TMC_S_DA_001
+TMC - Single - Data Access
+Y44_TMC_S_P_001
+TMC - Single - Planning
+Y44_TMC_S_Q_001
+TMC - Single - Queries
+Y44_TMC_S_EP_ACCESS_001
+NAL - Single Access on EP – HQ User
+Y4G_S_DA
+CDW BW - Single - Data Access - Characteristics to be deactivated (interim role)
+Authorization Object assigned to the Role:
+Role
+Authorization Object
+Y44_TMC_S_BASIS_001
+S_RFC
+S_TCODE
+S_C_FUNCT
+S_BDS_D
+S_BDS_DS
+S_OC_SEND
+Y44_TMC_S_BEX_001
+S_RFC
+S_TCODE
+S_USER_AGR
+S_USER_TCD
+S_RS_BCS
+S_RS_BITM
+S_RS_BTMP
+Y44_TMC_S_BW_001
+S_RO_OSOA
+S_RS_ADMWB
+S_RS_CTT
+S_RS_DS
+S_RS_DTP
+S_RS_HIER
+S_RS_ICUBE
+S_RS_IOBC
+S_RS_IOBJ
+S_RS_IOMAD
+S_RS_ISET
+S_RS_ISNEW
+S_RS_ISOUR
+S_RS_ISRCM
+S_RS_MPRO
+S_RS_ODSO
+S_RS_OHDST
+S_RS_PC
+S_RS_TR
+S_RS_UOM
+Y44_TMC_S_DA_001
+S_RS_AUTH
+Y44_TMC_S_P_001
+S_RFC
+S_TCODE
+S_ADMI_FCD
+S_GUI
+S_ALV_LAYO
+S_ALV_LAYR
+S_RS_ALVL
+S_RS_AO
+S_RS_PLSE
+S_RS_PLSQ
+Y44_TMC_S_Q_001
+S_RS_COMP
+S_RS_COMP1
+S_RS_FOLD
+S_RS_PARAM
+Y4G_S_DA
+S_RS_AUTH
+Y44_TMC_S_EP_ACCESS_001
+n/a
+Y44_TMC_S_EP_ACCESS_002
+n/a
+2.4.2 Authorizations
+Analysis Authorization
+Technical Name: Y44_TMC_0001 - 4C TMC001 AA
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+2.4.3 TMC Authorization Profile
+NAL authorization profiles maintained in Y4G_AUTH_PROFILE table. Application ID for TMC is 028.
+TMC Portal Role:
+TMC – HQ portal role – TMC1
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+TMC – user portal role – TMC2
+A screenshot of a computer
+AI-generated content may be incorrect.
+Portal Role assigned under PFCG role.
+A screenshot of a computer
+AI-generated content may be incorrect.
+A screenshot of a computer
+AI-generated content may be incorrect.
+2.5 Maintenance
+2.5.1 Monthly Regular Exercise
+Step
+Task
+Activity
+Owner
+Details
+1
+Upload CRP data
+Upload CRP data
+Maintenance
+From portal execute data upload from CRP
+2.5.2 Yearly Regular Exercise
+Step
+Task
+Activity
+Owner
+Reference
+1
+Update Master (Shared with 4C)
+Check if all 4C master data updated and impacts
+Maintenance Team
+2
+Update Master for TMC
+Brand Code, Source, Size Class Flag, Country Grouping
+Maintenance Team
+Communicate with Business; Check new VCE brands, source flags, Donor/Rest of flags
+3
+Update Additional Information
+Workbooks: Source Matrix, Size Class Flag by Source, Country Grouping, Donor Country; Tables: Reporter List (Y44_TMC_TRPT) - old solution
+Maintenance Team
+Communicate with Business; Upload via program/planning buttons/manual
+4
+Master Data Maintenance
+Brand Additional Information Maintenance
+Business
+No impact on calculation; can change anytime
+5-1
+Upload Other Sources Data
+Upload via planning Workbook from portal
+Business or Maintenance
+5-2
+Clean Brand Name via planning Workbook
+Business
+All cleaned before next; if not mapped, data not uploaded
+5-3
+Clean Machine Line Name via planning Workbook
+Business
+All cleaned before next; if not mapped, data not uploaded
+5-4
+Upload Cleaned Other Sources
+Business or Maintenance
+After 5-1 to 5-3
+6
+Upload CRP data
+Upload CRP data
+Business or Maintenance
+CRP data upload
+7
+Calculations
+Preparation, Adjustment, Machine Line Split, Calculate Total Market, Restatement, Donor / Rest of Hub
+Business
+By order; all buttons clicked; Double brand deletion by business only
+!!! If need to re-do, best delete all TMC year data and run from Preparation.
+2.6 Code Excerpts
+CMODE transaction: Project YD4_VAR
+Source (tr se38/program): Y44_TMC_IP_USEREXIT
+Variable Y4TMC_MLFC contains machine lines: 300, 310, 320, 330, 350, 360, 380, 410, 420
+Source (tr se38/program): Y44_TMC_AUTH_USER_EXIT (for authorizations)
+3 Interfaces
+TMA
+Process chain: [TMC] Upload Total Market (From TMF)  
+Y44_TMC_TMA (TM >=2014 New Size Classes)
+TMC - Total Market by Brand (CRP) [YD4CC046]
+Source => 
+TMA
+No source information below
+    4C Volume Actuals (BIV-Total Market) [YD4CC009] -> Lack of information about sources
+        TMA(INT) [YD4CD011] -> 
+Info about sources
+Between TMA(INT) and 4C Volume Actuals (BIV-Total Market)
+Table
+Y44_4C_TVALIDT
+is used.
+A close up of a number
+AI-generated content may be incorrect.
+YD4CD011 [TMA(INT)]
+Sources: 
+BR_MAIN
+CCMA
+CN01A
+EOLE_MAIN
+ERG
+ERG_AU
+FR01A
+GB01A
+HARGROVE => Worldwide + CEE
+HARGROVE N
+IE01A
+IMDER
+IN01A
+IT01A
+KR01A
+TM_GENERAL
+VDMA-K
+VDMA-R
+TMD
+Process chain [TMC] Upload TM Details (From CRP):  
+Y44_TMC_TMD  (TM >=2014 New Size Classes)
+TMC - Total Market by Brand (CRP) [YD4CC046]
+ 4C - TMC Interface (CRP-TM Details) [YD4CD041]
+Sources:
+CCMA
+ERG
+ERG_AU  old
+IN01A
+KR01A  old
+Data from CRP - Oracle (TMA-TMF) [Y44ECRP01] -> Sources are present
+Sources:
+BR_MAIN
+CCMA
+CN01A
+EOLE_MAIN
+ERG
+ERG_AU
+FR01A
+GB01A
+HARGROVE
+HARGROVE N
+IE01A
+IMDER
+IN01A
+IT01A
+KR01A
+TM_GENERAL
+VDMA-K
+VDMA-R
+Size Classes are reaching us from CRP. 
+SAL
+[TMC] Upload Sales (From TMF) Y44_TMC_SAL (FIDs >=2012)
+TMC - Total Market by Brand (CRP) [YD4CC046] -> Source (SAL)
+Sales (Int) HANA [YD4CD109] ->
+No information about source
+Sales (HANA) [YD4CD105] ->
+No information about source
+Sales Flat File (Diamond) [YD4C_SALES] ->
+No information about source
+4 Rules and Restrictions
+4.1 Files
+4.1.1 DES
+DES has it own rules for file preparation and FID calculation.
+DES file can contain FID or MS% (market share) information. 
+If there is MS% then we will use it to calculate FID in the following cases:
+Country list for which we do calculation-based om MS% is placed in a filter
+YD4VAL006_FT006
+Machine lines list is fixed too: WLO, CEX, GEC, GEW
+we do calculation of FID based on MS% if DES is a primary source (P) only.
+There is TMA data available as we calculate FID as % from TM from TMA
+All brands have to have MS% data, not FID only. if for certain country and machine line one record contains FID but a second record with a different brand contains MS% - result will be wrong. 
+Size class flag field
+If we want data to add for split, we have such rules for size class flag field:
+WLO
+Size classes for split: <10. >10, <12 and # for new size classes
+Size classes for split: <80HP. >80HP, <120HP and # for old HP size classes - were removed in 2024.
+Excavators
+GEW and GEC from DES files are copied to CEX class and CEX class will be available for split.
+(>11T; GEW) and (>10T; GEC) → copy to split as (<10T, CEX).
+if country is TR or KR then (<10T; CEX) is copied into split too
+
