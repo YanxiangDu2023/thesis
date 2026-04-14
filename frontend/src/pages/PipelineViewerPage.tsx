@@ -5,6 +5,7 @@ import {
   getLatestControlReportCleanData,
   getLatestCrpTmaReportCleanData,
   getLatestUploadByMatrixType,
+  getP00RunTimes,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
   getUpload,
@@ -361,6 +362,7 @@ function PipelineViewerPage() {
           splitResult,
           controlRunResult,
           crpRunResult,
+          p00RunTimesResult,
         ] =
           await Promise.all([
             settle(() => getUploadCompleteness()),
@@ -372,6 +374,7 @@ function PipelineViewerPage() {
             settle(() => getExcavatorsSplitCexReport()),
             settle(() => getLatestControlReportCleanData()),
             settle(() => getLatestCrpTmaReportCleanData()),
+            settle(() => getP00RunTimes()),
           ]);
 
         const completenessMap = buildCompletenessMap(completenessResult.data?.items ?? []);
@@ -485,6 +488,35 @@ function PipelineViewerPage() {
         });
       }
 
+      const p00RunTimes = p00RunTimesResult.data;
+      p00Checks.push({
+        label: "CRP D1 Combined run",
+        detail: p00RunTimes?.crp_d1_combined_run_at
+          ? `Last run at ${formatTimestamp(p00RunTimes.crp_d1_combined_run_at)}.`
+          : "No tracked run yet. Trigger this from Layer Detail > Run CRP D1 Combined Report.",
+        status: p00RunTimes?.crp_d1_combined_run_at ? "Healthy" : "Review",
+      });
+      p00Checks.push({
+        label: "OTH Deletion Flag run",
+        detail: p00RunTimes?.oth_deletion_flag_run_at
+          ? `Last run at ${formatTimestamp(p00RunTimes.oth_deletion_flag_run_at)}.`
+          : "No tracked run yet. Trigger this from Layer Detail > Run OTH Deletion Flag Report.",
+        status: p00RunTimes?.oth_deletion_flag_run_at ? "Healthy" : "Review",
+      });
+      p00Checks.push({
+        label: "Check Report run",
+        detail: p00RunTimes?.p00_three_check_run_at
+          ? `Last run at ${formatTimestamp(p00RunTimes.p00_three_check_run_at)}.`
+          : "No tracked run yet. Trigger this from Layer Detail > Run Check Report.",
+        status: p00RunTimes?.p00_three_check_run_at ? "Healthy" : "Review",
+      });
+
+      const p00TrackedRunTimestamp = getLatestTimestamp([
+        p00RunTimes?.crp_d1_combined_run_at,
+        p00RunTimes?.oth_deletion_flag_run_at,
+        p00RunTimes?.p00_three_check_run_at,
+      ]);
+
       const p00Issue = buildIssueSummary(p00Checks);
       builtSteps.push({
         code: "P00",
@@ -494,9 +526,13 @@ function PipelineViewerPage() {
         executionStatus: resolveExecutionStatus(p00Missing.length > 0, Boolean(p00Result.data)),
         validationStatus: resolveSignalStatus(p00Checks),
         reviewStatus: resolveSignalStatus(p00Checks) === "Healthy" ? "Healthy" : "Review",
-        timeLabel: "Latest input snapshot",
-        timeValue: formatTimestamp(getLatestTimestamp(p00Inputs.map((item) => item.updatedAt))),
-        timeHint: "P00 does not yet persist a dedicated run timestamp, so this card uses the latest upload snapshot.",
+        timeLabel: "Latest P00 run",
+        timeValue: formatTimestamp(
+          p00TrackedRunTimestamp ?? getLatestTimestamp(p00Inputs.map((item) => item.updatedAt))
+        ),
+        timeHint: p00TrackedRunTimestamp
+          ? "Uses tracked timestamps from the P00 run actions."
+          : "No tracked P00 run yet; falling back to the latest input snapshot.",
         issueSummary: p00Issue.summary,
         issueHint: p00Issue.hint,
         records: p00Result.data?.row_count ?? null,
@@ -822,7 +858,8 @@ function PipelineViewerPage() {
           !a10Result.data &&
           !splitResult.data &&
           !controlRunResult.data &&
-          !crpRunResult.data;
+          !crpRunResult.data &&
+          !p00RunTimesResult.data;
         if (allFailed) {
           setPageError("Live pipeline status could not be loaded. Check whether the backend is running and your session is authenticated.");
         }

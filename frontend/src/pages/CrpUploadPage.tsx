@@ -168,7 +168,7 @@ function CrpUploadPage() {
 
   return (
     <div className="page">
-      <section className="section">
+      <section className="section section--crp-compact">
         <div className="section-header">
           <p className="section-tag">CRP Data</p>
           <h2 className="section-title">Upload CRP Data</h2>
@@ -178,8 +178,8 @@ function CrpUploadPage() {
         </div>
 
         <div className="matrix-form">
-          <UploadForm label="volvo_sale_data" title="Volvo Sale Data CSV" />
-          <UploadForm label="tma_data" title="TMA Data CSV" />
+          <UploadForm label="volvo_sale_data" title="Volvo Sale Data CSV" compact />
+          <UploadForm label="tma_data" title="TMA Data CSV" compact />
         </div>
 
         <div className="crp-columns">
@@ -210,7 +210,7 @@ function CrpUploadPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="crp-report-actions">
           <button type="button" onClick={handleRunCrpTmaReport}>
             Run CRP TMA Report - Clean Data
           </button>
@@ -229,7 +229,7 @@ function CrpUploadPage() {
         {crpTmaReportError && <p style={{ color: "red" }}>Error: {crpTmaReportError}</p>}
 
         {showCrpTmaReportPanel && crpTmaReportRun && (
-          <div className="section summary-card" style={{ marginTop: "16px" }}>
+          <div className="section summary-card summary-card--compact" style={{ marginTop: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <strong>CRP TMA Report - Clean Data</strong>
               <button
@@ -242,23 +242,11 @@ function CrpUploadPage() {
               </button>
             </div>
 
-            <div className="summary-row">
-              <span className="summary-label">Run ID</span>
-              <span className="summary-value">{crpTmaReportRun.id}</span>
-            </div>
-            <div className="summary-row">
-              <span className="summary-label">Status</span>
-              <span className="summary-value">{crpTmaReportRun.status ?? "-"}</span>
-            </div>
-            <div className="summary-row">
-              <span className="summary-label">Row Count</span>
-              <span className="summary-value">{crpTmaReportRun.row_count ?? 0}</span>
-            </div>
-
             <FilterableTable
               columns={crpTmaReportColumnKeys.map((column) => ({ key: column, label: column }))}
               rows={crpTmaReportRows}
               maxHeight="420px"
+              compact
             />
           </div>
         )}

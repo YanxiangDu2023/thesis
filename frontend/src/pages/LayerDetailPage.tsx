@@ -40,14 +40,30 @@ type ExcavatorsSplitDetailRow = {
   copy_fid_lt_10t: number | "";
   after_split_fid_lt_6t: number | "";
   after_split_fid_6_10t: number | "";
+  after_split_fid_target_three?: number | "";
   tm_non_vce_lt_6t: number | "";
   tm_non_vce_6_10t: number | "";
+  tm_non_vce_target_three?: number | "";
   before_after_difference: number | "";
   reference_level?: string;
   split_ratio?: string;
 };
 
 type ExcavatorsSplitCaseType = "ALL" | "CEX" | "GEC" | "GEW";
+type WheelLoadersSplitCaseType = "ALL" | "WLO_GT10" | "WLO_LT10" | "WLO_LT12";
+type SplitDetailCaseType = ExcavatorsSplitCaseType | "WLO_GT10" | "WLO_LT10" | "WLO_LT12";
+type ExcavatorsSplitDetailConfig = {
+  inputSizeKeys: string[];
+  inputSizeLabel: string;
+  firstTargetKeys: string[];
+  firstTargetLabel: string;
+  secondTargetKeys: string[];
+  secondTargetLabel: string;
+  thirdTargetKeys?: string[];
+  thirdTargetLabel?: string;
+  panelTitle: string;
+  description: string;
+};
 
 function toMatchKey(value: string | number | null | undefined): string {
   return String(value ?? "")
@@ -91,6 +107,98 @@ function roundTo4(value: number): number {
   return Number(value.toFixed(4));
 }
 
+function getExcavatorsSplitDetailConfig(
+  caseType: SplitDetailCaseType
+): ExcavatorsSplitDetailConfig | null {
+  if (caseType === "CEX") {
+    return {
+      inputSizeKeys: ["<10T"],
+      inputSizeLabel: "<10T",
+      firstTargetKeys: ["<6T"],
+      firstTargetLabel: "<6T",
+      secondTargetKeys: ["6<10T"],
+      secondTargetLabel: "6<10T",
+      panelTitle: "CEX Split Detail",
+      description:
+        "Lists the CEX OTH rows to split for <10T together with the related CEX TMA rows.",
+    };
+  }
+
+  if (caseType === "GEC") {
+    return {
+      inputSizeKeys: [">6T"],
+      inputSizeLabel: ">6T",
+      firstTargetKeys: [">10T"],
+      firstTargetLabel: ">10T",
+      secondTargetKeys: ["6<10T"],
+      secondTargetLabel: "6<10T",
+      panelTitle: "GEC Split Detail",
+      description:
+        "Lists the GEC OTH rows to split for >6T together with the related GEC TMA rows, then splits into >10T and 6<10T using Country, then Region, then Country Grouping fallback.",
+    };
+  }
+
+  if (caseType === "GEW") {
+    return {
+      inputSizeKeys: [">6T"],
+      inputSizeLabel: ">6T",
+      firstTargetKeys: ["6<11T"],
+      firstTargetLabel: "6<11T",
+      secondTargetKeys: [">11T"],
+      secondTargetLabel: ">11T",
+      panelTitle: "GEW Split Detail",
+      description:
+        "Lists the GEW OTH rows to split for >6T together with the related GEW TMA rows, then splits into 6<11T and >11T using Country, then Region, then Country Grouping fallback.",
+    };
+  }
+
+  if (caseType === "WLO_GT10") {
+    return {
+      inputSizeKeys: [">10"],
+      inputSizeLabel: ">10",
+      firstTargetKeys: ["10<12"],
+      firstTargetLabel: "10<12",
+      secondTargetKeys: [">12"],
+      secondTargetLabel: ">12",
+      panelTitle: "WLO Split Detail (>10)",
+      description:
+        "Lists the WLO OTH rows to split for >10 together with the related WLO TMA rows, then splits into 10<12 and >12 using Country, then Region, then Country Grouping fallback.",
+    };
+  }
+
+  if (caseType === "WLO_LT10") {
+    return {
+      inputSizeKeys: ["<10"],
+      inputSizeLabel: "<10",
+      firstTargetKeys: ["7<10"],
+      firstTargetLabel: "7<10",
+      secondTargetKeys: ["<7"],
+      secondTargetLabel: "<7",
+      panelTitle: "WLO Split Detail (<10)",
+      description:
+        "Lists the WLO OTH rows to split for <10 together with the related WLO TMA rows, then splits into 7<10 and <7 using Country, then Region, then Country Grouping fallback.",
+    };
+  }
+
+  if (caseType === "WLO_LT12") {
+    return {
+      inputSizeKeys: ["<12"],
+      inputSizeLabel: "<12",
+      firstTargetKeys: ["10<12"],
+      firstTargetLabel: "10<12",
+      secondTargetKeys: ["7<10"],
+      secondTargetLabel: "7<10",
+      thirdTargetKeys: ["<7"],
+      thirdTargetLabel: "<7",
+      panelTitle: "WLO Split Detail (<12)",
+      description:
+        "Lists the WLO OTH rows to split for <12 together with the related WLO TMA rows, then splits into 10<12, 7<10, and <7 using Country, then Region, then Country Grouping fallback.",
+    };
+  }
+
+  return null;
+}
+
 function buildExcavatorsSplitCaseRows(
   rows: OthDeletionFlagRow[],
   caseType: ExcavatorsSplitCaseType
@@ -123,7 +231,7 @@ function buildExcavatorsSplitCaseRows(
     const key = [
       toMatchKey(row.year),
       machineLineKey,
-      toMatchKey(row.machine_line_code),
+      toMatchKey(row.artificial_machine_line),
       toMatchKey(row.source),
       sizeClassKey,
     ].join("|");
@@ -132,7 +240,82 @@ function buildExcavatorsSplitCaseRows(
       grouped.set(key, {
         year: String(row.year ?? "").trim(),
         machine_line_name: String(row.machine_line_name ?? "").trim(),
-        machine_line_code: String(row.machine_line_code ?? "").trim(),
+        machine_line_code: String(row.artificial_machine_line ?? "").trim(),
+        source: String(row.source ?? "").trim(),
+        size_class_flag: String(row.size_class_flag ?? "").trim(),
+        matched_rows: 0,
+        gross_fid: 0,
+        volvo_deduction: 0,
+        net_fid: 0,
+      });
+    }
+
+    const current = grouped.get(key);
+    if (!current) {
+      return;
+    }
+
+    current.matched_rows += 1;
+    const fidValue = toNumberValue(row.fid);
+    current.gross_fid += fidValue;
+    if (toMatchKey(row.brand_name) === "VOLVO") {
+      current.volvo_deduction += fidValue;
+      current.net_fid -= fidValue;
+    } else {
+      current.net_fid += fidValue;
+    }
+  });
+
+  return Array.from(grouped.values()).sort((left, right) => {
+    return (
+      left.year.localeCompare(right.year) ||
+      left.machine_line_name.localeCompare(right.machine_line_name) ||
+      left.source.localeCompare(right.source) ||
+      left.size_class_flag.localeCompare(right.size_class_flag)
+    );
+  });
+}
+
+function buildWheelLoadersSplitCaseRows(
+  rows: OthDeletionFlagRow[],
+  caseType: WheelLoadersSplitCaseType
+): ExcavatorsSplitCaseRow[] {
+  const grouped = new Map<string, ExcavatorsSplitCaseRow>();
+
+  rows.forEach((row) => {
+    const reporterFlagKey = toMatchKey(row.reporter_flag);
+    const machineLineKey = toMatchKey(row.machine_line_name);
+    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
+    const sizeClassKey = toMatchKey(row.size_class_flag);
+
+    if (reporterFlagKey !== "Y" || artificialMachineLineKey !== "WLO") {
+      return;
+    }
+
+    const matchesCase =
+      (caseType === "ALL" &&
+        (sizeClassKey === ">10" || sizeClassKey === "<10" || sizeClassKey === "<12")) ||
+      (caseType === "WLO_GT10" && sizeClassKey === ">10") ||
+      (caseType === "WLO_LT10" && sizeClassKey === "<10") ||
+      (caseType === "WLO_LT12" && sizeClassKey === "<12");
+
+    if (!matchesCase) {
+      return;
+    }
+
+    const key = [
+      toMatchKey(row.year),
+      machineLineKey,
+      toMatchKey(row.artificial_machine_line),
+      toMatchKey(row.source),
+      sizeClassKey,
+    ].join("|");
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        year: String(row.year ?? "").trim(),
+        machine_line_name: String(row.machine_line_name ?? "").trim(),
+        machine_line_code: String(row.artificial_machine_line ?? "").trim(),
         source: String(row.source ?? "").trim(),
         size_class_flag: String(row.size_class_flag ?? "").trim(),
         matched_rows: 0,
@@ -170,7 +353,7 @@ function buildExcavatorsSplitCaseRows(
 
 function matchesExcavatorsSplitOthCase(
   row: Pick<OthDeletionFlagRow, "reporter_flag" | "artificial_machine_line" | "size_class_flag">,
-  caseType: ExcavatorsSplitCaseType
+  caseType: SplitDetailCaseType
 ): boolean {
   const reporterFlagKey = toMatchKey(row.reporter_flag);
   const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
@@ -196,12 +379,28 @@ function matchesExcavatorsSplitOthCase(
     return artificialMachineLineKey === "GEC" && sizeClassKey === ">6T";
   }
 
+  if (caseType === "GEW") {
+    return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
+  }
+
+  if (caseType === "WLO_GT10") {
+    return artificialMachineLineKey === "WLO" && sizeClassKey === ">10";
+  }
+
+  if (caseType === "WLO_LT10") {
+    return artificialMachineLineKey === "WLO" && sizeClassKey === "<10";
+  }
+
+  if (caseType === "WLO_LT12") {
+    return artificialMachineLineKey === "WLO" && sizeClassKey === "<12";
+  }
+
   return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
 }
 
 function matchesExcavatorsSplitTmaCase(
   row: P00ThreeCheckRow,
-  caseType: ExcavatorsSplitCaseType
+  caseType: SplitDetailCaseType
 ): boolean {
   if (toMatchKey(row.source) !== "TMA") {
     return false;
@@ -226,18 +425,39 @@ function matchesExcavatorsSplitTmaCase(
   }
 
   if (caseType === "GEC") {
-    return artificialMachineLineKey === "GEC" && sizeClassKey === ">6T";
+    return artificialMachineLineKey === "GEC" && (sizeClassKey === "6<10T" || sizeClassKey === ">10T");
   }
 
-  return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
+  if (caseType === "GEW") {
+    return artificialMachineLineKey === "GEW" && (sizeClassKey === "6<11T" || sizeClassKey === ">11T");
+  }
+
+  if (caseType === "WLO_GT10") {
+    return artificialMachineLineKey === "WLO" && (sizeClassKey === "10<12" || sizeClassKey === ">12");
+  }
+
+  if (caseType === "WLO_LT10") {
+    return artificialMachineLineKey === "WLO" && (sizeClassKey === "7<10" || sizeClassKey === "<7");
+  }
+
+  if (caseType === "WLO_LT12") {
+    return artificialMachineLineKey === "WLO" && (sizeClassKey === "10<12" || sizeClassKey === "7<10" || sizeClassKey === "<7");
+  }
+
+  return false;
 }
 
 function buildExcavatorsSplitDetailRows(
   threeCheckRows: P00ThreeCheckRow[],
-  caseType: ExcavatorsSplitCaseType
+  caseType: SplitDetailCaseType
 ): ExcavatorsSplitDetailRow[] {
+  const detailConfig = getExcavatorsSplitDetailConfig(caseType);
+  if (!detailConfig) {
+    return [];
+  }
+
   const detailRows: ExcavatorsSplitDetailRow[] = [];
-  const cexTmByGroup = new Map<
+  const countryTmByGroup = new Map<
     string,
     {
       year: string;
@@ -246,63 +466,162 @@ function buildExcavatorsSplitDetailRows(
       region: string;
       machine_line: string;
       artificial_machine_line: string;
-      tm_non_vce_lt_6t: number;
-      tm_non_vce_6_10t: number;
+      first_target_tm_non_vce: number;
+      second_target_tm_non_vce: number;
+      third_target_tm_non_vce: number;
+    }
+  >();
+  const regionTmByGroup = new Map<string, {
+    year: string;
+    country_grouping: string;
+    country: string;
+    region: string;
+    machine_line: string;
+    artificial_machine_line: string;
+    first_target_tm_non_vce: number;
+    second_target_tm_non_vce: number;
+    third_target_tm_non_vce: number;
+  }>();
+  const groupingTmByGroup = new Map<string, {
+    year: string;
+    country_grouping: string;
+    country: string;
+    region: string;
+    machine_line: string;
+    artificial_machine_line: string;
+    first_target_tm_non_vce: number;
+    second_target_tm_non_vce: number;
+    third_target_tm_non_vce: number;
+  }>();
+  const usedReferenceGroups = new Map<
+    string,
+    {
+      year: string;
+      country_grouping: string;
+      country: string;
+      region: string;
+      machine_line: string;
+      artificial_machine_line: string;
+      first_target_tm_non_vce: number;
+      second_target_tm_non_vce: number;
+      third_target_tm_non_vce: number;
+      reference_level: string;
     }
   >();
 
-  threeCheckRows.forEach((row) => {
-    if (!matchesExcavatorsSplitTmaCase(row, caseType)) {
-      return;
-    }
-
-    const groupKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.country_grouping),
-      toMatchKey(row.country),
-      toMatchKey(row.region),
-      toMatchKey(row.machine_line_name),
-      toMatchKey(row.artificial_machine_line),
-    ].join("|");
-
-    if (!cexTmByGroup.has(groupKey)) {
-      cexTmByGroup.set(groupKey, {
+  function ensureGroup(
+    map: Map<
+      string,
+      {
+        year: string;
+        country_grouping: string;
+        country: string;
+        region: string;
+        machine_line: string;
+        artificial_machine_line: string;
+        first_target_tm_non_vce: number;
+        second_target_tm_non_vce: number;
+        third_target_tm_non_vce: number;
+      }
+    >,
+    key: string,
+    row: P00ThreeCheckRow
+  ) {
+    if (!map.has(key)) {
+      map.set(key, {
         year: String(row.year ?? "").trim(),
         country_grouping: String(row.country_grouping ?? "").trim(),
         country: String(row.country ?? "").trim(),
         region: String(row.region ?? "").trim(),
         machine_line: String(row.machine_line_name ?? "").trim(),
         artificial_machine_line: String(row.artificial_machine_line ?? "").trim(),
-        tm_non_vce_lt_6t: 0,
-        tm_non_vce_6_10t: 0,
+        first_target_tm_non_vce: 0,
+        second_target_tm_non_vce: 0,
+        third_target_tm_non_vce: 0,
       });
     }
 
-    const current = cexTmByGroup.get(groupKey);
-    if (!current) {
+    return map.get(key);
+  }
+
+  function getReferenceMachineKey(row: Pick<P00ThreeCheckRow, "machine_line_name" | "artificial_machine_line">): string {
+    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
+    if (caseType === "GEC" || caseType === "GEW" || caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12") {
+      return artificialMachineLineKey;
+    }
+
+    return `${artificialMachineLineKey}|${toMatchKey(row.machine_line_name)}`;
+  }
+
+  threeCheckRows.forEach((row) => {
+    if (!matchesExcavatorsSplitTmaCase(row, caseType)) {
       return;
     }
 
+    const referenceMachineKey = getReferenceMachineKey(row);
+    const countryKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.country),
+      referenceMachineKey,
+    ].join("|");
+    const regionKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.region),
+      referenceMachineKey,
+    ].join("|");
+    const groupingKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.country_grouping),
+      referenceMachineKey,
+    ].join("|");
+
+    const countryGroup = ensureGroup(countryTmByGroup, countryKey, row);
+    const regionGroup = ensureGroup(regionTmByGroup, regionKey, row);
+    const groupingGroup = ensureGroup(groupingTmByGroup, groupingKey, row);
+
     const sizeClassKey = toMatchKey(row.size_class);
     const tmNonVce = toNumberValue(row.tm_non_vce);
-    if (sizeClassKey === "<6T") {
-      current.tm_non_vce_lt_6t += tmNonVce;
-    } else if (sizeClassKey === "6<10T") {
-      current.tm_non_vce_6_10t += tmNonVce;
+    const matchesFirstTarget = detailConfig.firstTargetKeys.includes(sizeClassKey);
+    const matchesSecondTarget = detailConfig.secondTargetKeys.includes(sizeClassKey);
+    const matchesThirdTarget = detailConfig.thirdTargetKeys?.includes(sizeClassKey) ?? false;
+
+    if (!countryGroup || !regionGroup || !groupingGroup) {
+      return;
+    }
+
+    if (matchesFirstTarget) {
+      countryGroup.first_target_tm_non_vce += tmNonVce;
+      regionGroup.first_target_tm_non_vce += tmNonVce;
+      groupingGroup.first_target_tm_non_vce += tmNonVce;
+    } else if (matchesSecondTarget) {
+      countryGroup.second_target_tm_non_vce += tmNonVce;
+      regionGroup.second_target_tm_non_vce += tmNonVce;
+      groupingGroup.second_target_tm_non_vce += tmNonVce;
+    } else if (matchesThirdTarget) {
+      countryGroup.third_target_tm_non_vce += tmNonVce;
+      regionGroup.third_target_tm_non_vce += tmNonVce;
+      groupingGroup.third_target_tm_non_vce += tmNonVce;
     }
   });
 
   threeCheckRows.forEach((row) => {
     const sourceKey = toMatchKey(row.source);
-    const groupKey = [
+    const referenceMachineKey = getReferenceMachineKey(row);
+    const countryKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.country),
+      referenceMachineKey,
+    ].join("|");
+    const regionKey = [
+      toMatchKey(row.year),
+      toMatchKey(row.region),
+      referenceMachineKey,
+    ].join("|");
+    const groupingKey = [
       toMatchKey(row.year),
       toMatchKey(row.country_grouping),
-      toMatchKey(row.country),
-      toMatchKey(row.region),
-      toMatchKey(row.machine_line_name),
-      toMatchKey(row.artificial_machine_line),
+      referenceMachineKey,
     ].join("|");
-    const tmGroup = cexTmByGroup.get(groupKey);
 
     if (sourceKey === "TMA") {
       return;
@@ -321,13 +640,57 @@ function buildExcavatorsSplitDetailRows(
       return;
     }
 
+    const fallbackCandidates = [
+      { level: "Country", key: countryKey, group: countryTmByGroup.get(countryKey) },
+      { level: "Region", key: regionKey, group: regionTmByGroup.get(regionKey) },
+      { level: "Country Grouping", key: groupingKey, group: groupingTmByGroup.get(groupingKey) },
+    ];
+    const matchingReference =
+      fallbackCandidates.find(
+        (candidate) =>
+          candidate.group &&
+          candidate.group.first_target_tm_non_vce +
+            candidate.group.second_target_tm_non_vce +
+            candidate.group.third_target_tm_non_vce >
+            0
+      ) ??
+      fallbackCandidates.find((candidate) => candidate.group);
+    const tmGroup = matchingReference?.group;
+    const referenceLevel = matchingReference?.level ?? "";
+
     const beforeSplitFid = toNumberValue(row.fid);
-    const tmLt6 = tmGroup?.tm_non_vce_lt_6t ?? 0;
-    const tm610 = tmGroup?.tm_non_vce_6_10t ?? 0;
-    const tmTotal = tmLt6 + tm610;
-    const afterSplitLt6 = tmTotal > 0 ? roundTo4((beforeSplitFid * tmLt6) / tmTotal) : 0;
-    const afterSplit610 = tmTotal > 0 ? roundTo4((beforeSplitFid * tm610) / tmTotal) : 0;
-    const difference = roundTo4(beforeSplitFid - afterSplitLt6 - afterSplit610);
+    const firstTargetTm = tmGroup?.first_target_tm_non_vce ?? 0;
+    const secondTargetTm = tmGroup?.second_target_tm_non_vce ?? 0;
+    const thirdTargetTm = tmGroup?.third_target_tm_non_vce ?? 0;
+    const tmTotal = firstTargetTm + secondTargetTm + thirdTargetTm;
+    let afterFirstTarget = 0;
+    let afterSecondTarget = 0;
+    let afterThirdTarget = 0;
+    let splitRatio = "";
+
+    if (firstTargetTm > 0 && secondTargetTm <= 0 && thirdTargetTm <= 0) {
+      afterFirstTarget = roundTo4(beforeSplitFid);
+      afterSecondTarget = 0;
+      afterThirdTarget = 0;
+      splitRatio = detailConfig.thirdTargetLabel ? "100% / 0% / 0%" : "100% / 0%";
+    } else if (firstTargetTm <= 0 && secondTargetTm > 0 && thirdTargetTm <= 0) {
+      afterFirstTarget = 0;
+      afterSecondTarget = roundTo4(beforeSplitFid);
+      afterThirdTarget = 0;
+      splitRatio = detailConfig.thirdTargetLabel ? "0% / 100% / 0%" : "0% / 100%";
+    } else if (tmTotal > 0) {
+      afterFirstTarget = roundTo4((beforeSplitFid * firstTargetTm) / tmTotal);
+      afterSecondTarget = roundTo4((beforeSplitFid * secondTargetTm) / tmTotal);
+      afterThirdTarget = roundTo4((beforeSplitFid * thirdTargetTm) / tmTotal);
+
+      if (detailConfig.thirdTargetLabel) {
+        splitRatio = `${roundTo4((firstTargetTm / tmTotal) * 100)}% / ${roundTo4((secondTargetTm / tmTotal) * 100)}% / ${roundTo4((thirdTargetTm / tmTotal) * 100)}%`;
+      } else {
+        splitRatio = `${roundTo4((firstTargetTm / tmTotal) * 100)}% / ${roundTo4((secondTargetTm / tmTotal) * 100)}%`;
+      }
+    }
+
+    const difference = roundTo4(beforeSplitFid - afterFirstTarget - afterSecondTarget - afterThirdTarget);
 
     detailRows.push({
       row_type: "OTH",
@@ -344,15 +707,26 @@ function buildExcavatorsSplitDetailRows(
       size_class: String(row.size_class ?? "").trim(),
       before_split_fid_lt_10t: roundTo4(beforeSplitFid),
       copy_fid_lt_10t: 0,
-      after_split_fid_lt_6t: afterSplitLt6,
-      after_split_fid_6_10t: afterSplit610,
+      after_split_fid_lt_6t: afterFirstTarget,
+      after_split_fid_6_10t: afterSecondTarget,
+      after_split_fid_target_three: detailConfig.thirdTargetLabel ? afterThirdTarget : "",
       tm_non_vce_lt_6t: "",
       tm_non_vce_6_10t: "",
+      tm_non_vce_target_three: "",
       before_after_difference: difference,
+      reference_level: referenceLevel,
+      split_ratio: splitRatio,
     });
+
+    if (tmGroup && referenceLevel) {
+      usedReferenceGroups.set(`${referenceLevel}|${matchingReference?.key ?? ""}`, {
+        ...tmGroup,
+        reference_level: referenceLevel,
+      });
+    }
   });
 
-  cexTmByGroup.forEach((tmGroup) => {
+  usedReferenceGroups.forEach((tmGroup) => {
     detailRows.push({
       row_type: "TMA",
       year: tmGroup.year,
@@ -365,14 +739,19 @@ function buildExcavatorsSplitDetailRows(
       reporter_flag: "#",
       source: "TMA",
       pri_sec: "#",
-      size_class: "<10T",
+      size_class: detailConfig.inputSizeLabel,
       before_split_fid_lt_10t: "",
       copy_fid_lt_10t: "",
       after_split_fid_lt_6t: "",
       after_split_fid_6_10t: "",
-      tm_non_vce_lt_6t: roundTo4(tmGroup.tm_non_vce_lt_6t),
-      tm_non_vce_6_10t: roundTo4(tmGroup.tm_non_vce_6_10t),
+      after_split_fid_target_three: "",
+      tm_non_vce_lt_6t: roundTo4(tmGroup.first_target_tm_non_vce),
+      tm_non_vce_6_10t: roundTo4(tmGroup.second_target_tm_non_vce),
+      tm_non_vce_target_three: detailConfig.thirdTargetLabel
+        ? roundTo4(tmGroup.third_target_tm_non_vce)
+        : "",
       before_after_difference: "",
+      reference_level: tmGroup.reference_level,
     });
   });
 
@@ -400,25 +779,59 @@ const EXCAVATORS_SPLIT_CASE_DETAILS: Record<
       "Filtered from OTH rows where Reporter Flag = Y, with either Artificial machine line = CEX and Size Class Flag = <10T, Artificial machine line = GEC and Size Class Flag = >6T, or Artificial machine line = GEW and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
   },
   CEX: {
-    heading: "1. Split CEX",
-    buttonLabel: "Split CEX Case",
+    heading: "1. Split CEX <10T",
+    buttonLabel: "Split CEX Case <10T",
     panelTitle: "Split CEX Case",
     description:
       "Lists CEX OTH rows with Reporter Flag = Y and Size Class Flag = <10T, then splits non-Volvo FID by TMA Non-VCE structure using Country, then Region, then Country Grouping fallback.",
   },
   GEC: {
-    heading: "2. Split GEC",
-    buttonLabel: "Split GEC Case",
+    heading: "2. Split GEC >6T",
+    buttonLabel: "Split GEC >6T",
     panelTitle: "Split GEC Case",
     description:
       "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = GEC, and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
   },
   GEW: {
-    heading: "3. Split GEW",
-    buttonLabel: "Split GEW Case",
+    heading: "3. Split GEW >6T",
+    buttonLabel: "Split GEW >6T",
     panelTitle: "Split GEW Case",
     description:
       "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = GEW, and Size Class Flag = >6T. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+};
+
+const WHEEL_LOADERS_SPLIT_CASE_DETAILS: Record<
+  WheelLoadersSplitCaseType,
+  { heading: string; buttonLabel: string; panelTitle: string; description: string }
+> = {
+  ALL: {
+    heading: "Wheel Loaders Split",
+    buttonLabel: "Wheel Loaders Split Case",
+    panelTitle: "Wheel Loaders Split Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = WLO, and Size Class Flag is >10, <10, or <12. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+  WLO_GT10: {
+    heading: "1. Split WLO (>10)",
+    buttonLabel: "Split WLO (>10) Case",
+    panelTitle: "Split WLO (>10) Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = WLO, and Size Class Flag = >10. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+  WLO_LT10: {
+    heading: "2. Split WLO (<10)",
+    buttonLabel: "Split WLO (<10) Case",
+    panelTitle: "Split WLO (<10) Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = WLO, and Size Class Flag = <10. Rows with Brand Name = VOLVO are subtracted from FID.",
+  },
+  WLO_LT12: {
+    heading: "3. Split WLO (<12)",
+    buttonLabel: "Split WLO (<12) Case",
+    panelTitle: "Split WLO (<12) Case",
+    description:
+      "Filtered from OTH rows where Reporter Flag = Y, Artificial machine line = WLO, and Size Class Flag = <12. Rows with Brand Name = VOLVO are subtracted from FID.",
   },
 };
 
@@ -1039,6 +1452,15 @@ function LayerDetailPage() {
   const [showExcavatorsSplitCasePanel, setShowExcavatorsSplitCasePanel] = useState(false);
   const [activeExcavatorsSplitCase, setActiveExcavatorsSplitCase] =
     useState<ExcavatorsSplitCaseType>("ALL");
+  const [runningWheelLoadersSplitCase, setRunningWheelLoadersSplitCase] = useState(false);
+  const [wheelLoadersSplitMessage, setWheelLoadersSplitMessage] = useState("");
+  const [wheelLoadersSplitError, setWheelLoadersSplitError] = useState("");
+  const [wheelLoadersSplitCaseRows, setWheelLoadersSplitCaseRows] = useState<ExcavatorsSplitCaseRow[]>([]);
+  const [wheelLoadersSplitDetailRows, setWheelLoadersSplitDetailRows] = useState<ExcavatorsSplitDetailRow[]>([]);
+  const [wheelLoadersSplitCaseResetToken, setWheelLoadersSplitCaseResetToken] = useState(0);
+  const [showWheelLoadersSplitCasePanel, setShowWheelLoadersSplitCasePanel] = useState(false);
+  const [activeWheelLoadersSplitCase, setActiveWheelLoadersSplitCase] =
+    useState<WheelLoadersSplitCaseType>("ALL");
 
   const combinedReportColumns = useMemo(
     () => [
@@ -1159,7 +1581,7 @@ function LayerDetailPage() {
     () => [
       { key: "year", label: "Year" },
       { key: "machine_line_name", label: "Machine Line" },
-      { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "machine_line_code", label: "Artificial machine line" },
       { key: "source", label: "Source" },
       { key: "size_class_flag", label: "Size Class Flag" },
       { key: "matched_rows", label: "Matched Rows", summarizable: true },
@@ -1170,8 +1592,22 @@ function LayerDetailPage() {
     []
   );
 
-  const excavatorsSplitDetailColumns = useMemo(
-    () => [
+  const excavatorsSplitDetailColumns = useMemo(() => {
+    const detailConfig =
+      getExcavatorsSplitDetailConfig(activeExcavatorsSplitCase) ??
+      ({
+        inputSizeKeys: ["<10T"],
+        inputSizeLabel: "<10T",
+        firstTargetKeys: ["<6T"],
+        firstTargetLabel: "<6T",
+        secondTargetKeys: ["6<10T"],
+        secondTargetLabel: "6<10T",
+        panelTitle: "CEX Split Detail",
+        description:
+          "Lists the CEX OTH rows to split for <10T together with the related CEX TMA rows.",
+      } satisfies ExcavatorsSplitDetailConfig);
+
+    return [
       { key: "row_type", label: "Row Type" },
       { key: "year", label: "Year" },
       { key: "country_grouping", label: "Country Grouping" },
@@ -1184,18 +1620,123 @@ function LayerDetailPage() {
       { key: "source", label: "Source" },
       { key: "pri_sec", label: "Pri/Sec" },
       { key: "size_class", label: "Size Class" },
-      { key: "before_split_fid_lt_10t", label: "Before Split FID <10T", summarizable: true },
-      { key: "copy_fid_lt_10t", label: "Copy FID <10T", summarizable: true },
-      { key: "after_split_fid_lt_6t", label: "After Split FID <6T", summarizable: true },
-      { key: "after_split_fid_6_10t", label: "After Split FID 6<10T", summarizable: true },
-      { key: "tm_non_vce_lt_6t", label: "TM Non-VCE <6T", summarizable: true },
-      { key: "tm_non_vce_6_10t", label: "TM Non-VCE 6<10T", summarizable: true },
+      {
+        key: "before_split_fid_lt_10t",
+        label: `Before Split FID ${detailConfig.inputSizeLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "copy_fid_lt_10t",
+        label: `Copy FID ${detailConfig.inputSizeLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_split_fid_lt_6t",
+        label: `After Split FID ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_split_fid_6_10t",
+        label: `After Split FID ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "tm_non_vce_lt_6t",
+        label: `TM Non-VCE ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "tm_non_vce_6_10t",
+        label: `TM Non-VCE ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
       { key: "reference_level", label: "Split Level" },
       { key: "split_ratio", label: "Split Ratio" },
       { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
-    ],
-    []
-  );
+    ];
+  }, [activeExcavatorsSplitCase]);
+
+  const wheelLoadersSplitDetailColumns = useMemo(() => {
+    const detailConfig =
+      (activeWheelLoadersSplitCase === "WLO_LT10"
+        ? getExcavatorsSplitDetailConfig("WLO_LT10")
+        : activeWheelLoadersSplitCase === "WLO_LT12"
+          ? getExcavatorsSplitDetailConfig("WLO_LT12")
+        : getExcavatorsSplitDetailConfig("WLO_GT10")) ??
+      ({
+        inputSizeKeys: [">10"],
+        inputSizeLabel: ">10",
+        firstTargetKeys: ["10<12"],
+        firstTargetLabel: "10<12",
+        secondTargetKeys: [">12"],
+        secondTargetLabel: ">12",
+        panelTitle: "WLO Split Detail (>10)",
+        description:
+          "Lists the WLO OTH rows to split for >10 together with the related WLO TMA rows.",
+      } satisfies ExcavatorsSplitDetailConfig);
+
+    return [
+      { key: "row_type", label: "Row Type" },
+      { key: "year", label: "Year" },
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "country", label: "Country" },
+      { key: "region", label: "Region" },
+      { key: "machine_line", label: "Machine Line" },
+      { key: "artificial_machine_line", label: "Artificial machine line" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "reporter_flag", label: "Reporter Flag" },
+      { key: "source", label: "Source" },
+      { key: "pri_sec", label: "Pri/Sec" },
+      { key: "size_class", label: "Size Class" },
+      {
+        key: "before_split_fid_lt_10t",
+        label: `Before Split FID ${detailConfig.inputSizeLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "copy_fid_lt_10t",
+        label: `Copy FID ${detailConfig.inputSizeLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_split_fid_lt_6t",
+        label: `After Split FID ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_split_fid_6_10t",
+        label: `After Split FID ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
+      ...(detailConfig.thirdTargetLabel
+        ? [{
+            key: "after_split_fid_target_three",
+            label: `After Split FID ${detailConfig.thirdTargetLabel}`,
+            summarizable: true,
+          }]
+        : []),
+      {
+        key: "tm_non_vce_lt_6t",
+        label: `TM Non-VCE ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "tm_non_vce_6_10t",
+        label: `TM Non-VCE ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
+      ...(detailConfig.thirdTargetLabel
+        ? [{
+            key: "tm_non_vce_target_three",
+            label: `TM Non-VCE ${detailConfig.thirdTargetLabel}`,
+            summarizable: true,
+          }]
+        : []),
+      { key: "reference_level", label: "Split Level" },
+      { key: "split_ratio", label: "Split Ratio" },
+      { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
+    ];
+  }, [activeWheelLoadersSplitCase]);
 
   const p10Share = useMemo(() => {
     const rowsForShare = p10FilteredRows ?? p10Rows;
@@ -1235,7 +1776,37 @@ function LayerDetailPage() {
     );
   }, [excavatorsSplitCaseRows]);
 
+  const wheelLoadersSplitCaseSummary = useMemo(() => {
+    return wheelLoadersSplitCaseRows.reduce(
+      (summary, row) => ({
+        groupedRows: summary.groupedRows + 1,
+        matchedRows: summary.matchedRows + row.matched_rows,
+        grossFidTotal: summary.grossFidTotal + row.gross_fid,
+        volvoDeductionTotal: summary.volvoDeductionTotal + row.volvo_deduction,
+        netFidTotal: summary.netFidTotal + row.net_fid,
+      }),
+      {
+        groupedRows: 0,
+        matchedRows: 0,
+        grossFidTotal: 0,
+        volvoDeductionTotal: 0,
+        netFidTotal: 0,
+      }
+    );
+  }, [wheelLoadersSplitCaseRows]);
+
   const activeExcavatorsSplitCaseDetail = EXCAVATORS_SPLIT_CASE_DETAILS[activeExcavatorsSplitCase];
+  const activeWheelLoadersSplitCaseDetail = WHEEL_LOADERS_SPLIT_CASE_DETAILS[activeWheelLoadersSplitCase];
+  const activeExcavatorsSplitDetailConfig = getExcavatorsSplitDetailConfig(activeExcavatorsSplitCase);
+  const activeWheelLoadersSplitDetailConfig =
+    activeWheelLoadersSplitCase === "WLO_GT10" ||
+    activeWheelLoadersSplitCase === "WLO_LT10" ||
+    activeWheelLoadersSplitCase === "WLO_LT12"
+      ? getExcavatorsSplitDetailConfig(activeWheelLoadersSplitCase)
+      : null;
+  const showExcavatorsSplitDetail = activeExcavatorsSplitDetailConfig !== null;
+  const showExcavatorsGroupedSummary = !showExcavatorsSplitDetail;
+  const showWheelLoadersSplitDetail = activeWheelLoadersSplitDetailConfig !== null;
 
   const handleRunCrpD1CombinedReport = async () => {
     try {
@@ -1243,7 +1814,7 @@ function LayerDetailPage() {
       setCombinedReportError("");
       setCombinedReportMessage("");
 
-      const result = await getCrpD1CombinedReport();
+      const result = await getCrpD1CombinedReport(true);
       setCombinedReportRows(result.rows);
       setCombinedReportResetToken((prev) => prev + 1);
       setCombinedReportMessage(`Run successful. Row Count: ${result.row_count}`);
@@ -1265,7 +1836,7 @@ function LayerDetailPage() {
       setOthDeletionFlagError("");
       setOthDeletionFlagMessage("");
 
-      const result = await getOthDeletionFlagReport();
+      const result = await getOthDeletionFlagReport(true);
       setOthDeletionFlagRows(result.rows);
       setOthDeletionFlagResetToken((prev) => prev + 1);
       setOthDeletionFlagMessage(`Run successful. Row Count: ${result.row_count}`);
@@ -1315,7 +1886,7 @@ function LayerDetailPage() {
       setThreeCheckError("");
       setThreeCheckMessage("");
 
-      const result = await getP00ThreeCheckReport();
+      const result = await getP00ThreeCheckReport(true);
       setThreeCheckRows(result.rows);
       setThreeCheckResetToken((prev) => prev + 1);
       setThreeCheckMessage(`Run successful. Row Count: ${result.row_count}`);
@@ -1388,6 +1959,40 @@ function LayerDetailPage() {
       );
     } finally {
       setRunningExcavatorsSplitCase(false);
+    }
+  };
+
+  const handleWheelLoadersSplitCaseClick = async (caseType: WheelLoadersSplitCaseType) => {
+    try {
+      setShowWheelLoadersSplitCasePanel(true);
+      setRunningWheelLoadersSplitCase(true);
+      setWheelLoadersSplitError("");
+      setWheelLoadersSplitMessage("");
+      setActiveWheelLoadersSplitCase(caseType);
+
+      const [othResult, threeCheckResult] = await Promise.all([
+        getOthDeletionFlagReport(),
+        getP00ThreeCheckReport(),
+      ]);
+      const rows = buildWheelLoadersSplitCaseRows(othResult.rows, caseType);
+      const detailRows =
+        caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12"
+          ? buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType)
+          : [];
+      setWheelLoadersSplitCaseRows(rows);
+      setWheelLoadersSplitDetailRows(detailRows);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelLoadersSplitMessage(`Run successful. Matching grouped rows: ${rows.length}`);
+    } catch (error) {
+      console.error(error);
+      setWheelLoadersSplitCaseRows([]);
+      setWheelLoadersSplitDetailRows([]);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelLoadersSplitError(
+        error instanceof Error ? error.message : "Failed to build Wheel Loaders Split Case."
+      );
+    } finally {
+      setRunningWheelLoadersSplitCase(false);
     }
   };
 
@@ -1669,6 +2274,256 @@ function LayerDetailPage() {
                 </button>
               ))}
             </div>
+            {runningExcavatorsSplitCase ? (
+              <p style={{ color: "blue", marginTop: "14px" }}>
+                Running {activeExcavatorsSplitCaseDetail.panelTitle}...
+              </p>
+            ) : null}
+            {excavatorsSplitCaseMessage ? (
+              <p style={{ color: "green", marginTop: "14px" }}>{excavatorsSplitCaseMessage}</p>
+            ) : null}
+            {excavatorsSplitCaseError ? (
+              <p style={{ color: "red", marginTop: "14px" }}>Error: {excavatorsSplitCaseError}</p>
+            ) : null}
+            {showExcavatorsSplitCasePanel ? (
+              <>
+                {showExcavatorsGroupedSummary ? (
+                  <>
+                    <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+                      <article className="card">
+                        <h4 className="card__title">Grouped Rows</h4>
+                        <p className="summary-value">{excavatorsSplitCaseSummary.groupedRows}</p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Matched OTH Rows</h4>
+                        <p className="summary-value">{excavatorsSplitCaseSummary.matchedRows}</p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Net FID</h4>
+                        <p className="summary-value">
+                          {excavatorsSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                    </div>
+                    <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+                      <article className="card">
+                        <h4 className="card__title">Gross FID</h4>
+                        <p className="summary-value">
+                          {excavatorsSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Volvo Deduction</h4>
+                        <p className="summary-value">
+                          {excavatorsSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Net FID Check</h4>
+                        <p className="summary-value">
+                          {(excavatorsSplitCaseSummary.grossFidTotal - excavatorsSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                    </div>
+                  </>
+                ) : null}
+                <div className="section summary-card" style={{ marginTop: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                    <div>
+                      <strong>{showExcavatorsSplitDetail ? activeExcavatorsSplitDetailConfig?.panelTitle : activeExcavatorsSplitCaseDetail.panelTitle}</strong>
+                      <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>
+                        {showExcavatorsSplitDetail
+                          ? activeExcavatorsSplitDetailConfig?.description
+                          : activeExcavatorsSplitCaseDetail.description}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--tiny"
+                      onClick={() => {
+                        setShowExcavatorsSplitCasePanel(false);
+                        setExcavatorsSplitCaseRows([]);
+                        setExcavatorsSplitDetailRows([]);
+                        setExcavatorsSplitCaseMessage("");
+                        setExcavatorsSplitCaseError("");
+                      }}
+                      aria-label={`Close ${activeExcavatorsSplitCaseDetail.panelTitle}`}
+                    >
+                      x
+                    </button>
+                  </div>
+                  {showExcavatorsGroupedSummary ? (
+                    <FilterableTable
+                      columns={excavatorsSplitCaseColumns}
+                      rows={excavatorsSplitCaseRows}
+                      maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                      resetToken={excavatorsSplitCaseResetToken}
+                      compact
+                    />
+                  ) : null}
+                  {showExcavatorsSplitDetail ? (
+                    <FilterableTable
+                      columns={excavatorsSplitDetailColumns}
+                      rows={excavatorsSplitDetailRows}
+                      maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                      resetToken={excavatorsSplitCaseResetToken}
+                      compact
+                    />
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+            <div
+              style={{
+                display: "flex",
+                gap: "52px",
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginTop: "36px",
+                marginBottom: "8px",
+              }}
+            >
+              <div className="summary-row" style={{ marginBottom: 0 }}>
+                <span className="summary-value">{WHEEL_LOADERS_SPLIT_CASE_DETAILS.ALL.heading}</span>
+              </div>
+              {(["WLO_GT10", "WLO_LT10", "WLO_LT12"] as const).map((caseType) => (
+                <div key={caseType} className="summary-row" style={{ marginBottom: 0 }}>
+                  <span className="summary-value">{WHEEL_LOADERS_SPLIT_CASE_DETAILS[caseType].heading}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: "24px", display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+              {(["ALL", "WLO_GT10", "WLO_LT10", "WLO_LT12"] as WheelLoadersSplitCaseType[]).map((caseType) => (
+                <button
+                  key={caseType}
+                  type="button"
+                  className="btn btn--overview"
+                  onClick={() => handleWheelLoadersSplitCaseClick(caseType)}
+                  disabled={runningWheelLoadersSplitCase}
+                >
+                  {WHEEL_LOADERS_SPLIT_CASE_DETAILS[caseType].buttonLabel}
+                </button>
+              ))}
+            </div>
+            {runningWheelLoadersSplitCase ? (
+              <p style={{ color: "blue", marginTop: "14px" }}>
+                Running {activeWheelLoadersSplitCaseDetail.panelTitle}...
+              </p>
+            ) : null}
+            {wheelLoadersSplitMessage ? (
+              <p style={{ color: "green", marginTop: "14px" }}>{wheelLoadersSplitMessage}</p>
+            ) : null}
+            {wheelLoadersSplitError ? (
+              <p style={{ color: "red", marginTop: "14px" }}>Error: {wheelLoadersSplitError}</p>
+            ) : null}
+            {showWheelLoadersSplitCasePanel ? (
+              <>
+                {!showWheelLoadersSplitDetail ? (
+                  <>
+                    <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+                      <article className="card">
+                        <h4 className="card__title">Grouped Rows</h4>
+                        <p className="summary-value">{wheelLoadersSplitCaseSummary.groupedRows}</p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Matched OTH Rows</h4>
+                        <p className="summary-value">{wheelLoadersSplitCaseSummary.matchedRows}</p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Net FID</h4>
+                        <p className="summary-value">
+                          {wheelLoadersSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                    </div>
+                    <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
+                      <article className="card">
+                        <h4 className="card__title">Gross FID</h4>
+                        <p className="summary-value">
+                          {wheelLoadersSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Volvo Deduction</h4>
+                        <p className="summary-value">
+                          {wheelLoadersSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                      <article className="card">
+                        <h4 className="card__title">Net FID Check</h4>
+                        <p className="summary-value">
+                          {(wheelLoadersSplitCaseSummary.grossFidTotal - wheelLoadersSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </article>
+                    </div>
+                  </>
+                ) : null}
+                <div className="section summary-card" style={{ marginTop: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                    <div>
+                      <strong>
+                        {showWheelLoadersSplitDetail
+                          ? activeWheelLoadersSplitDetailConfig?.panelTitle
+                          : activeWheelLoadersSplitCaseDetail.panelTitle}
+                      </strong>
+                      <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>
+                        {showWheelLoadersSplitDetail
+                          ? activeWheelLoadersSplitDetailConfig?.description
+                          : activeWheelLoadersSplitCaseDetail.description}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--tiny"
+                      onClick={() => {
+                        setShowWheelLoadersSplitCasePanel(false);
+                        setWheelLoadersSplitCaseRows([]);
+                        setWheelLoadersSplitDetailRows([]);
+                        setWheelLoadersSplitMessage("");
+                        setWheelLoadersSplitError("");
+                      }}
+                      aria-label={`Close ${activeWheelLoadersSplitCaseDetail.panelTitle}`}
+                    >
+                      x
+                    </button>
+                  </div>
+                  {!showWheelLoadersSplitDetail ? (
+                    <FilterableTable
+                      columns={excavatorsSplitCaseColumns}
+                      rows={wheelLoadersSplitCaseRows}
+                      maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                      resetToken={wheelLoadersSplitCaseResetToken}
+                      compact
+                    />
+                  ) : null}
+                  {showWheelLoadersSplitDetail ? (
+                    <FilterableTable
+                      columns={wheelLoadersSplitDetailColumns}
+                      rows={wheelLoadersSplitDetailRows}
+                      maxHeight={REPORT_TABLE_MAX_HEIGHT}
+                      resetToken={wheelLoadersSplitCaseResetToken}
+                      compact
+                    />
+                  ) : null}
+                </div>
+              </>
+            ) : null}
           </div>
         ) : (
           <div className="summary-card">
@@ -1723,109 +2578,6 @@ function LayerDetailPage() {
               ))}
             </ul>
           </div>
-        ) : null}
-        {layer.code === "MLS" && runningExcavatorsSplitCase ? (
-          <p style={{ color: "blue" }}>Running {activeExcavatorsSplitCaseDetail.panelTitle}...</p>
-        ) : null}
-        {layer.code === "MLS" && excavatorsSplitCaseMessage ? (
-          <p style={{ color: "green" }}>{excavatorsSplitCaseMessage}</p>
-        ) : null}
-        {layer.code === "MLS" && excavatorsSplitCaseError ? (
-          <p style={{ color: "red" }}>Error: {excavatorsSplitCaseError}</p>
-        ) : null}
-        {layer.code === "MLS" && showExcavatorsSplitCasePanel ? (
-          <>
-            <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
-              <article className="card">
-                <h4 className="card__title">Grouped Rows</h4>
-                <p className="summary-value">{excavatorsSplitCaseSummary.groupedRows}</p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Matched OTH Rows</h4>
-                <p className="summary-value">{excavatorsSplitCaseSummary.matchedRows}</p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Net FID</h4>
-                <p className="summary-value">
-                  {excavatorsSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              </article>
-            </div>
-            <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
-              <article className="card">
-                <h4 className="card__title">Gross FID</h4>
-                <p className="summary-value">
-                  {excavatorsSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Volvo Deduction</h4>
-                <p className="summary-value">
-                  {excavatorsSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Net FID Check</h4>
-                <p className="summary-value">
-                  {(excavatorsSplitCaseSummary.grossFidTotal - excavatorsSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              </article>
-            </div>
-            <div className="section summary-card" style={{ marginTop: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                <div>
-                  <strong>{activeExcavatorsSplitCaseDetail.panelTitle}</strong>
-                  <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>
-                    {activeExcavatorsSplitCaseDetail.description}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn--tiny"
-                  onClick={() => {
-                    setShowExcavatorsSplitCasePanel(false);
-                    setExcavatorsSplitCaseRows([]);
-                    setExcavatorsSplitDetailRows([]);
-                    setExcavatorsSplitCaseMessage("");
-                    setExcavatorsSplitCaseError("");
-                  }}
-                  aria-label={`Close ${activeExcavatorsSplitCaseDetail.panelTitle}`}
-                >
-                  x
-                </button>
-              </div>
-              <FilterableTable
-                columns={excavatorsSplitCaseColumns}
-                rows={excavatorsSplitCaseRows}
-                maxHeight={REPORT_TABLE_MAX_HEIGHT}
-                resetToken={excavatorsSplitCaseResetToken}
-                compact
-              />
-              {activeExcavatorsSplitCase === "CEX" ? (
-                <div style={{ marginTop: "20px" }}>
-                  <strong>CEX Split Detail</strong>
-                  <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px", marginBottom: "12px" }}>
-                    Lists the CEX OTH rows to split for &lt;10T together with the related CEX TMA rows.
-                  </div>
-                  <FilterableTable
-                    columns={excavatorsSplitDetailColumns}
-                    rows={excavatorsSplitDetailRows}
-                    maxHeight={REPORT_TABLE_MAX_HEIGHT}
-                    resetToken={excavatorsSplitCaseResetToken}
-                    compact
-                  />
-                </div>
-              ) : null}
-            </div>
-          </>
         ) : null}
         {layer.code === "P00" && runningThreeCheckReport ? (
           <p style={{ color: "blue" }}>Running 3 Check Report...</p>

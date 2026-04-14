@@ -7,6 +7,7 @@ import type {
   LatestUploadResponse,
   OthDeletionFlagRow,
   OthDeletionFlagResponse,
+  P00RunTimesResponse,
   P00ThreeCheckResponse,
   UploadRow,
   P10VceNonVceResponse,
@@ -333,8 +334,8 @@ export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaRepo
   return result as LatestCrpTmaReportCleanDataResponse;
 }
 
-export async function getCrpD1CombinedReport(): Promise<CrpD1CombinedReportResponse> {
-  const response = await apiFetch("/reports/crp-d1-combined");
+export async function getCrpD1CombinedReport(trackRun: boolean = false): Promise<CrpD1CombinedReportResponse> {
+  const response = await apiFetch(`/reports/crp-d1-combined${trackRun ? "?track_run=true" : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -355,8 +356,8 @@ export async function getA10AdjustmentReport(): Promise<A10AdjustmentResponse> {
   return result as A10AdjustmentResponse;
 }
 
-export async function getOthDeletionFlagReport(): Promise<OthDeletionFlagResponse> {
-  const response = await apiFetch("/reports/oth-deletion-flag");
+export async function getOthDeletionFlagReport(trackRun: boolean = false): Promise<OthDeletionFlagResponse> {
+  const response = await apiFetch(`/reports/oth-deletion-flag${trackRun ? "?track_run=true" : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -380,8 +381,8 @@ export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
   return result as P10VceNonVceResponse;
 }
 
-export async function getP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
-  const response = await apiFetch("/reports/p00-three-check");
+export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise<P00ThreeCheckResponse> {
+  const response = await apiFetch(`/reports/p00-three-check${trackRun ? "?track_run=true" : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -389,6 +390,17 @@ export async function getP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
   }
 
   return result as P00ThreeCheckResponse;
+}
+
+export async function getP00RunTimes(): Promise<P00RunTimesResponse> {
+  const response = await apiFetch("/reports/p00-run-times");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch P00 run times");
+  }
+
+  return result as P00RunTimesResponse;
 }
 
 export async function getExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseReportResponse> {

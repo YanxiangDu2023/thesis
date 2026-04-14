@@ -331,5 +331,17 @@ def init_db():
     _ensure_column(cursor, "crp_tma_report_rows", "machine_line_code", "TEXT")
     _ensure_column(cursor, "crp_tma_report_rows", "source", "TEXT")
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS report_run_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_key TEXT NOT NULL,
+        triggered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_report_run_history_key_time
+    ON report_run_history(report_key, triggered_at DESC, id DESC)
+    """)
+
     conn.commit()
     conn.close()

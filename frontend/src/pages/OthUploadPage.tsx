@@ -203,7 +203,7 @@ function OthUploadPage() {
       <p>Upload the CSV file required for OTH data configuration.</p>
 
       <div className="matrix-form">
-        <UploadForm label="oth_data" title="OTH Data CSV" />
+        <UploadForm label="oth_data" title="OTH Data CSV" compact />
       </div>
 
       <div style={{ marginTop: "16px" }}>
@@ -296,6 +296,7 @@ function OthUploadPage() {
             columns={controlReportColumnKeys.map((column) => ({ key: column, label: column }))}
             rows={controlReportRows}
             maxHeight="420px"
+            compact
           />
         </div>
       )}

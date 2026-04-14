@@ -33,6 +33,12 @@ REQUIRED_UPLOAD_TYPES = [
     "oth_data",
 ]
 
+P00_RUN_KEYS = {
+    "crp_d1_combined": "p00_crp_d1_combined",
+    "oth_deletion_flag": "p00_oth_deletion_flag",
+    "three_check": "p00_three_check",
+}
+
 
 class SaveEditedUploadRequest(BaseModel):
     matrix_type: str
@@ -94,6 +100,31 @@ def _get_latest_success_upload_id(cursor, matrix_type: str):
     """, (matrix_type,))
     row = cursor.fetchone()
     return row["id"] if row else None
+
+
+def _record_report_run(report_key: str) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO report_run_history (report_key)
+            VALUES (?)
+        """, (report_key,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _get_latest_report_run_time(cursor, report_key: str) -> str | None:
+    cursor.execute("""
+        SELECT triggered_at
+        FROM report_run_history
+        WHERE report_key = ?
+        ORDER BY triggered_at DESC, id DESC
+        LIMIT 1
+    """, (report_key,))
+    row = cursor.fetchone()
+    return row["triggered_at"] if row else None
 
 
 @router.post("/uploads/save-edited")
@@ -1068,8 +1099,11 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
 
 
 @router.get("/reports/crp-d1-combined")
-def get_crp_d1_combined_report():
-    return _get_crp_d1_combined_report_data(include_all_sal=True)
+def get_crp_d1_combined_report(track_run: bool = False):
+    result = _get_crp_d1_combined_report_data(include_all_sal=True)
+    if track_run:
+        _record_report_run(P00_RUN_KEYS["crp_d1_combined"])
+    return result
 
 
 @router.get("/reports/a10-adjustment")
@@ -1564,7 +1598,7 @@ def get_a10_adjustment_report():
 
 
 @router.get("/reports/oth-deletion-flag")
-def get_oth_deletion_flag_report():
+def get_oth_deletion_flag_report(track_run: bool = False):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -1883,7 +1917,7 @@ def get_oth_deletion_flag_report():
         ))
 
         rows = [dict(row) for row in cursor.fetchall()]
-        return {
+        result = {
             "row_count": len(rows),
             "rows": rows,
             "oth_upload_run_id": latest_oth_upload_run_id,
@@ -1893,6 +1927,9 @@ def get_oth_deletion_flag_report():
             "source_matrix_upload_run_id": latest_source_matrix_upload_run_id,
             "reporter_list_upload_run_id": latest_reporter_list_upload_run_id,
         }
+        if track_run:
+            _record_report_run(P00_RUN_KEYS["oth_deletion_flag"])
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -1900,7 +1937,7 @@ def get_oth_deletion_flag_report():
 
 
 @router.get("/reports/p00-three-check")
-def get_p00_three_check_report():
+def get_p00_three_check_report(track_run: bool = False):
     combined = _get_crp_d1_combined_report_data(include_all_sal=True)
     oth = get_oth_deletion_flag_report()
 
@@ -2053,7 +2090,7 @@ def get_p00_three_check_report():
             row["source"],
         ))
 
-        return {
+        result = {
             "row_count": len(result_rows),
             "rows": result_rows,
             "tma_upload_run_id": combined.get("tma_upload_run_id"),
@@ -2062,6 +2099,23 @@ def get_p00_three_check_report():
             "source_matrix_upload_run_id": combined.get("source_matrix_upload_run_id"),
             "machine_line_mapping_upload_run_id": latest_machine_line_mapping_upload_run_id,
             "oth_upload_run_id": oth.get("oth_upload_run_id"),
+        }
+        if track_run:
+            _record_report_run(P00_RUN_KEYS["three_check"])
+        return result
+    finally:
+        conn.close()
+
+
+@router.get("/reports/p00-run-times")
+def get_p00_run_times():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        return {
+            "crp_d1_combined_run_at": _get_latest_report_run_time(cursor, P00_RUN_KEYS["crp_d1_combined"]),
+            "oth_deletion_flag_run_at": _get_latest_report_run_time(cursor, P00_RUN_KEYS["oth_deletion_flag"]),
+            "p00_three_check_run_at": _get_latest_report_run_time(cursor, P00_RUN_KEYS["three_check"]),
         }
     finally:
         conn.close()

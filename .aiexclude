@@ -1,0 +1,29 @@
+# 排除编译产物和依赖
+node_modules/
+dist/
+build/
+__pycache__/
+*.py[cod]
+
+# 排除虚拟环境
+.venv/
+venv/
+env/
+
+# 排除日志和临时文件
+*.log
+*.tmp
+tmc_doc_tmp.odt
+
+# 排除本地数据库和二进制数据 (这些文件 AI 无法直接读取其逻辑)
+*.db
+backend/uploads/
+backend/app/data.db
+backend/auth.db
+backend/tmc.db
+*.sqlite
+*.sqlite3
+
+# 排除环境配置文件 (保护隐私)
+.env
+.env.*

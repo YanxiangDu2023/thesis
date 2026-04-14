@@ -1481,12 +1481,16 @@ button {
   overflow-x: auto;
   border-radius: 18px;
   border: 1px solid #e5e7eb;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .data-table-shell {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .data-table__summary {
@@ -1522,6 +1526,7 @@ button {
   padding: 14px 16px;
   text-align: left;
   border-bottom: 1px solid #edf2f7;
+  overflow-wrap: anywhere;
 }
 
 .data-table th {
@@ -1672,7 +1677,9 @@ button {
 
 .matrix-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
 }
 
 .upload-card {
@@ -1681,6 +1688,8 @@ button {
   border-radius: 18px;
   padding: 18px;
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .upload-card h3 {
@@ -1713,6 +1722,8 @@ button {
   border: 1px dashed #cbd5e1;
   border-radius: 16px;
   background: #f8fbff;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .crp-columns__title {
@@ -1742,6 +1753,58 @@ button {
   color: #1d4ed8;
   font-size: 12px;
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.section--crp-compact {
+  min-width: 0;
+}
+
+.section--crp-compact .upload-card,
+.section--crp-compact .summary-card,
+.section--crp-compact .crp-columns {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.section--crp-compact .crp-columns {
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.section--crp-compact .crp-columns__title {
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.section--crp-compact .crp-columns__description {
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.section--crp-compact .crp-columns__chips {
+  gap: 6px;
+}
+
+.section--crp-compact .crp-columns__chip {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.crp-report-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.summary-card--compact {
+  gap: 8px;
+}
+
+.summary-card--compact .summary-row {
+  padding-bottom: 8px;
 }
 
 /* Responsive */

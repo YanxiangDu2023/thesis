@@ -247,6 +247,12 @@ export type P00ThreeCheckResponse = {
   oth_upload_run_id: number;
 };
 
+export type P00RunTimesResponse = {
+  crp_d1_combined_run_at: string | null;
+  oth_deletion_flag_run_at: string | null;
+  p00_three_check_run_at: string | null;
+};
+
 export type P10VceNonVceRow = {
   year: string;
   country_group_code: string;
