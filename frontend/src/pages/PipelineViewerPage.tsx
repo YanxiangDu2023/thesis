@@ -489,6 +489,17 @@ function PipelineViewerPage() {
       }
 
       const p00RunTimes = p00RunTimesResult.data;
+      const hasAllTrackedP00Runs = Boolean(
+        p00RunTimes?.crp_d1_combined_run_at &&
+          p00RunTimes?.oth_deletion_flag_run_at &&
+          p00RunTimes?.p00_three_check_run_at
+      );
+      const hasSuccessfulP00CleanRuns = Boolean(
+        controlRunResult.data &&
+          (controlRunResult.data.run.status ?? "").toLowerCase() === "success" &&
+          crpRunResult.data &&
+          (crpRunResult.data.run.status ?? "").toLowerCase() === "success"
+      );
       p00Checks.push({
         label: "CRP D1 Combined run",
         detail: p00RunTimes?.crp_d1_combined_run_at
@@ -516,6 +527,8 @@ function PipelineViewerPage() {
         p00RunTimes?.oth_deletion_flag_run_at,
         p00RunTimes?.p00_three_check_run_at,
       ]);
+      const hasP00CompletionEvidence =
+        Boolean(p00Result.data) || (hasAllTrackedP00Runs && hasSuccessfulP00CleanRuns);
 
       const p00Issue = buildIssueSummary(p00Checks);
       builtSteps.push({
@@ -523,7 +536,7 @@ function PipelineViewerPage() {
         name: "Preparation Raw Layer",
         description: "Build the raw preparation output from the latest uploaded source files and the clean-data prechecks.",
         owner: "Preparation inputs",
-        executionStatus: resolveExecutionStatus(p00Missing.length > 0, Boolean(p00Result.data)),
+        executionStatus: resolveExecutionStatus(p00Missing.length > 0, hasP00CompletionEvidence),
         validationStatus: resolveSignalStatus(p00Checks),
         reviewStatus: resolveSignalStatus(p00Checks) === "Healthy" ? "Healthy" : "Review",
         timeLabel: "Latest P00 run",

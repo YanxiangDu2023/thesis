@@ -1,8 +1,23 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
-import { getA10AdjustmentReport, getCrpD1CombinedReport, getExcavatorsSplitCexReport, getOthDeletionFlagReport, getP00ThreeCheckReport, getP10VceNonVceReport } from "../api/uploads";
-import type { A10AdjustmentRow, CrpD1CombinedReportRow, OthDeletionFlagRow, P00ThreeCheckRow, P10VceNonVceRow } from "../types/upload";
+import {
+  getA10AdjustmentReport,
+  getCrpD1CombinedReport,
+  getExcavatorsSplitCexReport,
+  getLatestUploadByMatrixType,
+  getOthDeletionFlagReport,
+  getP00ThreeCheckReport,
+  getP10VceNonVceReport,
+} from "../api/uploads";
+import type {
+  A10AdjustmentRow,
+  CrpD1CombinedReportRow,
+  OthDeletionFlagRow,
+  P00ThreeCheckRow,
+  P10VceNonVceRow,
+  UploadRow,
+} from "../types/upload";
 
 type LayerDetail = {
   code: string;
@@ -44,6 +59,7 @@ type ExcavatorsSplitDetailRow = {
   tm_non_vce_lt_6t: number | "";
   tm_non_vce_6_10t: number | "";
   tm_non_vce_target_three?: number | "";
+  resplit?: string;
   before_after_difference: number | "";
   reference_level?: string;
   split_ratio?: string;
@@ -105,6 +121,96 @@ function toNumberValue(value: string | number | null | undefined): number {
 
 function roundTo4(value: number): number {
   return Number(value.toFixed(4));
+}
+
+function normalizeSizeClassForResplit(value: string | number | null | undefined): string {
+  const key = toMatchKey(value);
+  if (key === "MINI") {
+    return "<6T";
+  }
+  if (key === "MIDI") {
+    return "6<10T";
+  }
+  return key;
+}
+
+function addResplitFlagToDetailRows(
+  rows: ExcavatorsSplitDetailRow[],
+  detailConfig: ExcavatorsSplitDetailConfig | null,
+  sizeClassRows: UploadRow[]
+): ExcavatorsSplitDetailRow[] {
+  if (!detailConfig || sizeClassRows.length === 0) {
+    return rows;
+  }
+
+  const sizeClassByBrandMachine = new Map<string, Set<string>>();
+  sizeClassRows.forEach((row) => {
+    const brandCodeKey = toMatchKey(row.brand_code);
+    const machineCodeKey = toMatchKey(row.machine_code);
+    const sizeClassKey = normalizeSizeClassForResplit(row.size_class);
+    if (!brandCodeKey || !machineCodeKey || !sizeClassKey) {
+      return;
+    }
+    const key = `${brandCodeKey}|${machineCodeKey}`;
+    if (!sizeClassByBrandMachine.has(key)) {
+      sizeClassByBrandMachine.set(key, new Set<string>());
+    }
+    sizeClassByBrandMachine.get(key)?.add(sizeClassKey);
+  });
+
+  const targetSpecs: Array<{
+    sizeClassKey: string;
+    displayLabel: string;
+    getValue: (row: ExcavatorsSplitDetailRow) => number | "";
+  }> = [
+    {
+      sizeClassKey: normalizeSizeClassForResplit(detailConfig.firstTargetLabel),
+      displayLabel: detailConfig.firstTargetLabel,
+      getValue: (row) => row.after_split_fid_lt_6t,
+    },
+    {
+      sizeClassKey: normalizeSizeClassForResplit(detailConfig.secondTargetLabel),
+      displayLabel: detailConfig.secondTargetLabel,
+      getValue: (row) => row.after_split_fid_6_10t,
+    },
+  ];
+
+  if (detailConfig.thirdTargetLabel) {
+    targetSpecs.push({
+      sizeClassKey: normalizeSizeClassForResplit(detailConfig.thirdTargetLabel),
+      displayLabel: detailConfig.thirdTargetLabel,
+      getValue: (row) => row.after_split_fid_target_three ?? "",
+    });
+  }
+
+  return rows.map((row) => {
+    if (toMatchKey(row.row_type) !== "OTH") {
+      return { ...row, resplit: "" };
+    }
+
+    const brandCodeKey = toMatchKey(row.brand_code);
+    const machineCodeKey = toMatchKey(row.artificial_machine_line);
+    if (!brandCodeKey || !machineCodeKey) {
+      return { ...row, resplit: "" };
+    }
+
+    const key = `${brandCodeKey}|${machineCodeKey}`;
+    const allowedSizeClasses = sizeClassByBrandMachine.get(key) ?? new Set<string>();
+    const matchedTargetLabels = targetSpecs
+      .filter((target) => {
+        const targetValue = toNumberValue(target.getValue(row));
+        if (targetValue <= 0) {
+          return false;
+        }
+        return allowedSizeClasses.has(target.sizeClassKey);
+      })
+      .map((target) => target.displayLabel);
+
+    return {
+      ...row,
+      resplit: matchedTargetLabels.length > 0 ? `Y(${matchedTargetLabels.join(", ")})` : "",
+    };
+  });
 }
 
 function getExcavatorsSplitDetailConfig(
@@ -846,7 +952,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
       "2.1 Mark Deletion flag: Y if Machine Line Code = 390; otherwise Y when Country + Artificial machine line is not found in Source Matrix.",
       "2.2 Assign Pri/Sec: match Source + Country + Artificial machine line to Source Matrix. If Source equals primary_source then P; if Source equals secondary_source then S; otherwise blank.",
       "2.3 Assign Reporter flag: first read CRP Source from Source Matrix by Country + Artificial machine line, then match Reporter List by source_code + Artificial machine line + brand_code. If matched, set Y.",
-      "3. Build one combined 3 Check Report that puts TMA, SAL, and OTH into one table and shows TM, VCE FID, and TM Non VCE for the matched group.",
+      "3. Build one combined Check Report that puts TMA, SAL, and OTH into one table and shows TM, VCE FID, and TM Non VCE for the matched group.",
     ],
   },
   P10: {
@@ -1650,6 +1756,7 @@ function LayerDetailPage() {
         label: `TM Non-VCE ${detailConfig.secondTargetLabel}`,
         summarizable: true,
       },
+      { key: "resplit", label: "Resplit" },
       { key: "reference_level", label: "Split Level" },
       { key: "split_ratio", label: "Split Ratio" },
       { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
@@ -1732,6 +1839,7 @@ function LayerDetailPage() {
             summarizable: true,
           }]
         : []),
+      { key: "resplit", label: "Resplit" },
       { key: "reference_level", label: "Split Level" },
       { key: "split_ratio", label: "Split Ratio" },
       { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
@@ -1807,6 +1915,16 @@ function LayerDetailPage() {
   const showExcavatorsSplitDetail = activeExcavatorsSplitDetailConfig !== null;
   const showExcavatorsGroupedSummary = !showExcavatorsSplitDetail;
   const showWheelLoadersSplitDetail = activeWheelLoadersSplitDetailConfig !== null;
+
+  const getLatestSizeClassRows = async (): Promise<UploadRow[]> => {
+    try {
+      const latestSizeClass = await getLatestUploadByMatrixType("size_class");
+      return latestSizeClass.rows;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
 
   const handleRunCrpD1CombinedReport = async () => {
     try {
@@ -1929,9 +2047,17 @@ function LayerDetailPage() {
       setActiveExcavatorsSplitCase(caseType);
 
       if (caseType === "CEX") {
-        const result = await getExcavatorsSplitCexReport();
+        const [result, sizeClassRows] = await Promise.all([
+          getExcavatorsSplitCexReport(),
+          getLatestSizeClassRows(),
+        ]);
+        const detailRowsWithResplit = addResplitFlagToDetailRows(
+          result.detail_rows,
+          getExcavatorsSplitDetailConfig("CEX"),
+          sizeClassRows
+        );
         setExcavatorsSplitCaseRows(result.summary_rows);
-        setExcavatorsSplitDetailRows(result.detail_rows);
+        setExcavatorsSplitDetailRows(detailRowsWithResplit);
         setExcavatorsSplitCaseResetToken((prev) => prev + 1);
         setExcavatorsSplitCaseMessage(
           `Run successful. Matching grouped rows: ${result.summary.grouped_rows}`
@@ -1939,14 +2065,20 @@ function LayerDetailPage() {
         return;
       }
 
-      const [othResult, threeCheckResult] = await Promise.all([
+      const [othResult, threeCheckResult, sizeClassRows] = await Promise.all([
         getOthDeletionFlagReport(),
         getP00ThreeCheckReport(),
+        getLatestSizeClassRows(),
       ]);
       const rows = buildExcavatorsSplitCaseRows(othResult.rows, caseType);
       const detailRows = buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType);
+      const detailRowsWithResplit = addResplitFlagToDetailRows(
+        detailRows,
+        getExcavatorsSplitDetailConfig(caseType),
+        sizeClassRows
+      );
       setExcavatorsSplitCaseRows(rows);
-      setExcavatorsSplitDetailRows(detailRows);
+      setExcavatorsSplitDetailRows(detailRowsWithResplit);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
       setExcavatorsSplitCaseMessage(`Run successful. Matching grouped rows: ${rows.length}`);
     } catch (error) {
@@ -1970,17 +2102,23 @@ function LayerDetailPage() {
       setWheelLoadersSplitMessage("");
       setActiveWheelLoadersSplitCase(caseType);
 
-      const [othResult, threeCheckResult] = await Promise.all([
+      const [othResult, threeCheckResult, sizeClassRows] = await Promise.all([
         getOthDeletionFlagReport(),
         getP00ThreeCheckReport(),
+        getLatestSizeClassRows(),
       ]);
       const rows = buildWheelLoadersSplitCaseRows(othResult.rows, caseType);
       const detailRows =
         caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12"
           ? buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType)
           : [];
+      const detailRowsWithResplit = addResplitFlagToDetailRows(
+        detailRows,
+        getExcavatorsSplitDetailConfig(caseType),
+        sizeClassRows
+      );
       setWheelLoadersSplitCaseRows(rows);
-      setWheelLoadersSplitDetailRows(detailRows);
+      setWheelLoadersSplitDetailRows(detailRowsWithResplit);
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
       setWheelLoadersSplitMessage(`Run successful. Matching grouped rows: ${rows.length}`);
     } catch (error) {
@@ -2017,7 +2155,7 @@ function LayerDetailPage() {
 
   return (
     <div className="page">
-      <section className="section">
+      <section className={`section ${layer.code === "MLS" ? "section--layer-detail-wide" : ""}`.trim()}>
         <div className="section-header">
           <p className="section-tag">Layer Detail</p>
           <h2 className="section-title">

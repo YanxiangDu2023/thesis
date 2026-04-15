@@ -43,9 +43,9 @@ button {
 }
 
 .main-content {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 32px 20px 56px;
+  padding: 32px 24px 56px;
 }
 
 .page {
@@ -759,6 +759,16 @@ button {
   margin: 0;
   color: var(--slate);
   line-height: 1.7;
+}
+
+.page--home-wide {
+  width: 100%;
+  margin-left: 0;
+}
+
+.section--layer-detail-wide {
+  width: 100%;
+  margin-left: 0;
 }
 
 .overview-actions {
@@ -1519,13 +1529,14 @@ button {
   width: 100%;
   border-collapse: collapse;
   background: white;
+  border: 1px solid #dbe2ea;
 }
 
 .data-table th,
 .data-table td {
   padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #edf2f7;
+  border: 1px solid #e2e8f0;
   overflow-wrap: anywhere;
 }
 
@@ -1857,6 +1868,12 @@ button {
   .hero,
   .section {
     padding: 22px;
+  }
+
+  .page--home-wide,
+  .section--layer-detail-wide {
+    width: 100%;
+    margin-left: 0;
   }
 
   .hero__title {

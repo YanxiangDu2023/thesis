@@ -93,7 +93,7 @@ const tmcTimeline: TimelineStep[] = [
 
 function HomePage() {
   return (
-    <div className="page">
+    <div className="page page--home-wide">
       <section className="hero">
         <div className="hero__background-photo" aria-hidden="true" />
         <div className="hero__layout">
