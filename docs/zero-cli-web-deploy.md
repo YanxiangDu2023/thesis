@@ -10,6 +10,9 @@ This flow does not require Docker or Vercel CLI.
 4. In backend service env vars, set:
    - `DATABASE_URL` = your PostgreSQL URL
    - `CORS_ALLOW_ORIGINS` = your Vercel frontend URL (for example `https://your-app.vercel.app`)
+   - Optional (if you upgrade to paid + persistent disk later):
+     - `UPLOAD_ROOT_DIR=/var/data/uploads`
+     - `AUTH_DB_PATH=/var/data/auth.db`
 5. Deploy and wait until status is `Live`.
 6. Copy backend URL (for example `https://thesis-backend.onrender.com`).
 
