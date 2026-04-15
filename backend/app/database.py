@@ -52,6 +52,7 @@ def _resolve_sqlite_path(database_url: str) -> Path:
 def _adapt_sql_for_postgres(query: str) -> str:
     adapted = _AUTOINCREMENT_PATTERN.sub("BIGSERIAL PRIMARY KEY", query)
     adapted = re.sub(r"\bDATETIME\b", "TIMESTAMP", adapted, flags=re.IGNORECASE)
+    adapted = re.sub(r"\bINSTR\s*\(", "STRPOS(", adapted, flags=re.IGNORECASE)
     adapted = adapted.replace("?", "%s")
     return adapted
 
