@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: thesis-backend
+    env: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ALLOW_ORIGINS
+        sync: false
+      - key: DISABLE_AUTH
+        value: "true"
+      - key: UPLOAD_ROOT_DIR
+        value: /var/data/uploads
+      - key: AUTH_DB_PATH
+        value: /var/data/auth.db
+    disk:
+      name: thesis-backend-data
+      mountPath: /var/data
+      sizeGB: 1
