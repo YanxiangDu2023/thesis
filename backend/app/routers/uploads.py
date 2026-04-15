@@ -957,7 +957,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     pri_sec,
                     source,
                     deletion_flag,
-                    SUM(COALESCE(fid, 0)) AS fid
+                    SUM(COALESCE(CAST(NULLIF(REPLACE(TRIM(CAST(fid AS TEXT)), ',', ''), '') AS DOUBLE PRECISION), 0)) AS fid
                 FROM filtered_rows
                 GROUP BY
                     year,
@@ -992,7 +992,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                     UPPER(TRIM(COALESCE(size_class, ''))) AS size_class_key,
                     SUM(
                         CASE
-                            WHEN UPPER(TRIM(source)) = 'TMA' THEN COALESCE(fid, 0)
+                            WHEN UPPER(TRIM(source)) = 'TMA' THEN COALESCE(CAST(NULLIF(REPLACE(TRIM(CAST(fid AS TEXT)), ',', ''), '') AS DOUBLE PRECISION), 0)
                             ELSE 0
                         END
                     ) AS tm,
@@ -1001,7 +1001,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
                             WHEN UPPER(TRIM(source)) = 'SAL'
                                  AND UPPER(TRIM(COALESCE(reporter_flag, ''))) = 'Y'
                                  AND UPPER(TRIM(COALESCE(deletion_flag, ''))) <> 'Y'
-                            THEN COALESCE(fid, 0)
+                            THEN COALESCE(CAST(NULLIF(REPLACE(TRIM(CAST(fid AS TEXT)), ',', ''), '') AS DOUBLE PRECISION), 0)
                             ELSE 0
                         END
                     ) AS vce_fid,
@@ -1833,7 +1833,7 @@ def get_oth_deletion_flag_report(track_run: bool = False):
                 brand_name,
                 brand_code,
                 size_class_flag,
-                SUM(COALESCE(fid, 0)) AS fid,
+                SUM(COALESCE(CAST(NULLIF(REPLACE(TRIM(CAST(fid AS TEXT)), ',', ''), '') AS DOUBLE PRECISION), 0)) AS fid,
                 NULL AS ms_percent,
                 deletion_flag,
                 pri_sec,
