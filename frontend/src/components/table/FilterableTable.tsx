@@ -164,6 +164,15 @@ function FilterableTable({
   }, [resetToken]);
 
   useEffect(() => {
+    if (!editable) {
+      return;
+    }
+    // Editing with active filters can make rows disappear while typing.
+    setFilters({});
+    setOpenFilterKey(null);
+  }, [editable]);
+
+  useEffect(() => {
     const wrapper = tableWrapperRef.current;
     if (!wrapper) {
       return undefined;
@@ -453,7 +462,7 @@ function FilterableTable({
             </tr>
             <tr>
               {columns.map((column) => {
-                const isFilterable = column.filterable !== false;
+                const isFilterable = !editable && column.filterable !== false;
                 if (!isFilterable) {
                   return <th key={`${column.key}-filter`} />;
                 }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
 import {
   getA10AdjustmentReport,
@@ -1513,6 +1513,7 @@ const REPORT_TABLE_MAX_HEIGHT = "72vh";
 
 function LayerDetailPage() {
   const params = useParams();
+  const location = useLocation();
   const layerCode = (params.layerCode ?? "").toUpperCase();
   const layer = LAYER_DETAILS[layerCode];
   const [runningCombinedReport, setRunningCombinedReport] = useState(false);
@@ -1567,6 +1568,7 @@ function LayerDetailPage() {
   const [showWheelLoadersSplitCasePanel, setShowWheelLoadersSplitCasePanel] = useState(false);
   const [activeWheelLoadersSplitCase, setActiveWheelLoadersSplitCase] =
     useState<WheelLoadersSplitCaseType>("ALL");
+  const [autoRunHandled, setAutoRunHandled] = useState(false);
 
   const combinedReportColumns = useMemo(
     () => [
@@ -2037,6 +2039,24 @@ function LayerDetailPage() {
       setRunningA10Report(false);
     }
   };
+
+  useEffect(() => {
+    setAutoRunHandled(false);
+  }, [layerCode, location.search]);
+
+  useEffect(() => {
+    if (!layer || layer.code !== "P10" || autoRunHandled) {
+      return;
+    }
+
+    const search = new URLSearchParams(location.search);
+    if (search.get("auto_run") !== "p10") {
+      return;
+    }
+
+    setAutoRunHandled(true);
+    void handleRunP10Report();
+  }, [autoRunHandled, layer, location.search]);
 
   const handleRunExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
     try {

@@ -1,14 +1,12 @@
-from app.database import get_connection
+from app.database import get_connection, get_table_columns
 
 def _ensure_column(cursor, table_name: str, column_name: str, column_type: str):
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    existing_columns = {row[1] for row in cursor.fetchall()}
+    existing_columns = set(get_table_columns(cursor, table_name))
     if column_name not in existing_columns:
         cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
 
 def _ensure_oth_data_schema(cursor):
-    cursor.execute("PRAGMA table_info(oth_data_rows)")
-    columns = [row[1] for row in cursor.fetchall()]
+    columns = get_table_columns(cursor, "oth_data_rows")
     if not columns:
         return
 

@@ -7,8 +7,9 @@ from typing import Any
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
-from app.database import get_connection
+from app.database import get_connection, get_table_columns
 from app.services.csv_service import handle_csv_upload
+from app.settings import get_upload_root_dir
 
 router = APIRouter()
 
@@ -84,8 +85,7 @@ def _round_to_4(value: float) -> float:
 
 
 def _get_table_insert_columns(cursor, table_name: str) -> list[str]:
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    columns = [row["name"] for row in cursor.fetchall()]
+    columns = get_table_columns(cursor, table_name)
     excluded = {"id", "upload_run_id", "row_index"}
     return [column for column in columns if column not in excluded]
 
@@ -149,7 +149,7 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
                 detail=f"No writable columns found for {matrix_type}",
             )
 
-        target_dir = os.path.join("uploads", matrix_type)
+        target_dir = os.path.join(get_upload_root_dir(), matrix_type)
         os.makedirs(target_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

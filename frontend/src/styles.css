@@ -1321,6 +1321,20 @@ button {
   line-height: 1.6;
 }
 
+.check-item__list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.check-item__action {
+  margin-top: 10px;
+  display: inline-flex;
+  text-decoration: none;
+}
+
 .sql-guide {
   margin-top: 12px;
   padding: 14px;

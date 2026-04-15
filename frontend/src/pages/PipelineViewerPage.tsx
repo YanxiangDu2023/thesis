@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   getA10AdjustmentReport,
   getExcavatorsSplitCexReport,
@@ -18,7 +19,14 @@ type SignalStatus = "Healthy" | "Warning" | "Review";
 type DependencyStatus = "Fresh" | "Aging" | "Missing";
 
 type Dependency = { name: string; updatedAt: string; status: DependencyStatus };
-type Check = { label: string; detail: string; status: SignalStatus };
+type Check = {
+  label: string;
+  detail: string;
+  status: SignalStatus;
+  detailLines?: string[];
+  actionLabel?: string;
+  actionTo?: string;
+};
 type SampleColumn = { key: string; label: string };
 type SampleRow = Record<string, string | number | null>;
 
@@ -595,9 +603,17 @@ function PipelineViewerPage() {
       ];
 
       if (p10Result.data) {
-        const reconciliationCount = p10Result.data.rows.filter(
+        const reconciliationFailures = p10Result.data.rows.filter(
           (row) => Math.abs(row.total_market - row.vce - row.non_vce) > 0.001
-        ).length;
+        );
+        const reconciliationCount = reconciliationFailures.length;
+        const reconciliationDetailLines = reconciliationFailures.slice(0, 5).map((row) => {
+          const mismatch = Number(row.total_market) - Number(row.vce) - Number(row.non_vce);
+          return `${row.country} | ${row.machine_line_name} | ${row.size_class} | diff ${mismatch.toFixed(2)}`;
+        });
+        if (reconciliationCount > 5) {
+          reconciliationDetailLines.push(`...and ${reconciliationCount - 5} more rows.`);
+        }
         const negativeValueCount = p10Result.data.rows.filter(
           (row) => row.total_market < 0 || row.vce < 0 || row.non_vce < 0
         ).length;
@@ -608,6 +624,9 @@ function PipelineViewerPage() {
               ? "Total market equals VCE + Non-VCE for the live P10 sample."
               : `${reconciliationCount} sampled rows fail the total market reconciliation.`,
           status: reconciliationCount === 0 ? "Healthy" : "Warning",
+          detailLines: reconciliationCount > 0 ? reconciliationDetailLines : undefined,
+          actionLabel: reconciliationCount > 0 ? "Open P10 Detail" : undefined,
+          actionTo: reconciliationCount > 0 ? "/layers/P10?auto_run=p10&focus=value-reconciliation" : undefined,
         });
         p10Checks.push({
           label: "Negative values",
@@ -680,7 +699,13 @@ function PipelineViewerPage() {
         const missingCalculationStepCount = a10Result.data.rows.filter(
           (row) => !String(row.calculation_step ?? "").trim()
         ).length;
-        const missingSourceCount = a10Result.data.rows.filter((row) => !String(row.source ?? "").trim()).length;
+        const missingSourceCount = a10Result.data.rows.filter((row) => {
+          const brandCode = String(row.brand_code ?? "").trim().toUpperCase();
+          if (brandCode === "RESULT") {
+            return false;
+          }
+          return !String(row.source ?? "").trim();
+        }).length;
         a10Checks.push({
           label: "Adjustment rows",
           detail:
@@ -701,8 +726,8 @@ function PipelineViewerPage() {
           label: "Source tagging",
           detail:
             missingSourceCount === 0
-              ? "All sampled A10 rows contain a source value."
-              : `${missingSourceCount} sampled A10 rows are missing source values.`,
+              ? "All sampled A10 rows (excluding RESULT rows) contain a source value."
+              : `${missingSourceCount} sampled A10 rows (excluding RESULT rows) are missing source values.`,
           status: missingSourceCount === 0 ? "Healthy" : "Warning",
         });
       } else {
@@ -960,29 +985,51 @@ function PipelineViewerPage() {
                   <article className="health-metric-card"><span className="health-metric-card__label">Output Rows</span><strong className="health-metric-card__value">{formatRowCount(selectedStep.records)}</strong><span className="health-metric-card__hint">{selectedStep.deltaVsPrevious}</span></article>
                 </div>
                 <div className="health-detail-grid">
-                  <article className="health-detail-card"><h5 className="health-detail-card__title">Input Dependencies</h5><div className="dependency-list">{selectedStep.inputs.map((input) => <div key={`${selectedStep.code}-${input.name}`} className="dependency-item"><div><strong className="dependency-item__name">{input.name}</strong><p className="dependency-item__time">{input.updatedAt}</p></div><span className={getDependencyBadgeClass(input.status)}>{input.status}</span></div>)}</div></article>
-                  <article className="health-detail-card"><h5 className="health-detail-card__title">Validation Checks</h5><div className="check-list">{selectedStep.checks.map((check) => <div key={`${selectedStep.code}-${check.label}`} className="check-item"><div className="check-item__copy"><strong>{check.label}</strong><p>{check.detail}</p></div><span className={getSignalBadgeClass(check.status)}>{check.status}</span></div>)}</div></article>
+                  <article className="health-detail-card">
+                    <h5 className="health-detail-card__title">Input Dependencies</h5>
+                    <div className="dependency-list">
+                      {selectedStep.inputs.map((input) => (
+                        <div key={`${selectedStep.code}-${input.name}`} className="dependency-item">
+                          <div>
+                            <strong className="dependency-item__name">{input.name}</strong>
+                            <p className="dependency-item__time">{input.updatedAt}</p>
+                          </div>
+                          <span className={getDependencyBadgeClass(input.status)}>{input.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                  <article className="health-detail-card">
+                    <h5 className="health-detail-card__title">Validation Checks</h5>
+                    <div className="check-list">
+                      {selectedStep.checks.map((check) => (
+                        <div key={`${selectedStep.code}-${check.label}`} className="check-item">
+                          <div className="check-item__copy">
+                            <strong>{check.label}</strong>
+                            <p>{check.detail}</p>
+                            {check.detailLines && check.detailLines.length > 0 ? (
+                              <ul className="check-item__list">
+                                {check.detailLines.map((line, idx) => (
+                                  <li key={`${selectedStep.code}-${check.label}-line-${idx}`}>{line}</li>
+                                ))}
+                              </ul>
+                            ) : null}
+                            {check.actionLabel && check.actionTo ? (
+                              <Link className="btn btn--tiny check-item__action" to={check.actionTo}>
+                                {check.actionLabel}
+                              </Link>
+                            ) : null}
+                          </div>
+                          <span className={getSignalBadgeClass(check.status)}>{check.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
                 </div>
               </div>
             ) : <p className="summary-description">Select a step from the left list to display its health status.</p>}
           </section>
         </div>
-      </section>
-
-      <section className="section">
-        <div className="section-header">
-          <p className="section-tag">Sample Output</p>
-          <h3 className="section-title">Preview Table</h3>
-          <p className="section-description">The preview below uses live rows when the selected step exposes output data.</p>
-        </div>
-        {selectedStep && selectedStep.sampleRows.length > 0 ? (
-          <div className="table-wrapper">
-            <table className="data-table">
-              <thead><tr>{selectedStep.sampleColumns.map((column) => <th key={`${selectedStep.code}-${column.key}`}>{column.label}</th>)}</tr></thead>
-              <tbody>{selectedStep.sampleRows.map((row, index) => <tr key={`${selectedStep.code}-row-${index}`}>{selectedStep.sampleColumns.map((column) => <td key={`${selectedStep.code}-${index}-${column.key}`}>{row[column.key] ?? "-"}</td>)}</tr>)}</tbody>
-            </table>
-          </div>
-        ) : <p className="summary-description">No live sample rows are available for this step yet.</p>}
       </section>
     </div>
   );

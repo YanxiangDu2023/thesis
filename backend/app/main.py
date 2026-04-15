@@ -5,13 +5,15 @@ from app.init_db import init_db
 from app.routers.auth import router as auth_router
 from app.routers.uploads import router as uploads_router
 from app.security import require_auth
+from app.settings import get_cors_allow_origins
 
 app = FastAPI()
+cors_allow_origins = get_cors_allow_origins()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_allow_origins,
+    allow_credentials=cors_allow_origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,4 +1,9 @@
-export const API_BASE_URL = "http://127.0.0.1:8001";
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+export const API_BASE_URL = (
+  configuredApiBaseUrl && configuredApiBaseUrl.length > 0
+    ? configuredApiBaseUrl
+    : "http://127.0.0.1:8001"
+).replace(/\/+$/, "");
 export const AUTH_TOKEN_STORAGE_KEY = "tmc_auth_token";
 
 export function getStoredAuthToken(): string | null {

@@ -1,17 +1,9 @@
 from app.auth_database import get_auth_connection
-from app.database import get_connection
+from app.database import get_connection, table_exists
 
 
 def _table_exists(cursor, table_name: str) -> bool:
-    cursor.execute(
-        """
-        SELECT name
-        FROM sqlite_master
-        WHERE type = 'table' AND name = ?
-        """,
-        (table_name,),
-    )
-    return cursor.fetchone() is not None
+    return table_exists(cursor, table_name)
 
 
 def _migrate_legacy_auth_data() -> None:

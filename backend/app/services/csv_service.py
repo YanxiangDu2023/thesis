@@ -5,8 +5,9 @@ import unicodedata
 from datetime import datetime
 from fastapi import UploadFile, HTTPException
 from app.database import get_connection
+from app.settings import get_upload_root_dir
 
-BASE_UPLOAD_DIR = "uploads"
+BASE_UPLOAD_DIR = get_upload_root_dir()
 OTH_EXPECTED_HEADERS = {
     "year",
     "source",
