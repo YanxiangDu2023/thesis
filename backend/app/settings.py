@@ -27,3 +27,11 @@ def get_cors_allow_origins() -> list[str]:
 
 def get_upload_root_dir() -> str:
     return os.getenv("UPLOAD_ROOT_DIR", "uploads").strip() or "uploads"
+
+
+def is_password_gate_enabled() -> bool:
+    return _read_bool_env("PASSWORD_GATE_ENABLED", False)
+
+
+def get_password_gate_token() -> str:
+    return os.getenv("PASSWORD_GATE_TOKEN", "").strip()

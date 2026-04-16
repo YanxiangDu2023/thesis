@@ -1,14 +1,23 @@
-from fastapi import Depends, FastAPI
+import hmac
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.init_auth_db import init_auth_db
 from app.init_db import init_db
 from app.routers.auth import router as auth_router
 from app.routers.uploads import router as uploads_router
 from app.security import require_auth
-from app.settings import get_cors_allow_origins
+from app.settings import (
+    get_cors_allow_origins,
+    get_password_gate_token,
+    is_password_gate_enabled,
+)
 
 app = FastAPI()
 cors_allow_origins = get_cors_allow_origins()
+password_gate_enabled = is_password_gate_enabled()
+password_gate_token = get_password_gate_token()
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +31,24 @@ app.add_middleware(
 def startup():
     init_auth_db()
     init_db()
+
+
+@app.middleware("http")
+async def enforce_password_gate(request: Request, call_next):
+    if not password_gate_enabled:
+        return await call_next(request)
+
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    provided_token = request.headers.get("x-site-password", "").strip()
+    if password_gate_token and hmac.compare_digest(provided_token, password_gate_token):
+        return await call_next(request)
+
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Invalid site password"},
+    )
 
 @app.get("/")
 def root():

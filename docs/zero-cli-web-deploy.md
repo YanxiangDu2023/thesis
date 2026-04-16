@@ -10,6 +10,8 @@ This flow does not require Docker or Vercel CLI.
 4. In backend service env vars, set:
    - `DATABASE_URL` = your PostgreSQL URL
    - `CORS_ALLOW_ORIGINS` = your Vercel frontend URL (for example `https://your-app.vercel.app`)
+   - `PASSWORD_GATE_ENABLED` = `true`
+   - `PASSWORD_GATE_TOKEN` = a shared site password for testers
    - Optional (if you upgrade to paid + persistent disk later):
      - `UPLOAD_ROOT_DIR=/var/data/uploads`
      - `AUTH_DB_PATH=/var/data/auth.db`
@@ -27,6 +29,7 @@ This flow does not require Docker or Vercel CLI.
 4. Add environment variables:
    - `VITE_API_BASE_URL` = backend URL from Render
    - `VITE_DISABLE_AUTH` = `true` (for test mode)
+   - `VITE_PASSWORD_GATE_ENABLED` = `true`
 5. Deploy.
 
 ## 3) Final check

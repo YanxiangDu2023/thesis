@@ -18,6 +18,8 @@ AUTH_DB_PATH=auth.db
 UPLOAD_ROOT_DIR=uploads
 CORS_ALLOW_ORIGINS=https://<your-frontend-domain>
 DISABLE_AUTH=true
+PASSWORD_GATE_ENABLED=true
+PASSWORD_GATE_TOKEN=<shared-site-password>
 ```
 
 Notes:
@@ -31,6 +33,7 @@ Notes:
 ```env
 VITE_API_BASE_URL=https://<your-backend-domain>
 VITE_DISABLE_AUTH=true
+VITE_PASSWORD_GATE_ENABLED=true
 ```
 
 ## 4) Prepare PostgreSQL schema
