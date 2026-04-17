@@ -23,6 +23,11 @@ MATRIX_TYPE_TO_TABLE = {
     "oth_data": "oth_data_rows",
     "volvo_sale_data": "volvo_sale_data_rows",
     "tma_data": "tma_data_rows",
+    "split_manual_cex": "split_manual_rows",
+    "split_manual_gec": "split_manual_rows",
+    "split_manual_gew": "split_manual_rows",
+    "split_manual_wlo_gt10": "split_manual_rows",
+    "split_manual_wlo_lt10": "split_manual_rows",
 }
 REQUIRED_UPLOAD_TYPES = [
     "source_matrix",

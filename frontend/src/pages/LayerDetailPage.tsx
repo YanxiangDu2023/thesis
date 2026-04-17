@@ -9,6 +9,7 @@ import {
   getOthDeletionFlagReport,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
+  saveEditedUpload,
 } from "../api/uploads";
 import type {
   A10AdjustmentRow,
@@ -60,6 +61,9 @@ type ExcavatorsSplitDetailRow = {
   tm_non_vce_6_10t: number | "";
   tm_non_vce_target_three?: number | "";
   resplit?: string;
+  after_resplit_fid_lt_6t?: number | "";
+  after_resplit_fid_6_10t?: number | "";
+  after_resplit_fid_target_three?: number | "";
   before_after_difference: number | "";
   reference_level?: string;
   split_ratio?: string;
@@ -209,6 +213,109 @@ function addResplitFlagToDetailRows(
     return {
       ...row,
       resplit: matchedTargetLabels.length > 0 ? `Y(${matchedTargetLabels.join(", ")})` : "",
+    };
+  });
+}
+
+function initializeResplitColumns(rows: ExcavatorsSplitDetailRow[]): ExcavatorsSplitDetailRow[] {
+  return rows.map((row) => ({
+    ...row,
+    resplit: "",
+    after_resplit_fid_lt_6t: "",
+    after_resplit_fid_6_10t: "",
+    after_resplit_fid_target_three: "",
+  }));
+}
+
+function applyExcavatorsResplitByCrpSource(
+  rows: ExcavatorsSplitDetailRow[],
+  sourceMatrixRows: UploadRow[],
+  sizeClassRows: UploadRow[],
+  detailConfig: ExcavatorsSplitDetailConfig
+): ExcavatorsSplitDetailRow[] {
+  const countryArtificialToCrpSource = new Map<string, string>();
+  sourceMatrixRows.forEach((row) => {
+    const countryKey = toMatchKey(row.country_name ?? row.country);
+    const artificialKey = toMatchKey(row.artificial_machine_line);
+    const crpSourceKey = toMatchKey(row.crp_source ?? row.source_code);
+    if (!countryKey || !artificialKey || !crpSourceKey) {
+      return;
+    }
+    const key = `${countryKey}|${artificialKey}`;
+    if (!countryArtificialToCrpSource.has(key)) {
+      countryArtificialToCrpSource.set(key, crpSourceKey);
+    }
+  });
+
+  const unsoldSizeClassBySourceBrandMachine = new Map<string, Set<string>>();
+  sizeClassRows.forEach((row) => {
+    const sourceCodeKey = toMatchKey(row.source_code ?? row.source);
+    const brandCodeKey = toMatchKey(row.brand_code);
+    const machineCodeKey = toMatchKey(row.machine_code);
+    const sizeClassKey = normalizeSizeClassForResplit(row.size_class);
+    if (!sourceCodeKey || !brandCodeKey || !machineCodeKey || !sizeClassKey) {
+      return;
+    }
+    const key = `${sourceCodeKey}|${brandCodeKey}|${machineCodeKey}`;
+    if (!unsoldSizeClassBySourceBrandMachine.has(key)) {
+      unsoldSizeClassBySourceBrandMachine.set(key, new Set<string>());
+    }
+    unsoldSizeClassBySourceBrandMachine.get(key)?.add(sizeClassKey);
+  });
+
+  return rows.map((row) => {
+    if (toMatchKey(row.row_type) !== "OTH") {
+      return {
+        ...row,
+        resplit: "",
+        after_resplit_fid_lt_6t: "",
+        after_resplit_fid_6_10t: "",
+        after_resplit_fid_target_three: "",
+      };
+    }
+
+    const countryKey = toMatchKey(row.country);
+    const artificialKey = toMatchKey(row.artificial_machine_line);
+    const brandCodeKey = toMatchKey(row.brand_code);
+    const crpSourceKey = countryArtificialToCrpSource.get(`${countryKey}|${artificialKey}`) ?? "";
+
+    const firstSizeClass = normalizeSizeClassForResplit(detailConfig.firstTargetLabel);
+    const secondSizeClass = normalizeSizeClassForResplit(detailConfig.secondTargetLabel);
+
+    const beforeFirst = roundTo4(toNumberValue(row.after_split_fid_lt_6t));
+    const beforeSecond = roundTo4(toNumberValue(row.after_split_fid_6_10t));
+
+    let afterFirst = beforeFirst;
+    let afterSecond = beforeSecond;
+
+    const unsoldSet =
+      unsoldSizeClassBySourceBrandMachine.get(`${crpSourceKey}|${brandCodeKey}|${artificialKey}`) ??
+      new Set<string>();
+    const unsoldFirst = unsoldSet.has(firstSizeClass);
+    const unsoldSecond = unsoldSet.has(secondSizeClass);
+    const triggeredLabels: string[] = [];
+
+    if (unsoldFirst && beforeFirst > 0) {
+      triggeredLabels.push(detailConfig.firstTargetLabel);
+    }
+    if (unsoldSecond && beforeSecond > 0) {
+      triggeredLabels.push(detailConfig.secondTargetLabel);
+    }
+
+    if (unsoldFirst && !unsoldSecond) {
+      afterSecond = roundTo4(beforeSecond + beforeFirst);
+      afterFirst = 0;
+    } else if (!unsoldFirst && unsoldSecond) {
+      afterFirst = roundTo4(beforeFirst + beforeSecond);
+      afterSecond = 0;
+    }
+
+    return {
+      ...row,
+      resplit: triggeredLabels.length > 0 ? `Y(${triggeredLabels.join(", ")})` : "",
+      after_resplit_fid_lt_6t: afterFirst,
+      after_resplit_fid_6_10t: afterSecond,
+      after_resplit_fid_target_three: "",
     };
   });
 }
@@ -819,6 +926,9 @@ function buildExcavatorsSplitDetailRows(
       tm_non_vce_lt_6t: "",
       tm_non_vce_6_10t: "",
       tm_non_vce_target_three: "",
+      after_resplit_fid_lt_6t: "",
+      after_resplit_fid_6_10t: "",
+      after_resplit_fid_target_three: "",
       before_after_difference: difference,
       reference_level: referenceLevel,
       split_ratio: splitRatio,
@@ -856,6 +966,9 @@ function buildExcavatorsSplitDetailRows(
       tm_non_vce_target_three: detailConfig.thirdTargetLabel
         ? roundTo4(tmGroup.third_target_tm_non_vce)
         : "",
+      after_resplit_fid_lt_6t: "",
+      after_resplit_fid_6_10t: "",
+      after_resplit_fid_target_three: "",
       before_after_difference: "",
       reference_level: tmGroup.reference_level,
     });
@@ -1510,6 +1623,88 @@ group_key = (
 ];
 
 const REPORT_TABLE_MAX_HEIGHT = "72vh";
+const SPLIT_MANUAL_NON_EDITABLE_COLUMNS: string[] = [
+  "row_type",
+  "year",
+  "country_grouping",
+  "country",
+  "region",
+  "machine_line",
+  "artificial_machine_line",
+  "brand_code",
+  "reporter_flag",
+  "source",
+  "pri_sec",
+  "size_class",
+  "before_split_fid_lt_10t",
+  "copy_fid_lt_10t",
+  "after_split_fid_lt_6t",
+  "after_split_fid_6_10t",
+  "after_split_fid_target_three",
+  "tm_non_vce_lt_6t",
+  "tm_non_vce_6_10t",
+  "tm_non_vce_target_three",
+  "before_after_difference",
+  "reference_level",
+  "split_ratio",
+];
+
+function getSplitManualMatrixType(caseType: SplitDetailCaseType): string | null {
+  if (caseType === "CEX") {
+    return "split_manual_cex";
+  }
+  if (caseType === "GEC") {
+    return "split_manual_gec";
+  }
+  if (caseType === "GEW") {
+    return "split_manual_gew";
+  }
+  if (caseType === "WLO_GT10") {
+    return "split_manual_wlo_gt10";
+  }
+  if (caseType === "WLO_LT10") {
+    return "split_manual_wlo_lt10";
+  }
+  return null;
+}
+
+function normalizeSplitManualRows(rows: UploadRow[]): ExcavatorsSplitDetailRow[] {
+  return rows.map((row) => ({
+    row_type: String(row.row_type ?? ""),
+    year: String(row.year ?? ""),
+    country_grouping: String(row.country_grouping ?? ""),
+    country: String(row.country ?? ""),
+    region: String(row.region ?? ""),
+    machine_line: String(row.machine_line ?? ""),
+    artificial_machine_line: String(row.artificial_machine_line ?? ""),
+    brand_code: String(row.brand_code ?? ""),
+    reporter_flag: String(row.reporter_flag ?? ""),
+    source: String(row.source ?? ""),
+    pri_sec: String(row.pri_sec ?? ""),
+    size_class: String(row.size_class ?? ""),
+    before_split_fid_lt_10t: String(row.before_split_fid_lt_10t ?? "") === "" ? "" : toNumberValue(row.before_split_fid_lt_10t),
+    copy_fid_lt_10t: String(row.copy_fid_lt_10t ?? "") === "" ? "" : toNumberValue(row.copy_fid_lt_10t),
+    after_split_fid_lt_6t: String(row.after_split_fid_lt_6t ?? "") === "" ? "" : toNumberValue(row.after_split_fid_lt_6t),
+    after_split_fid_6_10t: String(row.after_split_fid_6_10t ?? "") === "" ? "" : toNumberValue(row.after_split_fid_6_10t),
+    after_split_fid_target_three:
+      String(row.after_split_fid_target_three ?? "") === "" ? "" : toNumberValue(row.after_split_fid_target_three),
+    tm_non_vce_lt_6t: String(row.tm_non_vce_lt_6t ?? "") === "" ? "" : toNumberValue(row.tm_non_vce_lt_6t),
+    tm_non_vce_6_10t: String(row.tm_non_vce_6_10t ?? "") === "" ? "" : toNumberValue(row.tm_non_vce_6_10t),
+    tm_non_vce_target_three:
+      String(row.tm_non_vce_target_three ?? "") === "" ? "" : toNumberValue(row.tm_non_vce_target_three),
+    resplit: String(row.resplit ?? ""),
+    after_resplit_fid_lt_6t:
+      String(row.after_resplit_fid_lt_6t ?? "") === "" ? "" : toNumberValue(row.after_resplit_fid_lt_6t),
+    after_resplit_fid_6_10t:
+      String(row.after_resplit_fid_6_10t ?? "") === "" ? "" : toNumberValue(row.after_resplit_fid_6_10t),
+    after_resplit_fid_target_three:
+      String(row.after_resplit_fid_target_three ?? "") === "" ? "" : toNumberValue(row.after_resplit_fid_target_three),
+    before_after_difference:
+      String(row.before_after_difference ?? "") === "" ? "" : toNumberValue(row.before_after_difference),
+    reference_level: String(row.reference_level ?? ""),
+    split_ratio: String(row.split_ratio ?? ""),
+  }));
+}
 
 function LayerDetailPage() {
   const params = useParams();
@@ -1559,6 +1754,19 @@ function LayerDetailPage() {
   const [showExcavatorsSplitCasePanel, setShowExcavatorsSplitCasePanel] = useState(false);
   const [activeExcavatorsSplitCase, setActiveExcavatorsSplitCase] =
     useState<ExcavatorsSplitCaseType>("ALL");
+  const [excavatorsResplitReadyByCase, setExcavatorsResplitReadyByCase] = useState<
+    Record<ExcavatorsSplitCaseType, boolean>
+  >({
+    ALL: false,
+    CEX: false,
+    GEC: false,
+    GEW: false,
+  });
+  const [editingExcavatorsManual, setEditingExcavatorsManual] = useState(false);
+  const [excavatorsManualRows, setExcavatorsManualRows] = useState<ExcavatorsSplitDetailRow[]>([]);
+  const [savingExcavatorsManual, setSavingExcavatorsManual] = useState(false);
+  const [excavatorsManualMessage, setExcavatorsManualMessage] = useState("");
+  const [excavatorsManualError, setExcavatorsManualError] = useState("");
   const [runningWheelLoadersSplitCase, setRunningWheelLoadersSplitCase] = useState(false);
   const [wheelLoadersSplitMessage, setWheelLoadersSplitMessage] = useState("");
   const [wheelLoadersSplitError, setWheelLoadersSplitError] = useState("");
@@ -1568,6 +1776,19 @@ function LayerDetailPage() {
   const [showWheelLoadersSplitCasePanel, setShowWheelLoadersSplitCasePanel] = useState(false);
   const [activeWheelLoadersSplitCase, setActiveWheelLoadersSplitCase] =
     useState<WheelLoadersSplitCaseType>("ALL");
+  const [wheelResplitReadyByCase, setWheelResplitReadyByCase] = useState<
+    Record<WheelLoadersSplitCaseType, boolean>
+  >({
+    ALL: false,
+    WLO_GT10: false,
+    WLO_LT10: false,
+    WLO_LT12: false,
+  });
+  const [editingWheelManual, setEditingWheelManual] = useState(false);
+  const [wheelManualRows, setWheelManualRows] = useState<ExcavatorsSplitDetailRow[]>([]);
+  const [savingWheelManual, setSavingWheelManual] = useState(false);
+  const [wheelManualMessage, setWheelManualMessage] = useState("");
+  const [wheelManualError, setWheelManualError] = useState("");
   const [autoRunHandled, setAutoRunHandled] = useState(false);
 
   const combinedReportColumns = useMemo(
@@ -1759,6 +1980,16 @@ function LayerDetailPage() {
         summarizable: true,
       },
       { key: "resplit", label: "Resplit" },
+      {
+        key: "after_resplit_fid_lt_6t",
+        label: `After Resplit FID ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_resplit_fid_6_10t",
+        label: `After Resplit FID ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
       { key: "reference_level", label: "Split Level" },
       { key: "split_ratio", label: "Split Ratio" },
       { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
@@ -1842,6 +2073,23 @@ function LayerDetailPage() {
           }]
         : []),
       { key: "resplit", label: "Resplit" },
+      {
+        key: "after_resplit_fid_lt_6t",
+        label: `After Resplit FID ${detailConfig.firstTargetLabel}`,
+        summarizable: true,
+      },
+      {
+        key: "after_resplit_fid_6_10t",
+        label: `After Resplit FID ${detailConfig.secondTargetLabel}`,
+        summarizable: true,
+      },
+      ...(detailConfig.thirdTargetLabel
+        ? [{
+            key: "after_resplit_fid_target_three",
+            label: `After Resplit FID ${detailConfig.thirdTargetLabel}`,
+            summarizable: true,
+          }]
+        : []),
       { key: "reference_level", label: "Split Level" },
       { key: "split_ratio", label: "Split Ratio" },
       { key: "before_after_difference", label: "Before/After Difference", summarizable: true },
@@ -1917,6 +2165,14 @@ function LayerDetailPage() {
   const showExcavatorsSplitDetail = activeExcavatorsSplitDetailConfig !== null;
   const showExcavatorsGroupedSummary = !showExcavatorsSplitDetail;
   const showWheelLoadersSplitDetail = activeWheelLoadersSplitDetailConfig !== null;
+  const canEditExcavatorsManual =
+    (activeExcavatorsSplitCase === "CEX" ||
+      activeExcavatorsSplitCase === "GEC" ||
+      activeExcavatorsSplitCase === "GEW") &&
+    excavatorsResplitReadyByCase[activeExcavatorsSplitCase];
+  const canEditWheelManual =
+    (activeWheelLoadersSplitCase === "WLO_GT10" || activeWheelLoadersSplitCase === "WLO_LT10") &&
+    wheelResplitReadyByCase[activeWheelLoadersSplitCase];
 
   const getLatestSizeClassRows = async (): Promise<UploadRow[]> => {
     try {
@@ -1925,6 +2181,330 @@ function LayerDetailPage() {
     } catch (error) {
       console.error(error);
       return [];
+    }
+  };
+
+  const getLatestSourceMatrixRows = async (): Promise<UploadRow[]> => {
+    try {
+      const latestSourceMatrix = await getLatestUploadByMatrixType("source_matrix");
+      return latestSourceMatrix.rows;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
+  const handleStartExcavatorsManualEdit = () => {
+    if (!canEditExcavatorsManual || excavatorsSplitDetailRows.length === 0) {
+      return;
+    }
+    setEditingExcavatorsManual(true);
+    setExcavatorsManualRows(excavatorsSplitDetailRows.map((row) => ({ ...row })));
+    setExcavatorsManualMessage("");
+    setExcavatorsManualError("");
+  };
+
+  const handleCancelExcavatorsManualEdit = () => {
+    setEditingExcavatorsManual(false);
+    setExcavatorsManualRows([]);
+    setExcavatorsManualMessage("");
+    setExcavatorsManualError("");
+  };
+
+  const handleSaveExcavatorsManualEdit = async () => {
+    if (!editingExcavatorsManual || excavatorsManualRows.length === 0) {
+      setExcavatorsManualError("No edited rows to save.");
+      return;
+    }
+
+    const matrixType = getSplitManualMatrixType(activeExcavatorsSplitCase);
+    if (!matrixType) {
+      setExcavatorsManualError("Unsupported split case for manual save.");
+      return;
+    }
+
+    try {
+      setSavingExcavatorsManual(true);
+      setExcavatorsManualError("");
+      setExcavatorsManualMessage("");
+
+      const rowsToSave: UploadRow[] = excavatorsManualRows.map((row) => ({
+        ...row,
+        case_type: activeExcavatorsSplitCase,
+      }));
+      const saveResult = await saveEditedUpload(matrixType, rowsToSave);
+      const latestResult = await getLatestUploadByMatrixType(matrixType);
+      const latestRows = normalizeSplitManualRows(latestResult.rows);
+
+      setExcavatorsSplitDetailRows(latestRows);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setEditingExcavatorsManual(false);
+      setExcavatorsManualRows([]);
+      setExcavatorsManualMessage(`Saved. New Upload ID: ${saveResult.upload_run_id}.`);
+    } catch (error) {
+      console.error(error);
+      setExcavatorsManualError(
+        error instanceof Error ? error.message : "Failed to save manual edits."
+      );
+    } finally {
+      setSavingExcavatorsManual(false);
+    }
+  };
+
+  const handleShowLatestExcavatorsManual = async (
+    caseType: Extract<ExcavatorsSplitCaseType, "CEX" | "GEC" | "GEW">
+  ) => {
+    const matrixType = getSplitManualMatrixType(caseType);
+    if (!matrixType) {
+      setExcavatorsManualError("No latest manual data is configured for this split case.");
+      return;
+    }
+
+    try {
+      setSavingExcavatorsManual(true);
+      setExcavatorsManualError("");
+      setExcavatorsManualMessage("");
+      const latestResult = await getLatestUploadByMatrixType(matrixType);
+      const latestRows = normalizeSplitManualRows(latestResult.rows);
+      setActiveExcavatorsSplitCase(caseType);
+      setShowExcavatorsSplitCasePanel(true);
+      setExcavatorsSplitCaseRows([]);
+      setExcavatorsSplitDetailRows(latestRows);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsResplitReadyByCase((prev) => ({ ...prev, [caseType]: true }));
+      setEditingExcavatorsManual(false);
+      setExcavatorsManualRows([]);
+      setExcavatorsManualMessage(
+        `Loaded latest ${caseType} manual version (Upload ID: ${latestResult.upload_run.id}).`
+      );
+    } catch (error) {
+      console.error(error);
+      setExcavatorsManualError(
+        error instanceof Error ? error.message : "Failed to load latest manual data."
+      );
+    } finally {
+      setSavingExcavatorsManual(false);
+    }
+  };
+
+  const handleApplyExcavatorsResplit = async () => {
+    if (excavatorsSplitDetailRows.length === 0) {
+      setExcavatorsSplitCaseMessage("No split detail rows available for re-split.");
+      return;
+    }
+
+    if (
+      activeExcavatorsSplitCase !== "CEX" &&
+      activeExcavatorsSplitCase !== "GEC" &&
+      activeExcavatorsSplitCase !== "GEW"
+    ) {
+      setExcavatorsSplitCaseMessage("Resplit is currently available for CEX, GEC, and GEW.");
+      return;
+    }
+
+    const detailConfig = getExcavatorsSplitDetailConfig(activeExcavatorsSplitCase);
+    if (!detailConfig) {
+      setExcavatorsSplitCaseMessage("Split detail configuration is unavailable.");
+      return;
+    }
+
+    try {
+      setRunningExcavatorsSplitCase(true);
+      setExcavatorsSplitCaseError("");
+      setExcavatorsSplitCaseMessage(`Applying ${activeExcavatorsSplitCase} re-split logic...`);
+
+      const [sourceMatrixRows, sizeClassRows] = await Promise.all([
+        getLatestSourceMatrixRows(),
+        getLatestSizeClassRows(),
+      ]);
+
+      const resplitRows = applyExcavatorsResplitByCrpSource(
+        excavatorsSplitDetailRows,
+        sourceMatrixRows,
+        sizeClassRows,
+        detailConfig
+      );
+
+      const flaggedRows = resplitRows.filter(
+        (row) => typeof row.resplit === "string" && row.resplit.trim() !== ""
+      ).length;
+
+      setExcavatorsSplitDetailRows(resplitRows);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsResplitReadyByCase((prev) => ({
+        ...prev,
+        [activeExcavatorsSplitCase]: true,
+      }));
+      setEditingExcavatorsManual(false);
+      setExcavatorsManualRows([]);
+      setExcavatorsManualMessage("");
+      setExcavatorsManualError("");
+      setExcavatorsSplitCaseMessage(
+        flaggedRows > 0
+          ? `${activeExcavatorsSplitCase} re-split applied. ${flaggedRows} row(s) require re-allocation.`
+          : `${activeExcavatorsSplitCase} re-split applied. No rows required re-allocation.`
+      );
+    } catch (error) {
+      console.error(error);
+      setExcavatorsSplitCaseError(
+        error instanceof Error ? error.message : "Failed to apply split re-split logic."
+      );
+    } finally {
+      setRunningExcavatorsSplitCase(false);
+    }
+  };
+
+  const handleStartWheelManualEdit = () => {
+    if (!canEditWheelManual || wheelLoadersSplitDetailRows.length === 0) {
+      return;
+    }
+    setEditingWheelManual(true);
+    setWheelManualRows(wheelLoadersSplitDetailRows.map((row) => ({ ...row })));
+    setWheelManualMessage("");
+    setWheelManualError("");
+  };
+
+  const handleCancelWheelManualEdit = () => {
+    setEditingWheelManual(false);
+    setWheelManualRows([]);
+    setWheelManualMessage("");
+    setWheelManualError("");
+  };
+
+  const handleSaveWheelManualEdit = async () => {
+    if (!editingWheelManual || wheelManualRows.length === 0) {
+      setWheelManualError("No edited rows to save.");
+      return;
+    }
+
+    const matrixType = getSplitManualMatrixType(activeWheelLoadersSplitCase);
+    if (!matrixType) {
+      setWheelManualError("Unsupported split case for manual save.");
+      return;
+    }
+
+    try {
+      setSavingWheelManual(true);
+      setWheelManualError("");
+      setWheelManualMessage("");
+
+      const rowsToSave: UploadRow[] = wheelManualRows.map((row) => ({
+        ...row,
+        case_type: activeWheelLoadersSplitCase,
+      }));
+      const saveResult = await saveEditedUpload(matrixType, rowsToSave);
+      const latestResult = await getLatestUploadByMatrixType(matrixType);
+      const latestRows = normalizeSplitManualRows(latestResult.rows);
+
+      setWheelLoadersSplitDetailRows(latestRows);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setEditingWheelManual(false);
+      setWheelManualRows([]);
+      setWheelManualMessage(`Saved. New Upload ID: ${saveResult.upload_run_id}.`);
+    } catch (error) {
+      console.error(error);
+      setWheelManualError(error instanceof Error ? error.message : "Failed to save manual edits.");
+    } finally {
+      setSavingWheelManual(false);
+    }
+  };
+
+  const handleShowLatestWheelManual = async (
+    caseType: Extract<WheelLoadersSplitCaseType, "WLO_GT10" | "WLO_LT10">
+  ) => {
+    const matrixType = getSplitManualMatrixType(caseType);
+    if (!matrixType) {
+      setWheelManualError("No latest manual data is configured for this split case.");
+      return;
+    }
+
+    try {
+      setSavingWheelManual(true);
+      setWheelManualError("");
+      setWheelManualMessage("");
+      const latestResult = await getLatestUploadByMatrixType(matrixType);
+      const latestRows = normalizeSplitManualRows(latestResult.rows);
+      setActiveWheelLoadersSplitCase(caseType);
+      setShowWheelLoadersSplitCasePanel(true);
+      setWheelLoadersSplitCaseRows([]);
+      setWheelLoadersSplitDetailRows(latestRows);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelResplitReadyByCase((prev) => ({ ...prev, [caseType]: true }));
+      setEditingWheelManual(false);
+      setWheelManualRows([]);
+      setWheelManualMessage(
+        `Loaded latest ${caseType} manual version (Upload ID: ${latestResult.upload_run.id}).`
+      );
+    } catch (error) {
+      console.error(error);
+      setWheelManualError(
+        error instanceof Error ? error.message : "Failed to load latest manual data."
+      );
+    } finally {
+      setSavingWheelManual(false);
+    }
+  };
+
+  const handleApplyWheelLoadersResplit = async () => {
+    if (wheelLoadersSplitDetailRows.length === 0) {
+      setWheelLoadersSplitMessage("No split detail rows available for re-split.");
+      return;
+    }
+
+    if (activeWheelLoadersSplitCase !== "WLO_GT10" && activeWheelLoadersSplitCase !== "WLO_LT10") {
+      setWheelLoadersSplitMessage("Resplit is currently available for WLO >10 and WLO <10.");
+      return;
+    }
+
+    const detailConfig = getExcavatorsSplitDetailConfig(activeWheelLoadersSplitCase);
+    if (!detailConfig) {
+      setWheelLoadersSplitMessage("Split detail configuration is unavailable.");
+      return;
+    }
+
+    try {
+      setRunningWheelLoadersSplitCase(true);
+      setWheelLoadersSplitError("");
+      setWheelLoadersSplitMessage(`Applying ${activeWheelLoadersSplitCase} re-split logic...`);
+
+      const [sourceMatrixRows, sizeClassRows] = await Promise.all([
+        getLatestSourceMatrixRows(),
+        getLatestSizeClassRows(),
+      ]);
+
+      const resplitRows = applyExcavatorsResplitByCrpSource(
+        wheelLoadersSplitDetailRows,
+        sourceMatrixRows,
+        sizeClassRows,
+        detailConfig
+      );
+
+      const flaggedRows = resplitRows.filter(
+        (row) => typeof row.resplit === "string" && row.resplit.trim() !== ""
+      ).length;
+
+      setWheelLoadersSplitDetailRows(resplitRows);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelResplitReadyByCase((prev) => ({
+        ...prev,
+        [activeWheelLoadersSplitCase]: true,
+      }));
+      setEditingWheelManual(false);
+      setWheelManualRows([]);
+      setWheelManualMessage("");
+      setWheelManualError("");
+      setWheelLoadersSplitMessage(
+        flaggedRows > 0
+          ? `${activeWheelLoadersSplitCase} re-split applied. ${flaggedRows} row(s) require re-allocation.`
+          : `${activeWheelLoadersSplitCase} re-split applied. No rows required re-allocation.`
+      );
+    } catch (error) {
+      console.error(error);
+      setWheelLoadersSplitError(
+        error instanceof Error ? error.message : "Failed to apply split re-split logic."
+      );
+    } finally {
+      setRunningWheelLoadersSplitCase(false);
     }
   };
 
@@ -2065,17 +2645,17 @@ function LayerDetailPage() {
       setExcavatorsSplitCaseError("");
       setExcavatorsSplitCaseMessage("");
       setActiveExcavatorsSplitCase(caseType);
+      if (caseType === "CEX" || caseType === "GEC" || caseType === "GEW") {
+        setExcavatorsResplitReadyByCase((prev) => ({ ...prev, [caseType]: false }));
+      }
+      setEditingExcavatorsManual(false);
+      setExcavatorsManualRows([]);
+      setExcavatorsManualMessage("");
+      setExcavatorsManualError("");
 
       if (caseType === "CEX") {
-        const [result, sizeClassRows] = await Promise.all([
-          getExcavatorsSplitCexReport(),
-          getLatestSizeClassRows(),
-        ]);
-        const detailRowsWithResplit = addResplitFlagToDetailRows(
-          result.detail_rows,
-          getExcavatorsSplitDetailConfig("CEX"),
-          sizeClassRows
-        );
+        const result = await getExcavatorsSplitCexReport();
+        const detailRowsWithResplit = initializeResplitColumns(result.detail_rows);
         setExcavatorsSplitCaseRows(result.summary_rows);
         setExcavatorsSplitDetailRows(detailRowsWithResplit);
         setExcavatorsSplitCaseResetToken((prev) => prev + 1);
@@ -2092,11 +2672,14 @@ function LayerDetailPage() {
       ]);
       const rows = buildExcavatorsSplitCaseRows(othResult.rows, caseType);
       const detailRows = buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType);
-      const detailRowsWithResplit = addResplitFlagToDetailRows(
-        detailRows,
-        getExcavatorsSplitDetailConfig(caseType),
-        sizeClassRows
-      );
+      const detailRowsWithResplit =
+        caseType === "GEC" || caseType === "GEW"
+          ? initializeResplitColumns(detailRows)
+          : addResplitFlagToDetailRows(
+              detailRows,
+              getExcavatorsSplitDetailConfig(caseType),
+              sizeClassRows
+            );
       setExcavatorsSplitCaseRows(rows);
       setExcavatorsSplitDetailRows(detailRowsWithResplit);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
@@ -2121,6 +2704,13 @@ function LayerDetailPage() {
       setWheelLoadersSplitError("");
       setWheelLoadersSplitMessage("");
       setActiveWheelLoadersSplitCase(caseType);
+      if (caseType === "WLO_GT10" || caseType === "WLO_LT10") {
+        setWheelResplitReadyByCase((prev) => ({ ...prev, [caseType]: false }));
+      }
+      setEditingWheelManual(false);
+      setWheelManualRows([]);
+      setWheelManualMessage("");
+      setWheelManualError("");
 
       const [othResult, threeCheckResult, sizeClassRows] = await Promise.all([
         getOthDeletionFlagReport(),
@@ -2132,11 +2722,14 @@ function LayerDetailPage() {
         caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12"
           ? buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType)
           : [];
-      const detailRowsWithResplit = addResplitFlagToDetailRows(
-        detailRows,
-        getExcavatorsSplitDetailConfig(caseType),
-        sizeClassRows
-      );
+      const detailRowsWithResplit =
+        caseType === "WLO_LT12"
+          ? addResplitFlagToDetailRows(
+              detailRows,
+              getExcavatorsSplitDetailConfig(caseType),
+              sizeClassRows
+            )
+          : initializeResplitColumns(detailRows);
       setWheelLoadersSplitCaseRows(rows);
       setWheelLoadersSplitDetailRows(detailRowsWithResplit);
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
@@ -2432,6 +3025,23 @@ function LayerDetailPage() {
                 </button>
               ))}
             </div>
+            <div style={{ marginTop: "10px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              {(["ALL", "CEX", "GEC", "GEW"] as ExcavatorsSplitCaseType[]).map((caseType) => (
+                <button
+                  key={`latest-${caseType}`}
+                  type="button"
+                  className="btn btn--tiny"
+                  onClick={() => {
+                    if (caseType === "CEX" || caseType === "GEC" || caseType === "GEW") {
+                      void handleShowLatestExcavatorsManual(caseType);
+                    }
+                  }}
+                  disabled={savingExcavatorsManual || caseType === "ALL"}
+                >
+                  {caseType === "ALL" ? "Show Latest ALL (N/A)" : `Show Latest ${caseType}`}
+                </button>
+              ))}
+            </div>
             {runningExcavatorsSplitCase ? (
               <p style={{ color: "blue", marginTop: "14px" }}>
                 Running {activeExcavatorsSplitCaseDetail.panelTitle}...
@@ -2442,6 +3052,12 @@ function LayerDetailPage() {
             ) : null}
             {excavatorsSplitCaseError ? (
               <p style={{ color: "red", marginTop: "14px" }}>Error: {excavatorsSplitCaseError}</p>
+            ) : null}
+            {excavatorsManualMessage ? (
+              <p style={{ color: "green", marginTop: "8px" }}>{excavatorsManualMessage}</p>
+            ) : null}
+            {excavatorsManualError ? (
+              <p style={{ color: "red", marginTop: "8px" }}>Error: {excavatorsManualError}</p>
             ) : null}
             {showExcavatorsSplitCasePanel ? (
               <>
@@ -2503,20 +3119,75 @@ function LayerDetailPage() {
                           : activeExcavatorsSplitCaseDetail.description}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn--tiny"
-                      onClick={() => {
-                        setShowExcavatorsSplitCasePanel(false);
-                        setExcavatorsSplitCaseRows([]);
-                        setExcavatorsSplitDetailRows([]);
-                        setExcavatorsSplitCaseMessage("");
-                        setExcavatorsSplitCaseError("");
-                      }}
-                      aria-label={`Close ${activeExcavatorsSplitCaseDetail.panelTitle}`}
-                    >
-                      x
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {showExcavatorsSplitDetail &&
+                      (activeExcavatorsSplitCase === "CEX" ||
+                        activeExcavatorsSplitCase === "GEC" ||
+                        activeExcavatorsSplitCase === "GEW") ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn--tiny"
+                            onClick={() => {
+                              void handleApplyExcavatorsResplit();
+                            }}
+                            disabled={runningExcavatorsSplitCase || excavatorsSplitDetailRows.length === 0}
+                          >
+                            Resplit FID
+                          </button>
+                          {!editingExcavatorsManual ? (
+                            <button
+                              type="button"
+                              className="btn btn--tiny"
+                              onClick={handleStartExcavatorsManualEdit}
+                              disabled={!canEditExcavatorsManual || savingExcavatorsManual}
+                              title={!canEditExcavatorsManual ? "Run Resplit FID first." : undefined}
+                            >
+                              Manual Edit
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn--tiny"
+                                onClick={() => {
+                                  void handleSaveExcavatorsManualEdit();
+                                }}
+                                disabled={savingExcavatorsManual}
+                              >
+                                {savingExcavatorsManual ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn--tiny"
+                                onClick={handleCancelExcavatorsManualEdit}
+                                disabled={savingExcavatorsManual}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn--tiny"
+                        onClick={() => {
+                          setShowExcavatorsSplitCasePanel(false);
+                          setExcavatorsSplitCaseRows([]);
+                          setExcavatorsSplitDetailRows([]);
+                          setExcavatorsSplitCaseMessage("");
+                          setExcavatorsSplitCaseError("");
+                          setEditingExcavatorsManual(false);
+                          setExcavatorsManualRows([]);
+                          setExcavatorsManualMessage("");
+                          setExcavatorsManualError("");
+                        }}
+                        aria-label={`Close ${activeExcavatorsSplitCaseDetail.panelTitle}`}
+                      >
+                        x
+                      </button>
+                    </div>
                   </div>
                   {showExcavatorsGroupedSummary ? (
                     <FilterableTable
@@ -2530,9 +3201,14 @@ function LayerDetailPage() {
                   {showExcavatorsSplitDetail ? (
                     <FilterableTable
                       columns={excavatorsSplitDetailColumns}
-                      rows={excavatorsSplitDetailRows}
+                      rows={editingExcavatorsManual ? excavatorsManualRows : excavatorsSplitDetailRows}
                       maxHeight={REPORT_TABLE_MAX_HEIGHT}
                       resetToken={excavatorsSplitCaseResetToken}
+                      editable={editingExcavatorsManual}
+                      onRowsChange={(nextRows) =>
+                        setExcavatorsManualRows(nextRows as ExcavatorsSplitDetailRow[])
+                      }
+                      nonEditableColumns={SPLIT_MANUAL_NON_EDITABLE_COLUMNS}
                       compact
                     />
                   ) : null}
@@ -2571,6 +3247,31 @@ function LayerDetailPage() {
                 </button>
               ))}
             </div>
+            <div style={{ marginTop: "10px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              {(["ALL", "WLO_GT10", "WLO_LT10", "WLO_LT12"] as WheelLoadersSplitCaseType[]).map(
+                (caseType) => (
+                  <button
+                    key={`latest-${caseType}`}
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() => {
+                      if (caseType === "WLO_GT10" || caseType === "WLO_LT10") {
+                        void handleShowLatestWheelManual(caseType);
+                      }
+                    }}
+                    disabled={savingWheelManual || caseType === "ALL" || caseType === "WLO_LT12"}
+                  >
+                    {caseType === "ALL"
+                      ? "Show Latest ALL (N/A)"
+                      : caseType === "WLO_LT12"
+                        ? "Show Latest WLO (<12) (N/A)"
+                        : caseType === "WLO_GT10"
+                          ? "Show Latest WLO (>10)"
+                          : "Show Latest WLO (<10)"}
+                  </button>
+                )
+              )}
+            </div>
             {runningWheelLoadersSplitCase ? (
               <p style={{ color: "blue", marginTop: "14px" }}>
                 Running {activeWheelLoadersSplitCaseDetail.panelTitle}...
@@ -2581,6 +3282,12 @@ function LayerDetailPage() {
             ) : null}
             {wheelLoadersSplitError ? (
               <p style={{ color: "red", marginTop: "14px" }}>Error: {wheelLoadersSplitError}</p>
+            ) : null}
+            {wheelManualMessage ? (
+              <p style={{ color: "green", marginTop: "8px" }}>{wheelManualMessage}</p>
+            ) : null}
+            {wheelManualError ? (
+              <p style={{ color: "red", marginTop: "8px" }}>Error: {wheelManualError}</p>
             ) : null}
             {showWheelLoadersSplitCasePanel ? (
               <>
@@ -2646,20 +3353,76 @@ function LayerDetailPage() {
                           : activeWheelLoadersSplitCaseDetail.description}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn--tiny"
-                      onClick={() => {
-                        setShowWheelLoadersSplitCasePanel(false);
-                        setWheelLoadersSplitCaseRows([]);
-                        setWheelLoadersSplitDetailRows([]);
-                        setWheelLoadersSplitMessage("");
-                        setWheelLoadersSplitError("");
-                      }}
-                      aria-label={`Close ${activeWheelLoadersSplitCaseDetail.panelTitle}`}
-                    >
-                      x
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {showWheelLoadersSplitDetail &&
+                      (activeWheelLoadersSplitCase === "WLO_GT10" ||
+                        activeWheelLoadersSplitCase === "WLO_LT10") ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn--tiny"
+                            onClick={() => {
+                              void handleApplyWheelLoadersResplit();
+                            }}
+                            disabled={
+                              runningWheelLoadersSplitCase || wheelLoadersSplitDetailRows.length === 0
+                            }
+                          >
+                            Resplit FID
+                          </button>
+                          {!editingWheelManual ? (
+                            <button
+                              type="button"
+                              className="btn btn--tiny"
+                              onClick={handleStartWheelManualEdit}
+                              disabled={!canEditWheelManual || savingWheelManual}
+                              title={!canEditWheelManual ? "Run Resplit FID first." : undefined}
+                            >
+                              Manual Edit
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn--tiny"
+                                onClick={() => {
+                                  void handleSaveWheelManualEdit();
+                                }}
+                                disabled={savingWheelManual}
+                              >
+                                {savingWheelManual ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn--tiny"
+                                onClick={handleCancelWheelManualEdit}
+                                disabled={savingWheelManual}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn--tiny"
+                        onClick={() => {
+                          setShowWheelLoadersSplitCasePanel(false);
+                          setWheelLoadersSplitCaseRows([]);
+                          setWheelLoadersSplitDetailRows([]);
+                          setWheelLoadersSplitMessage("");
+                          setWheelLoadersSplitError("");
+                          setEditingWheelManual(false);
+                          setWheelManualRows([]);
+                          setWheelManualMessage("");
+                          setWheelManualError("");
+                        }}
+                        aria-label={`Close ${activeWheelLoadersSplitCaseDetail.panelTitle}`}
+                      >
+                        x
+                      </button>
+                    </div>
                   </div>
                   {!showWheelLoadersSplitDetail ? (
                     <FilterableTable
@@ -2673,9 +3436,12 @@ function LayerDetailPage() {
                   {showWheelLoadersSplitDetail ? (
                     <FilterableTable
                       columns={wheelLoadersSplitDetailColumns}
-                      rows={wheelLoadersSplitDetailRows}
+                      rows={editingWheelManual ? wheelManualRows : wheelLoadersSplitDetailRows}
                       maxHeight={REPORT_TABLE_MAX_HEIGHT}
                       resetToken={wheelLoadersSplitCaseResetToken}
+                      editable={editingWheelManual}
+                      onRowsChange={(nextRows) => setWheelManualRows(nextRows as ExcavatorsSplitDetailRow[])}
+                      nonEditableColumns={SPLIT_MANUAL_NON_EDITABLE_COLUMNS}
                       compact
                     />
                   ) : null}

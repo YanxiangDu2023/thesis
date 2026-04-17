@@ -252,6 +252,43 @@ def init_db():
     _ensure_column(cursor, "tma_data_rows", "machine_line_code", "TEXT")
 
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS split_manual_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        upload_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        case_type TEXT,
+        row_type TEXT,
+        year TEXT,
+        country_grouping TEXT,
+        country TEXT,
+        region TEXT,
+        machine_line TEXT,
+        artificial_machine_line TEXT,
+        brand_code TEXT,
+        reporter_flag TEXT,
+        source TEXT,
+        pri_sec TEXT,
+        size_class TEXT,
+        before_split_fid_lt_10t TEXT,
+        copy_fid_lt_10t TEXT,
+        after_split_fid_lt_6t TEXT,
+        after_split_fid_6_10t TEXT,
+        after_split_fid_target_three TEXT,
+        tm_non_vce_lt_6t TEXT,
+        tm_non_vce_6_10t TEXT,
+        tm_non_vce_target_three TEXT,
+        resplit TEXT,
+        after_resplit_fid_lt_6t TEXT,
+        after_resplit_fid_6_10t TEXT,
+        after_resplit_fid_target_three TEXT,
+        before_after_difference TEXT,
+        reference_level TEXT,
+        split_ratio TEXT,
+        FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
+)
+""")
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS control_report_clean_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         oth_upload_run_id INTEGER NOT NULL,

@@ -14,6 +14,10 @@ env/
 *.log
 *.tmp
 tmc_doc_tmp.odt
+*.csv
+*.xlsx
+*.xlsm
+*.xls
 
 # 排除本地数据库和二进制数据 (这些文件 AI 无法直接读取其逻辑)
 *.db
