@@ -19,6 +19,26 @@ cors_allow_origins = get_cors_allow_origins()
 password_gate_enabled = is_password_gate_enabled()
 password_gate_token = get_password_gate_token()
 
+
+def _add_password_gate_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
+    origin = request.headers.get("origin", "").strip()
+    if not origin:
+        return response
+
+    allow_credentials = cors_allow_origins != ["*"]
+    if cors_allow_origins == ["*"]:
+        response.headers["Access-Control-Allow-Origin"] = "*" if not allow_credentials else origin
+    elif origin in cors_allow_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        return response
+
+    response.headers["Vary"] = "Origin"
+    if allow_credentials:
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_allow_origins,
@@ -49,10 +69,11 @@ async def enforce_password_gate(request: Request, call_next):
     if password_gate_token and hmac.compare_digest(provided_token, password_gate_token):
         return await call_next(request)
 
-    return JSONResponse(
+    response = JSONResponse(
         status_code=401,
         content={"detail": "Invalid site password"},
     )
+    return _add_password_gate_cors_headers(request, response)
 
 @app.get("/")
 def root():

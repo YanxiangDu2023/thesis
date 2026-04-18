@@ -1,9 +1,14 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import RedirectIfAuthenticated from "./components/auth/RedirectIfAuthenticated";
 import RequireAuth from "./components/auth/RequireAuth";
 import AppLayout from "./components/layout/AppLayout";
-import { API_BASE_URL, getStoredSitePassword, persistSitePassword } from "./api/client";
+import {
+  API_BASE_URL,
+  clearStoredSitePassword,
+  getStoredSitePassword,
+  persistSitePassword,
+} from "./api/client";
 import { AuthProvider } from "./context/AuthContext";
 import HomePage from "./pages/HomePage";
 import PipelineViewerPage from "./pages/PipelineViewerPage";
@@ -28,9 +33,64 @@ function App() {
   const [sitePassword, setSitePassword] = useState("");
   const [sitePasswordError, setSitePasswordError] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(
-    !PASSWORD_GATE_ENABLED || Boolean(getStoredSitePassword()),
-  );
+  const [isCheckingStoredPassword, setIsCheckingStoredPassword] = useState(PASSWORD_GATE_ENABLED);
+  const [isUnlocked, setIsUnlocked] = useState(!PASSWORD_GATE_ENABLED);
+
+  useEffect(() => {
+    if (!PASSWORD_GATE_ENABLED) {
+      setIsCheckingStoredPassword(false);
+      setIsUnlocked(true);
+      return;
+    }
+
+    const storedPassword = getStoredSitePassword();
+    if (!storedPassword) {
+      setIsCheckingStoredPassword(false);
+      setIsUnlocked(false);
+      return;
+    }
+
+    let isActive = true;
+
+    async function validateStoredPassword(password: string) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/`, {
+          headers: {
+            "X-Site-Password": password,
+          },
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        if (response.ok) {
+          setIsUnlocked(true);
+          setSitePasswordError("");
+        } else {
+          clearStoredSitePassword();
+          setIsUnlocked(false);
+          setSitePasswordError("The saved site password expired. Please enter it again.");
+        }
+      } catch {
+        if (!isActive) {
+          return;
+        }
+        setIsUnlocked(false);
+        setSitePasswordError("Unable to verify the site password right now. Please try again.");
+      } finally {
+        if (isActive) {
+          setIsCheckingStoredPassword(false);
+        }
+      }
+    }
+
+    void validateStoredPassword(storedPassword);
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   async function handleUnlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +123,18 @@ function App() {
     } finally {
       setIsUnlocking(false);
     }
+  }
+
+  if (isCheckingStoredPassword) {
+    return (
+      <div className="site-gate-shell">
+        <div className="site-gate-card">
+          <p className="section-tag">Protected Access</p>
+          <h1 className="section-title">Checking Site Access</h1>
+          <p className="section-description">Verifying the saved site password with the backend.</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isUnlocked) {
