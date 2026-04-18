@@ -330,6 +330,27 @@ def init_db():
 """)
 
     cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_oth_data_upload_run_row_index
+    ON oth_data_rows(upload_run_id, row_index)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_group_country_upload_run_country_year
+    ON group_country_rows(upload_run_id, country_code, year)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_machine_line_mapping_upload_run_name_code
+    ON machine_line_mapping_rows(upload_run_id, machine_line_name, machine_line_code)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_brand_mapping_upload_run_brand_name
+    ON brand_mapping_rows(upload_run_id, brand_name)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_control_report_clean_rows_control_run_row_index
+    ON control_report_clean_rows(control_run_id, row_index)
+    """)
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS crp_tma_report_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tma_upload_run_id INTEGER NOT NULL,

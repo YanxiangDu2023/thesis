@@ -391,28 +391,8 @@ def run_control_report_clean_data():
             oth_upload_run_id
         ))
         rows = cursor.fetchall()
-
-        for index, row in enumerate(rows, start=1):
-            cursor.execute("""
-                INSERT INTO control_report_clean_rows (
-                    control_run_id,
-                    row_index,
-                    year,
-                    source,
-                    country_code,
-                    country,
-                    country_grouping,
-                    region,
-                    market_area,
-                    machine_line_name,
-                    machine_line_code,
-                    brand_name,
-                    brand_code,
-                    size_class_flag,
-                    fid,
-                    ms_percent
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
+        insert_rows = [
+            (
                 control_run_id,
                 index,
                 row["year"],
@@ -428,8 +408,31 @@ def run_control_report_clean_data():
                 row["brand_code"],
                 row["size_class_flag"],
                 row["fid"],
-                row["ms_percent"]
-            ))
+                row["ms_percent"],
+            )
+            for index, row in enumerate(rows, start=1)
+        ]
+
+        cursor.executemany("""
+            INSERT INTO control_report_clean_rows (
+                control_run_id,
+                row_index,
+                year,
+                source,
+                country_code,
+                country,
+                country_grouping,
+                region,
+                market_area,
+                machine_line_name,
+                machine_line_code,
+                brand_name,
+                brand_code,
+                size_class_flag,
+                fid,
+                ms_percent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, insert_rows)
 
         cursor.execute("""
             UPDATE control_report_clean_runs
