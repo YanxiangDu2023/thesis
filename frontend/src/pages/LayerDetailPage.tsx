@@ -2399,46 +2399,28 @@ function LayerDetailPage() {
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
       setEditingWheelManual(false);
       setWheelManualRows([]);
+      await persistSplitCaseSnapshot(
+        activeWheelLoadersSplitCase,
+        wheelLoadersSplitCaseRows,
+        latestRows,
+        {
+          grouped_rows: wheelLoadersSplitCaseRows.length,
+          matched_rows: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: wheelLoadersSplitCaseRows.reduce(
+            (sum, item) => sum + item.volvo_deduction,
+            0
+          ),
+          net_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        latestRows.length,
+        wheelLoadersSplitCaseRows.length,
+        latestRows.length
+      );
       setWheelManualMessage(`Saved. New Upload ID: ${saveResult.upload_run_id}.`);
     } catch (error) {
       console.error(error);
       setWheelManualError(error instanceof Error ? error.message : "Failed to save manual edits.");
-    } finally {
-      setSavingWheelManual(false);
-    }
-  };
-
-  const handleShowLatestWheelManual = async (
-    caseType: Extract<WheelLoadersSplitCaseType, "WLO_GT10" | "WLO_LT10">
-  ) => {
-    const matrixType = getSplitManualMatrixType(caseType);
-    if (!matrixType) {
-      setWheelManualError("No latest manual data is configured for this split case.");
-      return;
-    }
-
-    try {
-      setSavingWheelManual(true);
-      setWheelManualError("");
-      setWheelManualMessage("");
-      const latestResult = await getLatestUploadByMatrixType(matrixType);
-      const latestRows = normalizeSplitManualRows(latestResult.rows);
-      setActiveWheelLoadersSplitCase(caseType);
-      setShowWheelLoadersSplitCasePanel(true);
-      setWheelLoadersSplitCaseRows([]);
-      setWheelLoadersSplitDetailRows(latestRows);
-      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
-      setWheelResplitReadyByCase((prev) => ({ ...prev, [caseType]: true }));
-      setEditingWheelManual(false);
-      setWheelManualRows([]);
-      setWheelManualMessage(
-        `Loaded latest ${caseType} manual version (Upload ID: ${latestResult.upload_run.id}).`
-      );
-    } catch (error) {
-      console.error(error);
-      setWheelManualError(
-        error instanceof Error ? error.message : "Failed to load latest manual data."
-      );
     } finally {
       setSavingWheelManual(false);
     }
@@ -2734,8 +2716,8 @@ function LayerDetailPage() {
     return hasResplitColumns ? rows : initializeResplitColumns(rows);
   };
 
-  const persistExcavatorsSplitCaseSnapshot = async (
-    caseType: ExcavatorsSplitCaseType,
+  const persistSplitCaseSnapshot = async (
+    caseType: string,
     summaryRows: ExcavatorsSplitCaseRow[],
     detailRows: ExcavatorsSplitDetailRow[],
     summary: {
@@ -2842,7 +2824,7 @@ function LayerDetailPage() {
       setExcavatorsSplitCaseRows(rows);
       setExcavatorsSplitDetailRows(detailRowsWithResplit);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
-      await persistExcavatorsSplitCaseSnapshot(
+      await persistSplitCaseSnapshot(
         caseType,
         rows,
         detailRowsWithResplit,
@@ -2857,7 +2839,9 @@ function LayerDetailPage() {
         othResult.row_count,
         threeCheckResult.row_count
       );
-      setExcavatorsSplitCaseMessage(`Run successful. Matching grouped rows: ${rows.length}`);
+      setExcavatorsSplitCaseMessage(
+        `Run successful. Matching grouped rows: ${rows.length}. Latest snapshot saved.`
+      );
     } catch (error) {
       console.error(error);
       setExcavatorsSplitCaseRows([]);
@@ -2871,7 +2855,43 @@ function LayerDetailPage() {
     }
   };
 
-  const handleWheelLoadersSplitCaseClick = async (caseType: WheelLoadersSplitCaseType) => {
+  const handleShowLatestWheelLoadersSplitCase = async (caseType: WheelLoadersSplitCaseType) => {
+    try {
+      setShowWheelLoadersSplitCasePanel(true);
+      setRunningWheelLoadersSplitCase(true);
+      setWheelLoadersSplitError("");
+      setWheelLoadersSplitMessage(`Loading latest ${caseType} split case...`);
+      setActiveWheelLoadersSplitCase(caseType);
+      setEditingWheelManual(false);
+      setWheelManualRows([]);
+      setWheelManualMessage("");
+      setWheelManualError("");
+      const latest = await getLatestExcavatorsSplitCaseReport(caseType);
+      const detailRowsWithResplit = normalizeExcavatorsSplitDetailRowsForDisplay(latest.detail_rows);
+      setWheelLoadersSplitCaseRows(latest.summary_rows);
+      setWheelLoadersSplitDetailRows(detailRowsWithResplit);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelResplitReadyByCase((prev) => ({
+        ...prev,
+        [caseType]: false,
+      }));
+      setWheelLoadersSplitMessage(
+        `Latest loaded. Matching grouped rows: ${latest.summary.grouped_rows ?? latest.summary_rows.length}`
+      );
+    } catch (error) {
+      console.error(error);
+      setWheelLoadersSplitCaseRows([]);
+      setWheelLoadersSplitDetailRows([]);
+      setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
+      setWheelLoadersSplitError(
+        error instanceof Error ? error.message : `Failed to show latest ${caseType} split case.`
+      );
+    } finally {
+      setRunningWheelLoadersSplitCase(false);
+    }
+  };
+
+  const handleRunWheelLoadersSplitCase = async (caseType: WheelLoadersSplitCaseType) => {
     try {
       setShowWheelLoadersSplitCasePanel(true);
       setRunningWheelLoadersSplitCase(true);
@@ -2907,7 +2927,24 @@ function LayerDetailPage() {
       setWheelLoadersSplitCaseRows(rows);
       setWheelLoadersSplitDetailRows(detailRowsWithResplit);
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
-      setWheelLoadersSplitMessage(`Run successful. Matching grouped rows: ${rows.length}`);
+      await persistSplitCaseSnapshot(
+        caseType,
+        rows,
+        detailRowsWithResplit,
+        {
+          grouped_rows: rows.length,
+          matched_rows: rows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: rows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: rows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: rows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        detailRowsWithResplit.length,
+        othResult.row_count,
+        threeCheckResult.row_count
+      );
+      setWheelLoadersSplitMessage(
+        `Run successful. Matching grouped rows: ${rows.length}. Latest snapshot saved.`
+      );
     } catch (error) {
       console.error(error);
       setWheelLoadersSplitCaseRows([]);
@@ -3444,7 +3481,7 @@ function LayerDetailPage() {
                   key={caseType}
                   type="button"
                   className="btn btn--overview"
-                  onClick={() => handleWheelLoadersSplitCaseClick(caseType)}
+                  onClick={() => handleRunWheelLoadersSplitCase(caseType)}
                   disabled={runningWheelLoadersSplitCase}
                 >
                   {WHEEL_LOADERS_SPLIT_CASE_DETAILS[caseType].buttonLabel}
@@ -3459,16 +3496,14 @@ function LayerDetailPage() {
                     type="button"
                     className="btn btn--tiny"
                     onClick={() => {
-                      if (caseType === "WLO_GT10" || caseType === "WLO_LT10") {
-                        void handleShowLatestWheelManual(caseType);
-                      }
+                      void handleShowLatestWheelLoadersSplitCase(caseType);
                     }}
-                    disabled={savingWheelManual || caseType === "ALL" || caseType === "WLO_LT12"}
+                    disabled={runningWheelLoadersSplitCase || savingWheelManual}
                   >
                     {caseType === "ALL"
-                      ? "Show Latest ALL (N/A)"
+                      ? "Show Latest ALL"
                       : caseType === "WLO_LT12"
-                        ? "Show Latest WLO (<12) (N/A)"
+                        ? "Show Latest WLO (<12)"
                         : caseType === "WLO_GT10"
                           ? "Show Latest WLO (>10)"
                           : "Show Latest WLO (<10)"}

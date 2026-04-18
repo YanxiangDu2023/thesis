@@ -2835,7 +2835,7 @@ def _build_cex_split_case_report():
 @router.post("/reports/excavators-split/snapshots")
 def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequest):
     case_type = request.case_type.strip().upper()
-    if case_type not in {"ALL", "CEX", "GEC", "GEW"}:
+    if case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
         raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
 
     run_id = _create_excavators_split_case_run(case_type, request.message)
@@ -2865,7 +2865,7 @@ def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequ
 @router.get("/reports/excavators-split/{case_type}/latest")
 def get_latest_excavators_split_case_report(case_type: str):
     normalized_case_type = case_type.strip().upper()
-    if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW"}:
+    if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
         raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
 
     run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(normalized_case_type)
