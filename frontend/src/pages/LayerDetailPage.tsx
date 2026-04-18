@@ -123,6 +123,16 @@ function toNumberValue(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function formatElapsedTime(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  if (minutes <= 0) {
+    return `${seconds}s`;
+  }
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
 function roundTo4(value: number): number {
   return Number(value.toFixed(4));
 }
@@ -1717,6 +1727,8 @@ function LayerDetailPage() {
   const [combinedReportRows, setCombinedReportRows] = useState<CrpD1CombinedReportRow[]>([]);
   const [combinedReportResetToken, setCombinedReportResetToken] = useState(0);
   const [runningOthDeletionFlagReport, setRunningOthDeletionFlagReport] = useState(false);
+  const [othDeletionFlagStartedAt, setOthDeletionFlagStartedAt] = useState<number | null>(null);
+  const [othDeletionFlagElapsedSeconds, setOthDeletionFlagElapsedSeconds] = useState(0);
   const [othDeletionFlagMessage, setOthDeletionFlagMessage] = useState("");
   const [othDeletionFlagError, setOthDeletionFlagError] = useState("");
   const [othDeletionFlagRows, setOthDeletionFlagRows] = useState<OthDeletionFlagRow[]>([]);
@@ -1789,6 +1801,23 @@ function LayerDetailPage() {
   const [savingWheelManual, setSavingWheelManual] = useState(false);
   const [wheelManualMessage, setWheelManualMessage] = useState("");
   const [wheelManualError, setWheelManualError] = useState("");
+
+  useEffect(() => {
+    if (!runningOthDeletionFlagReport || othDeletionFlagStartedAt === null) {
+      setOthDeletionFlagElapsedSeconds(0);
+      return;
+    }
+
+    const tick = () => {
+      setOthDeletionFlagElapsedSeconds(
+        Math.max(0, Math.floor((Date.now() - othDeletionFlagStartedAt) / 1000))
+      );
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [runningOthDeletionFlagReport, othDeletionFlagStartedAt]);
   const [autoRunHandled, setAutoRunHandled] = useState(false);
 
   const combinedReportColumns = useMemo(
@@ -2533,6 +2562,7 @@ function LayerDetailPage() {
   const handleRunOthDeletionFlagReport = async () => {
     try {
       setRunningOthDeletionFlagReport(true);
+      setOthDeletionFlagStartedAt(Date.now());
       setOthDeletionFlagError("");
       setOthDeletionFlagMessage("");
 
@@ -2549,6 +2579,8 @@ function LayerDetailPage() {
       );
     } finally {
       setRunningOthDeletionFlagReport(false);
+      setOthDeletionFlagStartedAt(null);
+      setOthDeletionFlagElapsedSeconds(0);
     }
   };
 
@@ -2899,7 +2931,15 @@ function LayerDetailPage() {
               </button>
             </div>
             {layer.code === "P00" && runningOthDeletionFlagReport ? (
-              <p style={{ color: "blue" }}>Running OTH Deletion Flag Report...</p>
+              <p style={{ color: "blue" }}>
+                Running OTH Deletion Flag Report...
+                <br />
+                <span style={{ fontSize: "0.95em" }}>
+                  Elapsed: {formatElapsedTime(othDeletionFlagElapsedSeconds)}. This report does a full
+                  join across OTH, Source Matrix, Reporter List, and mapping tables, so the first run
+                  can take a while.
+                </span>
+              </p>
             ) : null}
             {layer.code === "P00" && othDeletionFlagMessage ? (
               <p style={{ color: "green" }}>{othDeletionFlagMessage}</p>
