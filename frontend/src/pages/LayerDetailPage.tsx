@@ -6,6 +6,9 @@ import {
   getCrpD1CombinedReport,
   getExcavatorsSplitCexReport,
   getLatestUploadByMatrixType,
+  getLatestCrpD1CombinedReport,
+  getLatestOthDeletionFlagReport,
+  getLatestP00ThreeCheckReport,
   getOthDeletionFlagReport,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
@@ -2559,6 +2562,28 @@ function LayerDetailPage() {
     }
   };
 
+  const handleShowLatestCrpD1CombinedReport = async () => {
+    try {
+      setRunningCombinedReport(true);
+      setCombinedReportError("");
+      setCombinedReportMessage("Loading latest CRP D1 Combined Report...");
+
+      const result = await getLatestCrpD1CombinedReport();
+      setCombinedReportRows(result.rows);
+      setCombinedReportResetToken((prev) => prev + 1);
+      setCombinedReportMessage(`Latest loaded. Row Count: ${result.row_count}`);
+    } catch (error) {
+      console.error(error);
+      setCombinedReportRows([]);
+      setCombinedReportResetToken((prev) => prev + 1);
+      setCombinedReportError(
+        error instanceof Error ? error.message : "Failed to show latest CRP D1 Combined Report."
+      );
+    } finally {
+      setRunningCombinedReport(false);
+    }
+  };
+
   const handleRunOthDeletionFlagReport = async () => {
     try {
       setRunningOthDeletionFlagReport(true);
@@ -2576,6 +2601,31 @@ function LayerDetailPage() {
       setOthDeletionFlagResetToken((prev) => prev + 1);
       setOthDeletionFlagError(
         error instanceof Error ? error.message : "Failed to run OTH Deletion Flag Report."
+      );
+    } finally {
+      setRunningOthDeletionFlagReport(false);
+      setOthDeletionFlagStartedAt(null);
+      setOthDeletionFlagElapsedSeconds(0);
+    }
+  };
+
+  const handleShowLatestOthDeletionFlagReport = async () => {
+    try {
+      setRunningOthDeletionFlagReport(true);
+      setOthDeletionFlagStartedAt(Date.now());
+      setOthDeletionFlagError("");
+      setOthDeletionFlagMessage("Loading latest OTH Deletion Flag Report...");
+
+      const result = await getLatestOthDeletionFlagReport();
+      setOthDeletionFlagRows(result.rows);
+      setOthDeletionFlagResetToken((prev) => prev + 1);
+      setOthDeletionFlagMessage(`Latest loaded. Row Count: ${result.row_count}`);
+    } catch (error) {
+      console.error(error);
+      setOthDeletionFlagRows([]);
+      setOthDeletionFlagResetToken((prev) => prev + 1);
+      setOthDeletionFlagError(
+        error instanceof Error ? error.message : "Failed to show latest OTH Deletion Flag Report."
       );
     } finally {
       setRunningOthDeletionFlagReport(false);
@@ -2627,6 +2677,26 @@ function LayerDetailPage() {
       setThreeCheckRows([]);
       setThreeCheckResetToken((prev) => prev + 1);
       setThreeCheckError(error instanceof Error ? error.message : "Failed to run 3 Check Report.");
+    } finally {
+      setRunningThreeCheckReport(false);
+    }
+  };
+
+  const handleShowLatestThreeCheckReport = async () => {
+    try {
+      setRunningThreeCheckReport(true);
+      setThreeCheckError("");
+      setThreeCheckMessage("Loading latest Check Report...");
+
+      const result = await getLatestP00ThreeCheckReport();
+      setThreeCheckRows(result.rows);
+      setThreeCheckResetToken((prev) => prev + 1);
+      setThreeCheckMessage(`Latest loaded. Row Count: ${result.row_count}`);
+    } catch (error) {
+      console.error(error);
+      setThreeCheckRows([]);
+      setThreeCheckResetToken((prev) => prev + 1);
+      setThreeCheckError(error instanceof Error ? error.message : "Failed to show latest 3 Check Report.");
     } finally {
       setRunningThreeCheckReport(false);
     }
@@ -2826,6 +2896,14 @@ function LayerDetailPage() {
               <button
                 type="button"
                 className="btn btn--tiny"
+                onClick={handleShowLatestCrpD1CombinedReport}
+                disabled={runningCombinedReport}
+              >
+                Show Latest
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
                 onClick={() => setShowSqlGuide((prev) => !prev)}
               >
                 {showSqlGuide ? "Hide SQL Logic" : "View SQL Logic"}
@@ -2921,6 +2999,14 @@ function LayerDetailPage() {
                 disabled={runningOthDeletionFlagReport}
               >
                 Run OTH Deletion Flag Report
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={handleShowLatestOthDeletionFlagReport}
+                disabled={runningOthDeletionFlagReport}
+              >
+                Show Latest
               </button>
               <button
                 type="button"
@@ -3021,6 +3107,14 @@ function LayerDetailPage() {
                 disabled={runningThreeCheckReport}
               >
                 Run Check Report
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={handleShowLatestThreeCheckReport}
+                disabled={runningThreeCheckReport}
+              >
+                Show Latest
               </button>
               <button
                 type="button"

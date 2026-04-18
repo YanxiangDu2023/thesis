@@ -345,6 +345,17 @@ export async function getCrpD1CombinedReport(trackRun: boolean = false): Promise
   return result as CrpD1CombinedReportResponse;
 }
 
+export async function getLatestCrpD1CombinedReport(): Promise<CrpD1CombinedReportResponse> {
+  const response = await apiFetch("/reports/crp-d1-combined/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest CRP D1 Combined Report");
+  }
+
+  return result as CrpD1CombinedReportResponse;
+}
+
 export async function getA10AdjustmentReport(): Promise<A10AdjustmentResponse> {
   const response = await apiFetch("/reports/a10-adjustment");
   const result = await response.json();
@@ -370,6 +381,17 @@ export async function getOthDeletionFlagReport(trackRun: boolean = false): Promi
   return result as OthDeletionFlagResponse;
 }
 
+export async function getLatestOthDeletionFlagReport(): Promise<OthDeletionFlagResponse> {
+  const response = await apiFetch("/reports/oth-deletion-flag/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest OTH Deletion Flag Report");
+  }
+
+  return result as OthDeletionFlagResponse;
+}
+
 export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
   const response = await apiFetch("/reports/p10-vce-non-vce");
   const result = await response.json();
@@ -387,6 +409,17 @@ export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise
 
   if (!response.ok) {
     throw new Error(result.detail || "Failed to fetch P00 3 Check Report");
+  }
+
+  return result as P00ThreeCheckResponse;
+}
+
+export async function getLatestP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
+  const response = await apiFetch("/reports/p00-three-check/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest P00 3 Check Report");
   }
 
   return result as P00ThreeCheckResponse;

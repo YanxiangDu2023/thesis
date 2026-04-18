@@ -1605,6 +1605,11 @@ def get_a10_adjustment_report():
         conn.close()
 
 
+@router.get("/reports/crp-d1-combined/latest")
+def get_latest_crp_d1_combined_report():
+    return get_crp_d1_combined_report(track_run=False)
+
+
 @router.get("/reports/oth-deletion-flag")
 def get_oth_deletion_flag_report(track_run: bool = False):
     conn = get_connection()
@@ -1944,6 +1949,11 @@ def get_oth_deletion_flag_report(track_run: bool = False):
         conn.close()
 
 
+@router.get("/reports/oth-deletion-flag/latest")
+def get_latest_oth_deletion_flag_report():
+    return get_oth_deletion_flag_report(track_run=False)
+
+
 @router.get("/reports/p00-three-check")
 def get_p00_three_check_report(track_run: bool = False):
     combined = _get_crp_d1_combined_report_data(include_all_sal=True)
@@ -2113,6 +2123,11 @@ def get_p00_three_check_report(track_run: bool = False):
         return result
     finally:
         conn.close()
+
+
+@router.get("/reports/p00-three-check/latest")
+def get_latest_p00_three_check_report():
+    return get_p00_three_check_report(track_run=False)
 
 
 @router.get("/reports/p00-run-times")
