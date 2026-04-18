@@ -439,24 +439,39 @@ export async function getP00RunTimes(): Promise<P00RunTimesResponse> {
 }
 
 export async function runExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseRunResponse> {
-  const response = await apiFetch("/reports/excavators-split-cex/run", {
+  return runExcavatorsSplitCaseReport("CEX");
+}
+
+export async function runExcavatorsSplitCaseReport(
+  caseType: string
+): Promise<ExcavatorsSplitCaseRunResponse> {
+  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/run`, {
     method: "POST",
   });
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.detail || "Failed to start Split CEX Case report");
+    throw new Error(result.detail || `Failed to start ${caseType} Split Case report`);
   }
 
   return result as ExcavatorsSplitCaseRunResponse;
 }
 
 export async function getExcavatorsSplitCexRun(runId: number): Promise<ExcavatorsSplitCaseRunResponse> {
-  const response = await apiFetch(`/reports/excavators-split-cex/runs/${runId}`);
+  return getExcavatorsSplitCaseRun("CEX", runId);
+}
+
+export async function getExcavatorsSplitCaseRun(
+  caseType: string,
+  runId: number
+): Promise<ExcavatorsSplitCaseRunResponse> {
+  const response = await apiFetch(
+    `/reports/excavators-split/${encodeURIComponent(caseType)}/runs/${runId}`
+  );
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.detail || "Failed to fetch Split CEX Case run");
+    throw new Error(result.detail || `Failed to fetch ${caseType} Split Case run`);
   }
 
   return result as ExcavatorsSplitCaseRunResponse;

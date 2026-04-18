@@ -4,7 +4,7 @@ import FilterableTable from "../components/table/FilterableTable";
 import {
   getA10AdjustmentReport,
   getCrpD1CombinedReport,
-  getExcavatorsSplitCexRun,
+  getExcavatorsSplitCaseRun,
   getLatestUploadByMatrixType,
   getLatestCrpD1CombinedReport,
   getLatestOthDeletionFlagReport,
@@ -13,7 +13,7 @@ import {
   getOthDeletionFlagReport,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
-  runExcavatorsSplitCexReport,
+  runExcavatorsSplitCaseReport,
   saveExcavatorsSplitCaseSnapshot,
   saveEditedUpload,
 } from "../api/uploads";
@@ -152,85 +152,6 @@ function normalizeSizeClassForResplit(value: string | number | null | undefined)
     return "6<10T";
   }
   return key;
-}
-
-function addResplitFlagToDetailRows(
-  rows: ExcavatorsSplitDetailRow[],
-  detailConfig: ExcavatorsSplitDetailConfig | null,
-  sizeClassRows: UploadRow[]
-): ExcavatorsSplitDetailRow[] {
-  if (!detailConfig || sizeClassRows.length === 0) {
-    return rows;
-  }
-
-  const sizeClassByBrandMachine = new Map<string, Set<string>>();
-  sizeClassRows.forEach((row) => {
-    const brandCodeKey = toMatchKey(row.brand_code);
-    const machineCodeKey = toMatchKey(row.machine_code);
-    const sizeClassKey = normalizeSizeClassForResplit(row.size_class);
-    if (!brandCodeKey || !machineCodeKey || !sizeClassKey) {
-      return;
-    }
-    const key = `${brandCodeKey}|${machineCodeKey}`;
-    if (!sizeClassByBrandMachine.has(key)) {
-      sizeClassByBrandMachine.set(key, new Set<string>());
-    }
-    sizeClassByBrandMachine.get(key)?.add(sizeClassKey);
-  });
-
-  const targetSpecs: Array<{
-    sizeClassKey: string;
-    displayLabel: string;
-    getValue: (row: ExcavatorsSplitDetailRow) => number | "";
-  }> = [
-    {
-      sizeClassKey: normalizeSizeClassForResplit(detailConfig.firstTargetLabel),
-      displayLabel: detailConfig.firstTargetLabel,
-      getValue: (row) => row.after_split_fid_lt_6t,
-    },
-    {
-      sizeClassKey: normalizeSizeClassForResplit(detailConfig.secondTargetLabel),
-      displayLabel: detailConfig.secondTargetLabel,
-      getValue: (row) => row.after_split_fid_6_10t,
-    },
-  ];
-
-  if (detailConfig.thirdTargetLabel) {
-    targetSpecs.push({
-      sizeClassKey: normalizeSizeClassForResplit(detailConfig.thirdTargetLabel),
-      displayLabel: detailConfig.thirdTargetLabel,
-      getValue: (row) => row.after_split_fid_target_three ?? "",
-    });
-  }
-
-  return rows.map((row) => {
-    if (toMatchKey(row.row_type) !== "OTH") {
-      return { ...row, resplit: "" };
-    }
-
-    const brandCodeKey = toMatchKey(row.brand_code);
-    const machineCodeKey = toMatchKey(row.artificial_machine_line);
-    if (!brandCodeKey || !machineCodeKey) {
-      return { ...row, resplit: "" };
-    }
-
-    const key = `${brandCodeKey}|${machineCodeKey}`;
-    const allowedSizeClasses = sizeClassByBrandMachine.get(key) ?? new Set<string>();
-    const matchedTargetLabels = targetSpecs
-      .filter((target) => {
-        const targetValue = toNumberValue(target.getValue(row));
-        if (targetValue <= 0) {
-          return false;
-        }
-        return allowedSizeClasses.has(target.sizeClassKey);
-      })
-      .map((target) => target.displayLabel);
-
-    return {
-      ...row,
-      resplit: matchedTargetLabels.length > 0 ? `Y(${matchedTargetLabels.join(", ")})` : "",
-    };
-  });
 }
 
 function initializeResplitColumns(rows: ExcavatorsSplitDetailRow[]): ExcavatorsSplitDetailRow[] {
@@ -426,580 +347,6 @@ function getExcavatorsSplitDetailConfig(
   }
 
   return null;
-}
-
-function buildExcavatorsSplitCaseRows(
-  rows: OthDeletionFlagRow[],
-  caseType: ExcavatorsSplitCaseType
-): ExcavatorsSplitCaseRow[] {
-  const grouped = new Map<string, ExcavatorsSplitCaseRow>();
-
-  rows.forEach((row) => {
-    const reporterFlagKey = toMatchKey(row.reporter_flag);
-    const machineLineKey = toMatchKey(row.machine_line_name);
-    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
-    const sizeClassKey = toMatchKey(row.size_class_flag);
-
-    if (reporterFlagKey !== "Y") {
-      return;
-    }
-
-    const matchesCase =
-      (caseType === "ALL" &&
-        ((artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
-          (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
-          (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T"))) ||
-      (caseType === "CEX" && artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
-      (caseType === "GEC" && artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
-      (caseType === "GEW" && artificialMachineLineKey === "GEW" && sizeClassKey === ">6T");
-
-    if (!matchesCase) {
-      return;
-    }
-
-    const key = [
-      toMatchKey(row.year),
-      machineLineKey,
-      toMatchKey(row.artificial_machine_line),
-      toMatchKey(row.source),
-      sizeClassKey,
-    ].join("|");
-
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        year: String(row.year ?? "").trim(),
-        machine_line_name: String(row.machine_line_name ?? "").trim(),
-        machine_line_code: String(row.artificial_machine_line ?? "").trim(),
-        source: String(row.source ?? "").trim(),
-        size_class_flag: String(row.size_class_flag ?? "").trim(),
-        matched_rows: 0,
-        gross_fid: 0,
-        volvo_deduction: 0,
-        net_fid: 0,
-      });
-    }
-
-    const current = grouped.get(key);
-    if (!current) {
-      return;
-    }
-
-    current.matched_rows += 1;
-    const fidValue = toNumberValue(row.fid);
-    current.gross_fid += fidValue;
-    if (toMatchKey(row.brand_name) === "VOLVO") {
-      current.volvo_deduction += fidValue;
-      current.net_fid -= fidValue;
-    } else {
-      current.net_fid += fidValue;
-    }
-  });
-
-  return Array.from(grouped.values()).sort((left, right) => {
-    return (
-      left.year.localeCompare(right.year) ||
-      left.machine_line_name.localeCompare(right.machine_line_name) ||
-      left.source.localeCompare(right.source) ||
-      left.size_class_flag.localeCompare(right.size_class_flag)
-    );
-  });
-}
-
-function buildWheelLoadersSplitCaseRows(
-  rows: OthDeletionFlagRow[],
-  caseType: WheelLoadersSplitCaseType
-): ExcavatorsSplitCaseRow[] {
-  const grouped = new Map<string, ExcavatorsSplitCaseRow>();
-
-  rows.forEach((row) => {
-    const reporterFlagKey = toMatchKey(row.reporter_flag);
-    const machineLineKey = toMatchKey(row.machine_line_name);
-    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
-    const sizeClassKey = toMatchKey(row.size_class_flag);
-
-    if (reporterFlagKey !== "Y" || artificialMachineLineKey !== "WLO") {
-      return;
-    }
-
-    const matchesCase =
-      (caseType === "ALL" &&
-        (sizeClassKey === ">10" || sizeClassKey === "<10" || sizeClassKey === "<12")) ||
-      (caseType === "WLO_GT10" && sizeClassKey === ">10") ||
-      (caseType === "WLO_LT10" && sizeClassKey === "<10") ||
-      (caseType === "WLO_LT12" && sizeClassKey === "<12");
-
-    if (!matchesCase) {
-      return;
-    }
-
-    const key = [
-      toMatchKey(row.year),
-      machineLineKey,
-      toMatchKey(row.artificial_machine_line),
-      toMatchKey(row.source),
-      sizeClassKey,
-    ].join("|");
-
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        year: String(row.year ?? "").trim(),
-        machine_line_name: String(row.machine_line_name ?? "").trim(),
-        machine_line_code: String(row.artificial_machine_line ?? "").trim(),
-        source: String(row.source ?? "").trim(),
-        size_class_flag: String(row.size_class_flag ?? "").trim(),
-        matched_rows: 0,
-        gross_fid: 0,
-        volvo_deduction: 0,
-        net_fid: 0,
-      });
-    }
-
-    const current = grouped.get(key);
-    if (!current) {
-      return;
-    }
-
-    current.matched_rows += 1;
-    const fidValue = toNumberValue(row.fid);
-    current.gross_fid += fidValue;
-    if (toMatchKey(row.brand_name) === "VOLVO") {
-      current.volvo_deduction += fidValue;
-      current.net_fid -= fidValue;
-    } else {
-      current.net_fid += fidValue;
-    }
-  });
-
-  return Array.from(grouped.values()).sort((left, right) => {
-    return (
-      left.year.localeCompare(right.year) ||
-      left.machine_line_name.localeCompare(right.machine_line_name) ||
-      left.source.localeCompare(right.source) ||
-      left.size_class_flag.localeCompare(right.size_class_flag)
-    );
-  });
-}
-
-function matchesExcavatorsSplitOthCase(
-  row: Pick<OthDeletionFlagRow, "reporter_flag" | "artificial_machine_line" | "size_class_flag">,
-  caseType: SplitDetailCaseType
-): boolean {
-  const reporterFlagKey = toMatchKey(row.reporter_flag);
-  const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
-  const sizeClassKey = toMatchKey(row.size_class_flag);
-
-  if (reporterFlagKey !== "Y") {
-    return false;
-  }
-
-  if (caseType === "ALL") {
-    return (
-      (artificialMachineLineKey === "CEX" && sizeClassKey === "<10T") ||
-      (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
-      (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T")
-    );
-  }
-
-  if (caseType === "CEX") {
-    return artificialMachineLineKey === "CEX" && sizeClassKey === "<10T";
-  }
-
-  if (caseType === "GEC") {
-    return artificialMachineLineKey === "GEC" && sizeClassKey === ">6T";
-  }
-
-  if (caseType === "GEW") {
-    return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
-  }
-
-  if (caseType === "WLO_GT10") {
-    return artificialMachineLineKey === "WLO" && sizeClassKey === ">10";
-  }
-
-  if (caseType === "WLO_LT10") {
-    return artificialMachineLineKey === "WLO" && sizeClassKey === "<10";
-  }
-
-  if (caseType === "WLO_LT12") {
-    return artificialMachineLineKey === "WLO" && sizeClassKey === "<12";
-  }
-
-  return artificialMachineLineKey === "GEW" && sizeClassKey === ">6T";
-}
-
-function matchesExcavatorsSplitTmaCase(
-  row: P00ThreeCheckRow,
-  caseType: SplitDetailCaseType
-): boolean {
-  if (toMatchKey(row.source) !== "TMA") {
-    return false;
-  }
-
-  const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
-  const sizeClassKey = toMatchKey(row.size_class);
-
-  if (caseType === "ALL") {
-    return (
-      (artificialMachineLineKey === "CEX" && (sizeClassKey === "<6T" || sizeClassKey === "6<10T" || sizeClassKey === "<10T")) ||
-      (artificialMachineLineKey === "GEC" && sizeClassKey === ">6T") ||
-      (artificialMachineLineKey === "GEW" && sizeClassKey === ">6T")
-    );
-  }
-
-  if (caseType === "CEX") {
-    return (
-      artificialMachineLineKey === "CEX" &&
-      (sizeClassKey === "<6T" || sizeClassKey === "6<10T" || sizeClassKey === "<10T")
-    );
-  }
-
-  if (caseType === "GEC") {
-    return artificialMachineLineKey === "GEC" && (sizeClassKey === "6<10T" || sizeClassKey === ">10T");
-  }
-
-  if (caseType === "GEW") {
-    return artificialMachineLineKey === "GEW" && (sizeClassKey === "6<11T" || sizeClassKey === ">11T");
-  }
-
-  if (caseType === "WLO_GT10") {
-    return artificialMachineLineKey === "WLO" && (sizeClassKey === "10<12" || sizeClassKey === ">12");
-  }
-
-  if (caseType === "WLO_LT10") {
-    return artificialMachineLineKey === "WLO" && (sizeClassKey === "7<10" || sizeClassKey === "<7");
-  }
-
-  if (caseType === "WLO_LT12") {
-    return artificialMachineLineKey === "WLO" && (sizeClassKey === "10<12" || sizeClassKey === "7<10" || sizeClassKey === "<7");
-  }
-
-  return false;
-}
-
-function buildExcavatorsSplitDetailRows(
-  threeCheckRows: P00ThreeCheckRow[],
-  caseType: SplitDetailCaseType
-): ExcavatorsSplitDetailRow[] {
-  const detailConfig = getExcavatorsSplitDetailConfig(caseType);
-  if (!detailConfig) {
-    return [];
-  }
-
-  const detailRows: ExcavatorsSplitDetailRow[] = [];
-  const countryTmByGroup = new Map<
-    string,
-    {
-      year: string;
-      country_grouping: string;
-      country: string;
-      region: string;
-      machine_line: string;
-      artificial_machine_line: string;
-      first_target_tm_non_vce: number;
-      second_target_tm_non_vce: number;
-      third_target_tm_non_vce: number;
-    }
-  >();
-  const regionTmByGroup = new Map<string, {
-    year: string;
-    country_grouping: string;
-    country: string;
-    region: string;
-    machine_line: string;
-    artificial_machine_line: string;
-    first_target_tm_non_vce: number;
-    second_target_tm_non_vce: number;
-    third_target_tm_non_vce: number;
-  }>();
-  const groupingTmByGroup = new Map<string, {
-    year: string;
-    country_grouping: string;
-    country: string;
-    region: string;
-    machine_line: string;
-    artificial_machine_line: string;
-    first_target_tm_non_vce: number;
-    second_target_tm_non_vce: number;
-    third_target_tm_non_vce: number;
-  }>();
-  const usedReferenceGroups = new Map<
-    string,
-    {
-      year: string;
-      country_grouping: string;
-      country: string;
-      region: string;
-      machine_line: string;
-      artificial_machine_line: string;
-      first_target_tm_non_vce: number;
-      second_target_tm_non_vce: number;
-      third_target_tm_non_vce: number;
-      reference_level: string;
-    }
-  >();
-
-  function ensureGroup(
-    map: Map<
-      string,
-      {
-        year: string;
-        country_grouping: string;
-        country: string;
-        region: string;
-        machine_line: string;
-        artificial_machine_line: string;
-        first_target_tm_non_vce: number;
-        second_target_tm_non_vce: number;
-        third_target_tm_non_vce: number;
-      }
-    >,
-    key: string,
-    row: P00ThreeCheckRow
-  ) {
-    if (!map.has(key)) {
-      map.set(key, {
-        year: String(row.year ?? "").trim(),
-        country_grouping: String(row.country_grouping ?? "").trim(),
-        country: String(row.country ?? "").trim(),
-        region: String(row.region ?? "").trim(),
-        machine_line: String(row.machine_line_name ?? "").trim(),
-        artificial_machine_line: String(row.artificial_machine_line ?? "").trim(),
-        first_target_tm_non_vce: 0,
-        second_target_tm_non_vce: 0,
-        third_target_tm_non_vce: 0,
-      });
-    }
-
-    return map.get(key);
-  }
-
-  function getReferenceMachineKey(row: Pick<P00ThreeCheckRow, "machine_line_name" | "artificial_machine_line">): string {
-    const artificialMachineLineKey = toMatchKey(row.artificial_machine_line);
-    if (caseType === "GEC" || caseType === "GEW" || caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12") {
-      return artificialMachineLineKey;
-    }
-
-    return `${artificialMachineLineKey}|${toMatchKey(row.machine_line_name)}`;
-  }
-
-  threeCheckRows.forEach((row) => {
-    if (!matchesExcavatorsSplitTmaCase(row, caseType)) {
-      return;
-    }
-
-    const referenceMachineKey = getReferenceMachineKey(row);
-    const countryKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.country),
-      referenceMachineKey,
-    ].join("|");
-    const regionKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.region),
-      referenceMachineKey,
-    ].join("|");
-    const groupingKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.country_grouping),
-      referenceMachineKey,
-    ].join("|");
-
-    const countryGroup = ensureGroup(countryTmByGroup, countryKey, row);
-    const regionGroup = ensureGroup(regionTmByGroup, regionKey, row);
-    const groupingGroup = ensureGroup(groupingTmByGroup, groupingKey, row);
-
-    const sizeClassKey = toMatchKey(row.size_class);
-    const tmNonVce = toNumberValue(row.tm_non_vce);
-    const matchesFirstTarget = detailConfig.firstTargetKeys.includes(sizeClassKey);
-    const matchesSecondTarget = detailConfig.secondTargetKeys.includes(sizeClassKey);
-    const matchesThirdTarget = detailConfig.thirdTargetKeys?.includes(sizeClassKey) ?? false;
-
-    if (!countryGroup || !regionGroup || !groupingGroup) {
-      return;
-    }
-
-    if (matchesFirstTarget) {
-      countryGroup.first_target_tm_non_vce += tmNonVce;
-      regionGroup.first_target_tm_non_vce += tmNonVce;
-      groupingGroup.first_target_tm_non_vce += tmNonVce;
-    } else if (matchesSecondTarget) {
-      countryGroup.second_target_tm_non_vce += tmNonVce;
-      regionGroup.second_target_tm_non_vce += tmNonVce;
-      groupingGroup.second_target_tm_non_vce += tmNonVce;
-    } else if (matchesThirdTarget) {
-      countryGroup.third_target_tm_non_vce += tmNonVce;
-      regionGroup.third_target_tm_non_vce += tmNonVce;
-      groupingGroup.third_target_tm_non_vce += tmNonVce;
-    }
-  });
-
-  threeCheckRows.forEach((row) => {
-    const sourceKey = toMatchKey(row.source);
-    const referenceMachineKey = getReferenceMachineKey(row);
-    const countryKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.country),
-      referenceMachineKey,
-    ].join("|");
-    const regionKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.region),
-      referenceMachineKey,
-    ].join("|");
-    const groupingKey = [
-      toMatchKey(row.year),
-      toMatchKey(row.country_grouping),
-      referenceMachineKey,
-    ].join("|");
-
-    if (sourceKey === "TMA") {
-      return;
-    }
-
-    if (
-      !matchesExcavatorsSplitOthCase(
-        {
-          reporter_flag: row.reporter_flag,
-          artificial_machine_line: row.artificial_machine_line,
-          size_class_flag: row.size_class,
-        },
-        caseType
-      )
-    ) {
-      return;
-    }
-
-    const fallbackCandidates = [
-      { level: "Country", key: countryKey, group: countryTmByGroup.get(countryKey) },
-      { level: "Region", key: regionKey, group: regionTmByGroup.get(regionKey) },
-      { level: "Country Grouping", key: groupingKey, group: groupingTmByGroup.get(groupingKey) },
-    ];
-    const matchingReference =
-      fallbackCandidates.find(
-        (candidate) =>
-          candidate.group &&
-          candidate.group.first_target_tm_non_vce +
-            candidate.group.second_target_tm_non_vce +
-            candidate.group.third_target_tm_non_vce >
-            0
-      ) ??
-      fallbackCandidates.find((candidate) => candidate.group);
-    const tmGroup = matchingReference?.group;
-    const referenceLevel = matchingReference?.level ?? "";
-
-    const beforeSplitFid = toNumberValue(row.fid);
-    const firstTargetTm = tmGroup?.first_target_tm_non_vce ?? 0;
-    const secondTargetTm = tmGroup?.second_target_tm_non_vce ?? 0;
-    const thirdTargetTm = tmGroup?.third_target_tm_non_vce ?? 0;
-    const tmTotal = firstTargetTm + secondTargetTm + thirdTargetTm;
-    let afterFirstTarget = 0;
-    let afterSecondTarget = 0;
-    let afterThirdTarget = 0;
-    let splitRatio = "";
-
-    if (firstTargetTm > 0 && secondTargetTm <= 0 && thirdTargetTm <= 0) {
-      afterFirstTarget = roundTo4(beforeSplitFid);
-      afterSecondTarget = 0;
-      afterThirdTarget = 0;
-      splitRatio = detailConfig.thirdTargetLabel ? "100% / 0% / 0%" : "100% / 0%";
-    } else if (firstTargetTm <= 0 && secondTargetTm > 0 && thirdTargetTm <= 0) {
-      afterFirstTarget = 0;
-      afterSecondTarget = roundTo4(beforeSplitFid);
-      afterThirdTarget = 0;
-      splitRatio = detailConfig.thirdTargetLabel ? "0% / 100% / 0%" : "0% / 100%";
-    } else if (tmTotal > 0) {
-      afterFirstTarget = roundTo4((beforeSplitFid * firstTargetTm) / tmTotal);
-      afterSecondTarget = roundTo4((beforeSplitFid * secondTargetTm) / tmTotal);
-      afterThirdTarget = roundTo4((beforeSplitFid * thirdTargetTm) / tmTotal);
-
-      if (detailConfig.thirdTargetLabel) {
-        splitRatio = `${roundTo4((firstTargetTm / tmTotal) * 100)}% / ${roundTo4((secondTargetTm / tmTotal) * 100)}% / ${roundTo4((thirdTargetTm / tmTotal) * 100)}%`;
-      } else {
-        splitRatio = `${roundTo4((firstTargetTm / tmTotal) * 100)}% / ${roundTo4((secondTargetTm / tmTotal) * 100)}%`;
-      }
-    }
-
-    const difference = roundTo4(beforeSplitFid - afterFirstTarget - afterSecondTarget - afterThirdTarget);
-
-    detailRows.push({
-      row_type: "OTH",
-      year: String(row.year ?? "").trim(),
-      country_grouping: String(row.country_grouping ?? "").trim(),
-      country: String(row.country ?? "").trim(),
-      region: String(row.region ?? "").trim(),
-      machine_line: String(row.machine_line_name ?? "").trim(),
-      artificial_machine_line: String(row.artificial_machine_line ?? "").trim(),
-      brand_code: String(row.brand_code ?? "").trim(),
-      reporter_flag: String(row.reporter_flag ?? "").trim(),
-      source: String(row.source ?? "").trim(),
-      pri_sec: String(row.pri_sec ?? "").trim(),
-      size_class: String(row.size_class ?? "").trim(),
-      before_split_fid_lt_10t: roundTo4(beforeSplitFid),
-      copy_fid_lt_10t: 0,
-      after_split_fid_lt_6t: afterFirstTarget,
-      after_split_fid_6_10t: afterSecondTarget,
-      after_split_fid_target_three: detailConfig.thirdTargetLabel ? afterThirdTarget : "",
-      tm_non_vce_lt_6t: "",
-      tm_non_vce_6_10t: "",
-      tm_non_vce_target_three: "",
-      after_resplit_fid_lt_6t: "",
-      after_resplit_fid_6_10t: "",
-      after_resplit_fid_target_three: "",
-      before_after_difference: difference,
-      reference_level: referenceLevel,
-      split_ratio: splitRatio,
-    });
-
-    if (tmGroup && referenceLevel) {
-      usedReferenceGroups.set(`${referenceLevel}|${matchingReference?.key ?? ""}`, {
-        ...tmGroup,
-        reference_level: referenceLevel,
-      });
-    }
-  });
-
-  usedReferenceGroups.forEach((tmGroup) => {
-    detailRows.push({
-      row_type: "TMA",
-      year: tmGroup.year,
-      country_grouping: tmGroup.country_grouping,
-      country: tmGroup.country,
-      region: tmGroup.region,
-      machine_line: tmGroup.machine_line,
-      artificial_machine_line: tmGroup.artificial_machine_line,
-      brand_code: "#",
-      reporter_flag: "#",
-      source: "TMA",
-      pri_sec: "#",
-      size_class: detailConfig.inputSizeLabel,
-      before_split_fid_lt_10t: "",
-      copy_fid_lt_10t: "",
-      after_split_fid_lt_6t: "",
-      after_split_fid_6_10t: "",
-      after_split_fid_target_three: "",
-      tm_non_vce_lt_6t: roundTo4(tmGroup.first_target_tm_non_vce),
-      tm_non_vce_6_10t: roundTo4(tmGroup.second_target_tm_non_vce),
-      tm_non_vce_target_three: detailConfig.thirdTargetLabel
-        ? roundTo4(tmGroup.third_target_tm_non_vce)
-        : "",
-      after_resplit_fid_lt_6t: "",
-      after_resplit_fid_6_10t: "",
-      after_resplit_fid_target_three: "",
-      before_after_difference: "",
-      reference_level: tmGroup.reference_level,
-    });
-  });
-
-  return detailRows.sort((left, right) => {
-    return (
-      left.year.localeCompare(right.year) ||
-      left.country_grouping.localeCompare(right.country_grouping) ||
-      left.country.localeCompare(right.country) ||
-      left.row_type.localeCompare(right.row_type) ||
-      left.source.localeCompare(right.source) ||
-      left.brand_code.localeCompare(right.brand_code)
-    );
-  });
 }
 
 const EXCAVATORS_SPLIT_CASE_DETAILS: Record<
@@ -2691,20 +2038,20 @@ function LayerDetailPage() {
 
   const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
-  const waitForExcavatorsSplitCexRun = async (runId: number) => {
+  const waitForExcavatorsSplitRun = async (caseType: string, runId: number) => {
     const maxAttempts = 180;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const run = await getExcavatorsSplitCexRun(runId);
+      const run = await getExcavatorsSplitCaseRun(caseType, runId);
       if (run.status === "success") {
         return run;
       }
       if (run.status === "failed") {
-        throw new Error(run.message || "Split CEX Case run failed.");
+        throw new Error(run.message || `${caseType} Split Case run failed.`);
       }
       await sleep(2000);
     }
 
-    throw new Error("Timed out waiting for Split CEX Case to finish.");
+    throw new Error(`Timed out waiting for ${caseType} Split Case to finish.`);
   };
 
   const normalizeExcavatorsSplitDetailRowsForDisplay = (rows: ExcavatorsSplitDetailRow[]) => {
@@ -2790,57 +2137,17 @@ function LayerDetailPage() {
       setExcavatorsManualRows([]);
       setExcavatorsManualMessage("");
       setExcavatorsManualError("");
-
-      if (caseType === "CEX") {
-        setExcavatorsSplitCaseRows([]);
-        setExcavatorsSplitDetailRows([]);
-        setExcavatorsSplitCaseResetToken((prev) => prev + 1);
-        const run = await runExcavatorsSplitCexReport();
-        setExcavatorsSplitCaseMessage(
-          `Run submitted. Waiting for Split CEX Case run #${run.run_id} to finish...`
-        );
-        const finishedRun = await waitForExcavatorsSplitCexRun(run.run_id);
-        setExcavatorsSplitCaseMessage(
-          `Run successful. Run #${finishedRun.run_id} is saved. Click Show Latest CEX to load it.`
-        );
-        return;
-      }
-
-      const [othResult, threeCheckResult, sizeClassRows] = await Promise.all([
-        getOthDeletionFlagReport(),
-        getP00ThreeCheckReport(),
-        getLatestSizeClassRows(),
-      ]);
-      const rows = buildExcavatorsSplitCaseRows(othResult.rows, caseType);
-      const detailRows = buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType);
-      const detailRowsWithResplit =
-        caseType === "GEC" || caseType === "GEW"
-          ? initializeResplitColumns(detailRows)
-          : addResplitFlagToDetailRows(
-              detailRows,
-              getExcavatorsSplitDetailConfig(caseType),
-              sizeClassRows
-            );
-      setExcavatorsSplitCaseRows(rows);
-      setExcavatorsSplitDetailRows(detailRowsWithResplit);
+      setExcavatorsSplitCaseRows([]);
+      setExcavatorsSplitDetailRows([]);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
-      await persistSplitCaseSnapshot(
-        caseType,
-        rows,
-        detailRowsWithResplit,
-        {
-          grouped_rows: rows.length,
-          matched_rows: rows.reduce((sum, item) => sum + item.matched_rows, 0),
-          gross_fid_total: rows.reduce((sum, item) => sum + item.gross_fid, 0),
-          volvo_deduction_total: rows.reduce((sum, item) => sum + item.volvo_deduction, 0),
-          net_fid_total: rows.reduce((sum, item) => sum + item.net_fid, 0),
-        },
-        detailRowsWithResplit.length,
-        othResult.row_count,
-        threeCheckResult.row_count
-      );
+
+      const run = await runExcavatorsSplitCaseReport(caseType);
       setExcavatorsSplitCaseMessage(
-        `Run successful. Matching grouped rows: ${rows.length}. Latest snapshot saved.`
+        `Run submitted. Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
+      );
+      const finishedRun = await waitForExcavatorsSplitRun(caseType, run.run_id);
+      setExcavatorsSplitCaseMessage(
+        `Run successful. Run #${finishedRun.run_id} is saved. Click Show Latest ${caseType} to load it.`
       );
     } catch (error) {
       console.error(error);
@@ -2905,45 +2212,17 @@ function LayerDetailPage() {
       setWheelManualRows([]);
       setWheelManualMessage("");
       setWheelManualError("");
-
-      const [othResult, threeCheckResult, sizeClassRows] = await Promise.all([
-        getOthDeletionFlagReport(),
-        getP00ThreeCheckReport(),
-        getLatestSizeClassRows(),
-      ]);
-      const rows = buildWheelLoadersSplitCaseRows(othResult.rows, caseType);
-      const detailRows =
-        caseType === "WLO_GT10" || caseType === "WLO_LT10" || caseType === "WLO_LT12"
-          ? buildExcavatorsSplitDetailRows(threeCheckResult.rows, caseType)
-          : [];
-      const detailRowsWithResplit =
-        caseType === "WLO_LT12"
-          ? addResplitFlagToDetailRows(
-              detailRows,
-              getExcavatorsSplitDetailConfig(caseType),
-              sizeClassRows
-            )
-          : initializeResplitColumns(detailRows);
-      setWheelLoadersSplitCaseRows(rows);
-      setWheelLoadersSplitDetailRows(detailRowsWithResplit);
+      setWheelLoadersSplitCaseRows([]);
+      setWheelLoadersSplitDetailRows([]);
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
-      await persistSplitCaseSnapshot(
-        caseType,
-        rows,
-        detailRowsWithResplit,
-        {
-          grouped_rows: rows.length,
-          matched_rows: rows.reduce((sum, item) => sum + item.matched_rows, 0),
-          gross_fid_total: rows.reduce((sum, item) => sum + item.gross_fid, 0),
-          volvo_deduction_total: rows.reduce((sum, item) => sum + item.volvo_deduction, 0),
-          net_fid_total: rows.reduce((sum, item) => sum + item.net_fid, 0),
-        },
-        detailRowsWithResplit.length,
-        othResult.row_count,
-        threeCheckResult.row_count
-      );
+
+      const run = await runExcavatorsSplitCaseReport(caseType);
       setWheelLoadersSplitMessage(
-        `Run successful. Matching grouped rows: ${rows.length}. Latest snapshot saved.`
+        `Run submitted. Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
+      );
+      const finishedRun = await waitForExcavatorsSplitRun(caseType, run.run_id);
+      setWheelLoadersSplitMessage(
+        `Run successful. Run #${finishedRun.run_id} is saved. Click Show Latest ${caseType} to load it.`
       );
     } catch (error) {
       console.error(error);

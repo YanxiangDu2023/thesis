@@ -1877,16 +1877,472 @@ def _get_excavators_split_case_run(run_id: int) -> dict[str, Any]:
         conn.close()
 
 
+def _get_excavators_split_detail_config(case_type: str) -> dict[str, Any] | None:
+    if case_type == "CEX":
+        return {
+            "input_size_label": "<10T",
+            "first_target_label": "<6T",
+            "second_target_label": "6<10T",
+            "third_target_label": None,
+        }
+    if case_type == "GEC":
+        return {
+            "input_size_label": ">6T",
+            "first_target_label": ">10T",
+            "second_target_label": "6<10T",
+            "third_target_label": None,
+        }
+    if case_type == "GEW":
+        return {
+            "input_size_label": ">6T",
+            "first_target_label": "6<11T",
+            "second_target_label": ">11T",
+            "third_target_label": None,
+        }
+    if case_type == "WLO_GT10":
+        return {
+            "input_size_label": ">10",
+            "first_target_label": "10<12",
+            "second_target_label": ">12",
+            "third_target_label": None,
+        }
+    if case_type == "WLO_LT10":
+        return {
+            "input_size_label": "<10",
+            "first_target_label": "7<10",
+            "second_target_label": "<7",
+            "third_target_label": None,
+        }
+    if case_type == "WLO_LT12":
+        return {
+            "input_size_label": "<12",
+            "first_target_label": "10<12",
+            "second_target_label": "7<10",
+            "third_target_label": "<7",
+        }
+    return None
+
+
+def _matches_excavators_split_oth_case(row: dict[str, Any], case_type: str) -> bool:
+    if _to_case_insensitive_key(row.get("reporter_flag")) != "Y":
+        return False
+
+    artificial_machine_line_key = _to_case_insensitive_key(row.get("artificial_machine_line"))
+    size_class_key = _to_size_class_key(row.get("size_class_flag"))
+
+    if case_type == "ALL":
+        return (
+            (artificial_machine_line_key == "CEX" and size_class_key == "<10T")
+            or (artificial_machine_line_key == "GEC" and size_class_key == ">6T")
+            or (artificial_machine_line_key == "GEW" and size_class_key == ">6T")
+        )
+    if case_type == "CEX":
+        return artificial_machine_line_key == "CEX" and size_class_key == "<10T"
+    if case_type == "GEC":
+        return artificial_machine_line_key == "GEC" and size_class_key == ">6T"
+    if case_type == "GEW":
+        return artificial_machine_line_key == "GEW" and size_class_key == ">6T"
+    if case_type == "WLO_GT10":
+        return artificial_machine_line_key == "WLO" and size_class_key == ">10"
+    if case_type == "WLO_LT10":
+        return artificial_machine_line_key == "WLO" and size_class_key == "<10"
+    if case_type == "WLO_LT12":
+        return artificial_machine_line_key == "WLO" and size_class_key == "<12"
+    return False
+
+
+def _matches_excavators_split_tma_case(row: dict[str, Any], case_type: str) -> bool:
+    if _to_case_insensitive_key(row.get("source")) != "TMA":
+        return False
+
+    artificial_machine_line_key = _to_case_insensitive_key(row.get("artificial_machine_line"))
+    size_class_key = _to_size_class_key(row.get("size_class"))
+
+    if case_type == "ALL":
+        return (
+            (artificial_machine_line_key == "CEX" and size_class_key in {"<6T", "6<10T", "<10T"})
+            or (artificial_machine_line_key == "GEC" and size_class_key == ">6T")
+            or (artificial_machine_line_key == "GEW" and size_class_key == ">6T")
+        )
+    if case_type == "CEX":
+        return artificial_machine_line_key == "CEX" and size_class_key in {"<6T", "6<10T", "<10T"}
+    if case_type == "GEC":
+        return artificial_machine_line_key == "GEC" and size_class_key in {"6<10T", ">10T"}
+    if case_type == "GEW":
+        return artificial_machine_line_key == "GEW" and size_class_key in {"6<11T", ">11T"}
+    if case_type == "WLO_GT10":
+        return artificial_machine_line_key == "WLO" and size_class_key in {"10<12", ">12"}
+    if case_type == "WLO_LT10":
+        return artificial_machine_line_key == "WLO" and size_class_key in {"7<10", "<7"}
+    if case_type == "WLO_LT12":
+        return artificial_machine_line_key == "WLO" and size_class_key in {"10<12", "7<10", "<7"}
+    return False
+
+
+def _excavators_split_reference_machine_key(row: dict[str, Any], case_type: str) -> str:
+    artificial_machine_line_key = _to_case_insensitive_key(row.get("artificial_machine_line"))
+    if case_type in {"GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
+        return artificial_machine_line_key
+    return f"{artificial_machine_line_key}|{_to_case_insensitive_key(row.get('machine_line_name'))}"
+
+
+def _build_excavators_split_case_rows_from_oth(
+    oth_rows: list[dict[str, Any]],
+    case_type: str,
+) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+
+    for row in oth_rows:
+      if not _matches_excavators_split_oth_case(row, case_type):
+            continue
+
+      key = "|".join([
+          _to_case_insensitive_key(row.get("year")),
+          _to_case_insensitive_key(row.get("machine_line_name")),
+          _to_case_insensitive_key(row.get("artificial_machine_line")),
+          _to_case_insensitive_key(row.get("source")),
+          _to_size_class_key(row.get("size_class_flag")),
+      ])
+
+      if key not in grouped:
+          grouped[key] = {
+              "year": _to_text(row.get("year")),
+              "machine_line_name": _to_text(row.get("machine_line_name")),
+              "machine_line_code": _to_text(row.get("artificial_machine_line")),
+              "source": _to_text(row.get("source")),
+              "size_class_flag": _to_text(row.get("size_class_flag")),
+              "matched_rows": 0,
+              "gross_fid": 0.0,
+              "volvo_deduction": 0.0,
+              "net_fid": 0.0,
+          }
+
+      current = grouped[key]
+      fid = _to_number(row.get("fid"))
+      current["matched_rows"] += 1
+      current["gross_fid"] += fid
+      if _to_case_insensitive_key(row.get("brand_name")) == "VOLVO":
+          current["volvo_deduction"] += fid
+          current["net_fid"] -= fid
+      else:
+          current["net_fid"] += fid
+
+    return sorted(
+        grouped.values(),
+        key=lambda item: (
+            item["year"],
+            item["machine_line_name"],
+            item["source"],
+            item["size_class_flag"],
+        ),
+    )
+
+
+def _build_excavators_split_detail_rows_from_three_check(
+    three_check_rows: list[dict[str, Any]],
+    case_type: str,
+) -> list[dict[str, Any]]:
+    detail_config = _get_excavators_split_detail_config(case_type)
+    if detail_config is None or case_type == "ALL":
+        return []
+
+    detail_rows: list[dict[str, Any]] = []
+    country_tm_by_group: dict[str, dict[str, Any]] = {}
+    region_tm_by_group: dict[str, dict[str, Any]] = {}
+    grouping_tm_by_group: dict[str, dict[str, Any]] = {}
+    used_reference_groups: dict[str, dict[str, Any]] = {}
+
+    def ensure_group(target_map: dict[str, dict[str, Any]], key: str, row: dict[str, Any]) -> dict[str, Any]:
+        if key not in target_map:
+            target_map[key] = {
+                "year": _to_text(row.get("year")),
+                "country_grouping": _to_text(row.get("country_grouping")),
+                "country": _to_text(row.get("country")),
+                "region": _to_text(row.get("region")),
+                "machine_line": _to_text(row.get("machine_line_name")),
+                "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+                "first_target_tm_non_vce": 0.0,
+                "second_target_tm_non_vce": 0.0,
+                "third_target_tm_non_vce": 0.0,
+            }
+        return target_map[key]
+
+    def get_reference_machine_key(row: dict[str, Any]) -> str:
+        return _excavators_split_reference_machine_key(row, case_type)
+
+    for row in three_check_rows:
+        if not _matches_excavators_split_tma_case(row, case_type):
+            continue
+
+        reference_machine_key = get_reference_machine_key(row)
+        country_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("country")),
+            reference_machine_key,
+        ])
+        region_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("region")),
+            reference_machine_key,
+        ])
+        grouping_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("country_grouping")),
+            reference_machine_key,
+        ])
+
+        country_group = ensure_group(country_tm_by_group, country_key, row)
+        region_group = ensure_group(region_tm_by_group, region_key, row)
+        grouping_group = ensure_group(grouping_tm_by_group, grouping_key, row)
+
+        size_class_key = _to_size_class_key(row.get("size_class"))
+        tm_non_vce = _to_number(row.get("tm_non_vce"))
+        matches_first_target = size_class_key in {
+            _to_size_class_key(detail_config["first_target_label"])
+        }
+        matches_second_target = size_class_key in {
+            _to_size_class_key(detail_config["second_target_label"])
+        }
+        third_target_label = detail_config.get("third_target_label")
+        matches_third_target = third_target_label is not None and size_class_key == _to_size_class_key(third_target_label)
+
+        if matches_first_target:
+            country_group["first_target_tm_non_vce"] += tm_non_vce
+            region_group["first_target_tm_non_vce"] += tm_non_vce
+            grouping_group["first_target_tm_non_vce"] += tm_non_vce
+        elif matches_second_target:
+            country_group["second_target_tm_non_vce"] += tm_non_vce
+            region_group["second_target_tm_non_vce"] += tm_non_vce
+            grouping_group["second_target_tm_non_vce"] += tm_non_vce
+        elif matches_third_target:
+            country_group["third_target_tm_non_vce"] += tm_non_vce
+            region_group["third_target_tm_non_vce"] += tm_non_vce
+            grouping_group["third_target_tm_non_vce"] += tm_non_vce
+
+    for row in three_check_rows:
+        if _to_case_insensitive_key(row.get("source")) == "TMA":
+            continue
+        if not _matches_excavators_split_oth_case({
+            "reporter_flag": row.get("reporter_flag"),
+            "artificial_machine_line": row.get("artificial_machine_line"),
+            "size_class_flag": row.get("size_class"),
+        }, case_type):
+            continue
+
+        reference_machine_key = get_reference_machine_key(row)
+        country_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("country")),
+            reference_machine_key,
+        ])
+        region_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("region")),
+            reference_machine_key,
+        ])
+        grouping_key = "|".join([
+            _to_case_insensitive_key(row.get("year")),
+            _to_case_insensitive_key(row.get("country_grouping")),
+            reference_machine_key,
+        ])
+
+        fallback_candidates = [
+            ("Country", country_key, country_tm_by_group.get(country_key)),
+            ("Region", region_key, region_tm_by_group.get(region_key)),
+            ("Country Grouping", grouping_key, grouping_tm_by_group.get(grouping_key)),
+        ]
+        matching_reference = next(
+            (
+                candidate
+                for candidate in fallback_candidates
+                if candidate[2]
+                and (
+                    candidate[2]["first_target_tm_non_vce"]
+                    + candidate[2]["second_target_tm_non_vce"]
+                    + candidate[2]["third_target_tm_non_vce"]
+                    > 0
+                )
+            ),
+            None,
+        ) or next((candidate for candidate in fallback_candidates if candidate[2]), None)
+
+        tm_group = matching_reference[2] if matching_reference else None
+        reference_level = matching_reference[0] if matching_reference else ""
+
+        before_split_fid = _to_number(row.get("fid"))
+        first_target_tm = tm_group["first_target_tm_non_vce"] if tm_group else 0.0
+        second_target_tm = tm_group["second_target_tm_non_vce"] if tm_group else 0.0
+        third_target_tm = tm_group["third_target_tm_non_vce"] if tm_group else 0.0
+        tm_total = first_target_tm + second_target_tm + third_target_tm
+        after_first_target = 0.0
+        after_second_target = 0.0
+        after_third_target = 0.0
+        split_ratio = ""
+
+        if first_target_tm > 0 and second_target_tm <= 0 and third_target_tm <= 0:
+            after_first_target = _round_to_4(before_split_fid)
+            after_second_target = 0.0
+            after_third_target = 0.0
+            split_ratio = "100% / 0% / 0%" if third_target_label else "100% / 0%"
+        elif first_target_tm <= 0 and second_target_tm > 0 and third_target_tm <= 0:
+            after_first_target = 0.0
+            after_second_target = _round_to_4(before_split_fid)
+            after_third_target = 0.0
+            split_ratio = "0% / 100% / 0%" if third_target_label else "0% / 100%"
+        elif tm_total > 0:
+            after_first_target = _round_to_4((before_split_fid * first_target_tm) / tm_total)
+            after_second_target = _round_to_4((before_split_fid * second_target_tm) / tm_total)
+            after_third_target = _round_to_4((before_split_fid * third_target_tm) / tm_total)
+            if third_target_label:
+                split_ratio = (
+                    f"{_round_to_4((first_target_tm / tm_total) * 100)}% / "
+                    f"{_round_to_4((second_target_tm / tm_total) * 100)}% / "
+                    f"{_round_to_4((third_target_tm / tm_total) * 100)}%"
+                )
+            else:
+                split_ratio = (
+                    f"{_round_to_4((first_target_tm / tm_total) * 100)}% / "
+                    f"{_round_to_4((second_target_tm / tm_total) * 100)}%"
+                )
+
+        difference = _round_to_4(before_split_fid - after_first_target - after_second_target - after_third_target)
+
+        detail_rows.append({
+            "row_type": "OTH",
+            "year": _to_text(row.get("year")),
+            "country_grouping": _to_text(row.get("country_grouping")),
+            "country": _to_text(row.get("country")),
+            "region": _to_text(row.get("region")),
+            "machine_line": _to_text(row.get("machine_line_name")),
+            "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+            "brand_code": _to_text(row.get("brand_code")),
+            "reporter_flag": _to_text(row.get("reporter_flag")),
+            "source": _to_text(row.get("source")),
+            "pri_sec": _to_text(row.get("pri_sec")),
+            "size_class": _to_text(row.get("size_class")),
+            "before_split_fid_lt_10t": _round_to_4(before_split_fid),
+            "copy_fid_lt_10t": 0.0,
+            "after_split_fid_lt_6t": after_first_target,
+            "after_split_fid_6_10t": after_second_target,
+            "after_split_fid_target_three": _round_to_4(after_third_target) if third_target_label else "",
+            "tm_non_vce_lt_6t": "",
+            "tm_non_vce_6_10t": "",
+            "tm_non_vce_target_three": "",
+            "resplit": "",
+            "after_resplit_fid_lt_6t": "",
+            "after_resplit_fid_6_10t": "",
+            "after_resplit_fid_target_three": "",
+            "before_after_difference": difference,
+            "reference_level": reference_level,
+            "split_ratio": split_ratio,
+        })
+
+        if tm_group and reference_level:
+            used_reference_groups[f"{reference_level}|{country_key}|{region_key}|{grouping_key}"] = {
+                **tm_group,
+                "reference_level": reference_level,
+            }
+
+    for tm_group in used_reference_groups.values():
+        detail_rows.append({
+            "row_type": "TMA",
+            "year": tm_group["year"],
+            "country_grouping": tm_group["country_grouping"],
+            "country": tm_group["country"],
+            "region": tm_group["region"],
+            "machine_line": tm_group["machine_line"],
+            "artificial_machine_line": tm_group["artificial_machine_line"],
+            "brand_code": "#",
+            "reporter_flag": "#",
+            "source": "TMA",
+            "pri_sec": "#",
+            "size_class": detail_config["input_size_label"],
+            "before_split_fid_lt_10t": "",
+            "copy_fid_lt_10t": "",
+            "after_split_fid_lt_6t": "",
+            "after_split_fid_6_10t": "",
+            "after_split_fid_target_three": "",
+            "tm_non_vce_lt_6t": _round_to_4(tm_group["first_target_tm_non_vce"]),
+            "tm_non_vce_6_10t": _round_to_4(tm_group["second_target_tm_non_vce"]),
+            "tm_non_vce_target_three": (
+                _round_to_4(tm_group["third_target_tm_non_vce"]) if detail_config.get("third_target_label") else ""
+            ),
+            "resplit": "",
+            "after_resplit_fid_lt_6t": "",
+            "after_resplit_fid_6_10t": "",
+            "after_resplit_fid_target_three": "",
+            "before_after_difference": "",
+            "reference_level": tm_group["reference_level"],
+            "split_ratio": detail_config["third_target_label"]
+                and (
+                    f"{_round_to_4((tm_group['first_target_tm_non_vce'] / (tm_group['first_target_tm_non_vce'] + tm_group['second_target_tm_non_vce'] + tm_group['third_target_tm_non_vce'])) * 100)}% / "
+                    f"{_round_to_4((tm_group['second_target_tm_non_vce'] / (tm_group['first_target_tm_non_vce'] + tm_group['second_target_tm_non_vce'] + tm_group['third_target_tm_non_vce'])) * 100)}% / "
+                    f"{_round_to_4((tm_group['third_target_tm_non_vce'] / (tm_group['first_target_tm_non_vce'] + tm_group['second_target_tm_non_vce'] + tm_group['third_target_tm_non_vce'])) * 100)}%"
+                )
+                or (
+                    f"{_round_to_4((tm_group['first_target_tm_non_vce'] / (tm_group['first_target_tm_non_vce'] + tm_group['second_target_tm_non_vce'] + tm_group['third_target_tm_non_vce'])) * 100)}% / "
+                    f"{_round_to_4((tm_group['second_target_tm_non_vce'] / (tm_group['first_target_tm_non_vce'] + tm_group['second_target_tm_non_vce'] + tm_group['third_target_tm_non_vce'])) * 100)}%"
+                ),
+        })
+
+    detail_rows.sort(
+        key=lambda item: (
+            item["year"],
+            item["country_grouping"],
+            item["country"],
+            item["row_type"],
+            item["source"],
+            item["brand_code"],
+        )
+    )
+    return detail_rows
+
+
+def _build_excavators_split_case_report(case_type: str):
+    normalized_case_type = case_type.strip().upper()
+    if normalized_case_type == "CEX":
+        return _build_cex_split_case_report()
+
+    oth = get_oth_deletion_flag_report()
+    summary_rows = _build_excavators_split_case_rows_from_oth(oth["rows"], normalized_case_type)
+    detail_rows = []
+    if normalized_case_type != "ALL":
+        three_check = get_p00_three_check_report()
+        detail_rows = _build_excavators_split_detail_rows_from_three_check(three_check["rows"], normalized_case_type)
+
+    grouped_rows = len(summary_rows)
+    matched_rows = sum(int(item["matched_rows"]) for item in summary_rows)
+    gross_fid_total = sum(float(item["gross_fid"]) for item in summary_rows)
+    volvo_deduction_total = sum(float(item["volvo_deduction"]) for item in summary_rows)
+    net_fid_total = sum(float(item["net_fid"]) for item in summary_rows)
+
+    return {
+        "case_type": normalized_case_type,
+        "summary_rows": summary_rows,
+        "detail_rows": detail_rows,
+        "summary": {
+            "grouped_rows": grouped_rows,
+            "matched_rows": matched_rows,
+            "gross_fid_total": gross_fid_total,
+            "volvo_deduction_total": volvo_deduction_total,
+            "net_fid_total": net_fid_total,
+        },
+        "source_row_count": len(detail_rows),
+        "oth_row_count": oth["row_count"],
+        "p10_row_count": get_p00_three_check_report()["row_count"] if normalized_case_type != "ALL" else 0,
+    }
+
+
 def _run_excavators_split_case_background(run_id: int) -> None:
     try:
         run = _get_excavators_split_case_run(run_id)
-        result = _build_cex_split_case_report()
+        result = _build_excavators_split_case_report(run.get("case_type", ""))
         if result.get("case_type") != run.get("case_type"):
             raise RuntimeError("Excavators split run type mismatch")
         _save_excavators_split_case_snapshot(
             run_id,
             result,
-            "Excavators Split CEX report generated successfully",
+            f"Excavators Split {run.get('case_type')} report generated successfully",
         )
     except Exception as e:
         try:
@@ -2883,6 +3339,47 @@ def get_latest_excavators_split_case_report(case_type: str):
         "created_at": run["created_at"],
         "message": run["message"],
         "row_count": run["row_count"],
+    }
+
+
+@router.post("/reports/excavators-split/{case_type}/run")
+def run_excavators_split_case_report(case_type: str, background_tasks: BackgroundTasks):
+    normalized_case_type = case_type.strip().upper()
+    if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
+        raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+
+    run_id = _create_excavators_split_case_run(
+        normalized_case_type,
+        f"Excavators Split {normalized_case_type} run started",
+    )
+    background_tasks.add_task(_run_excavators_split_case_background, run_id)
+    return {
+        "run_id": run_id,
+        "case_type": normalized_case_type,
+        "status": "running",
+        "message": f"Excavators Split {normalized_case_type} run started",
+    }
+
+
+@router.get("/reports/excavators-split/{case_type}/runs/{run_id}")
+def get_excavators_split_case_run(case_type: str, run_id: int):
+    normalized_case_type = case_type.strip().upper()
+    if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
+        raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+
+    run = _get_excavators_split_case_run(run_id)
+    if run.get("case_type") != normalized_case_type:
+        raise HTTPException(status_code=404, detail="Excavators split run not found")
+
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "run_id": run["id"],
+        "case_type": run["case_type"],
+        "status": run["status"],
+        "message": run["message"],
+        "created_at": run["created_at"],
+        "row_count": run["row_count"],
+        **meta,
     }
 
 
