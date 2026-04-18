@@ -38,6 +38,10 @@ async def enforce_password_gate(request: Request, call_next):
     if not password_gate_enabled:
         return await call_next(request)
 
+    normalized_path = request.url.path.rstrip("/") or "/"
+    if normalized_path == "/healthz":
+        return await call_next(request)
+
     if request.method == "OPTIONS":
         return await call_next(request)
 
@@ -53,6 +57,11 @@ async def enforce_password_gate(request: Request, call_next):
 @app.get("/")
 def root():
     return {"message": "Backend is running"}
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 app.include_router(auth_router)
 app.include_router(uploads_router, dependencies=[Depends(require_auth)])
