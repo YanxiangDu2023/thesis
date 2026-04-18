@@ -429,5 +429,36 @@ def init_db():
     ON p00_report_rows(report_run_id, row_index, id)
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS excavators_split_case_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        case_type TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        row_count INTEGER,
+        status TEXT,
+        message TEXT,
+        meta_json TEXT
+    )
+    """)
+    _ensure_column(cursor, "excavators_split_case_runs", "meta_json", "TEXT")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS excavators_split_case_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_run_id INTEGER NOT NULL,
+        section TEXT NOT NULL,
+        row_index INTEGER,
+        row_json TEXT NOT NULL,
+        FOREIGN KEY (report_run_id) REFERENCES excavators_split_case_runs(id)
+    )
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_excavators_split_case_runs_type_time
+    ON excavators_split_case_runs(case_type, status, created_at DESC, id DESC)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_excavators_split_case_rows_run_section_row
+    ON excavators_split_case_rows(report_run_id, section, row_index, id)
+    """)
+
     conn.commit()
     conn.close()

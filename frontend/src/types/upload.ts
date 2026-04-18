@@ -321,7 +321,7 @@ export type ExcavatorsSplitDetailRow = {
 };
 
 export type ExcavatorsSplitCaseReportResponse = {
-  case_type: "CEX";
+  case_type: string;
   summary_rows: ExcavatorsSplitCaseRow[];
   detail_rows: ExcavatorsSplitDetailRow[];
   summary: {
@@ -334,4 +334,41 @@ export type ExcavatorsSplitCaseReportResponse = {
   source_row_count: number;
   oth_row_count: number;
   p10_row_count: number;
+};
+
+export type ExcavatorsSplitCaseRunResponse = {
+  run_id: number;
+  case_type: string;
+  status: string;
+  message: string;
+  created_at?: string;
+  row_count?: number;
+  summary?: {
+    grouped_rows?: number;
+    matched_rows?: number;
+    gross_fid_total?: number;
+    volvo_deduction_total?: number;
+    net_fid_total?: number;
+  };
+  source_row_count?: number;
+  oth_row_count?: number;
+  p10_row_count?: number;
+};
+
+export type ExcavatorsSplitCaseSnapshotRequest = {
+  case_type: string;
+  summary_rows: ExcavatorsSplitCaseRow[];
+  detail_rows: ExcavatorsSplitDetailRow[];
+  summary: ExcavatorsSplitCaseReportResponse["summary"];
+  source_row_count: number;
+  oth_row_count: number;
+  p10_row_count: number;
+  message: string;
+};
+
+export type ExcavatorsSplitCaseLatestResponse = ExcavatorsSplitCaseReportResponse & {
+  run_id: number;
+  status: string;
+  created_at: string;
+  message: string;
 };

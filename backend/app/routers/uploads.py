@@ -6,7 +6,7 @@ import unicodedata
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from app.database import get_connection, get_table_columns
 from app.services.csv_service import handle_csv_upload
@@ -51,6 +51,17 @@ class SaveEditedUploadRequest(BaseModel):
     matrix_type: str
     rows: list[dict[str, Any]]
     source_upload_run_id: int | None = None
+
+
+class ExcavatorsSplitCaseSnapshotRequest(BaseModel):
+    case_type: str
+    summary_rows: list[dict[str, Any]]
+    detail_rows: list[dict[str, Any]]
+    summary: dict[str, Any]
+    source_row_count: int
+    oth_row_count: int
+    p10_row_count: int
+    message: str = "Excavators split case snapshot saved"
 
 
 def _to_text(value: Any) -> str:
@@ -1695,6 +1706,196 @@ def _get_latest_p00_report_snapshot(report_key: str) -> tuple[dict[str, Any], li
         conn.close()
 
 
+def _create_excavators_split_case_run(case_type: str, message: str) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO excavators_split_case_runs (case_type, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            case_type,
+            0,
+            "running",
+            message,
+            json.dumps({}, ensure_ascii=False, default=str),
+        ))
+        run_id = cursor.lastrowid
+        conn.commit()
+        return run_id
+    finally:
+        conn.close()
+
+
+def _update_excavators_split_case_run(
+    run_id: int,
+    *,
+    row_count: int | None = None,
+    status: str | None = None,
+    message: str | None = None,
+    meta: dict[str, Any] | None = None,
+) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM excavators_split_case_runs
+            WHERE id = ?
+        """, (run_id,))
+        run = cursor.fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail="Excavators split run not found")
+        run_dict = dict(run)
+
+        next_row_count = row_count if row_count is not None else run_dict["row_count"]
+        next_status = status if status is not None else run_dict["status"]
+        next_message = message if message is not None else run_dict["message"]
+        next_meta = json.dumps(
+            meta if meta is not None else json.loads(run_dict.get("meta_json") or "{}"),
+            ensure_ascii=False,
+            default=str,
+        )
+
+        cursor.execute("""
+            UPDATE excavators_split_case_runs
+            SET row_count = ?, status = ?, message = ?, meta_json = ?
+            WHERE id = ?
+        """, (next_row_count, next_status, next_message, next_meta, run_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _save_excavators_split_case_snapshot(
+    run_id: int,
+    result: dict[str, Any],
+    message: str,
+) -> None:
+    summary_rows = list(result.get("summary_rows") or [])
+    detail_rows = list(result.get("detail_rows") or [])
+    meta = {
+        "summary": result.get("summary") or {},
+        "source_row_count": result.get("source_row_count"),
+        "oth_row_count": result.get("oth_row_count"),
+        "p10_row_count": result.get("p10_row_count"),
+        "summary_row_count": len(summary_rows),
+        "detail_row_count": len(detail_rows),
+        "case_type": result.get("case_type"),
+    }
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM excavators_split_case_rows
+            WHERE report_run_id = ?
+        """, (run_id,))
+        cursor.executemany("""
+            INSERT INTO excavators_split_case_rows (report_run_id, section, row_index, row_json)
+            VALUES (?, ?, ?, ?)
+        """, [
+            (run_id, "summary", index, json.dumps(row, ensure_ascii=False, default=str))
+            for index, row in enumerate(summary_rows, start=1)
+        ] + [
+            (run_id, "detail", index, json.dumps(row, ensure_ascii=False, default=str))
+            for index, row in enumerate(detail_rows, start=1)
+        ])
+        cursor.execute("""
+            UPDATE excavators_split_case_runs
+            SET row_count = ?, status = ?, message = ?, meta_json = ?
+            WHERE id = ?
+        """, (
+            len(summary_rows) + len(detail_rows),
+            "success",
+            message,
+            json.dumps(meta, ensure_ascii=False, default=str),
+            run_id,
+        ))
+        conn.commit()
+    except Exception as e:
+        cursor.execute("""
+            UPDATE excavators_split_case_runs
+            SET status = ?, message = ?
+            WHERE id = ?
+        """, ("failed", str(e), run_id))
+        conn.commit()
+        raise
+    finally:
+        conn.close()
+
+
+def _get_latest_excavators_split_case_snapshot(case_type: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM excavators_split_case_runs
+            WHERE case_type = ? AND status = 'success'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        """, (case_type,))
+        latest_run = cursor.fetchone()
+        if latest_run is None:
+            raise HTTPException(status_code=404, detail=f"No saved excavators split run found for case type: {case_type}")
+
+        latest_run_dict = dict(latest_run)
+        cursor.execute("""
+            SELECT section, row_json
+            FROM excavators_split_case_rows
+            WHERE report_run_id = ?
+            ORDER BY section ASC, row_index ASC, id ASC
+        """, (latest_run_dict["id"],))
+        summary_rows: list[dict[str, Any]] = []
+        detail_rows: list[dict[str, Any]] = []
+        for row in cursor.fetchall():
+            if row["section"] == "summary":
+                summary_rows.append(json.loads(row["row_json"]))
+            else:
+                detail_rows.append(json.loads(row["row_json"]))
+
+        return latest_run_dict, summary_rows, detail_rows
+    finally:
+        conn.close()
+
+
+def _get_excavators_split_case_run(run_id: int) -> dict[str, Any]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM excavators_split_case_runs
+            WHERE id = ?
+        """, (run_id,))
+        run = cursor.fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail="Excavators split run not found")
+        return dict(run)
+    finally:
+        conn.close()
+
+
+def _run_excavators_split_case_background(run_id: int) -> None:
+    try:
+        run = _get_excavators_split_case_run(run_id)
+        result = _build_cex_split_case_report()
+        if result.get("case_type") != run.get("case_type"):
+            raise RuntimeError("Excavators split run type mismatch")
+        _save_excavators_split_case_snapshot(
+            run_id,
+            result,
+            "Excavators Split CEX report generated successfully",
+        )
+    except Exception as e:
+        try:
+            _update_excavators_split_case_run(run_id, status="failed", message=str(e))
+        except Exception:
+            pass
+
+
+
 @router.get("/reports/crp-d1-combined/latest")
 def get_latest_crp_d1_combined_report():
     run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["crp_d1_combined"])
@@ -2631,14 +2832,94 @@ def _build_cex_split_case_report():
     }
 
 
+@router.post("/reports/excavators-split/snapshots")
+def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequest):
+    case_type = request.case_type.strip().upper()
+    if case_type not in {"ALL", "CEX", "GEC", "GEW"}:
+        raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+
+    run_id = _create_excavators_split_case_run(case_type, request.message)
+    result = {
+        "case_type": case_type,
+        "summary_rows": request.summary_rows,
+        "detail_rows": request.detail_rows,
+        "summary": request.summary,
+        "source_row_count": request.source_row_count,
+        "oth_row_count": request.oth_row_count,
+        "p10_row_count": request.p10_row_count,
+    }
+    _save_excavators_split_case_snapshot(
+        run_id,
+        result,
+        request.message,
+    )
+    return {
+        "run_id": run_id,
+        "case_type": case_type,
+        "status": "success",
+        "message": request.message,
+        "row_count": len(request.summary_rows) + len(request.detail_rows),
+    }
+
+
+@router.get("/reports/excavators-split/{case_type}/latest")
+def get_latest_excavators_split_case_report(case_type: str):
+    normalized_case_type = case_type.strip().upper()
+    if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW"}:
+        raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+
+    run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(normalized_case_type)
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "case_type": normalized_case_type,
+        "summary_rows": summary_rows,
+        "detail_rows": detail_rows,
+        "summary": meta.get("summary") or {},
+        "source_row_count": meta.get("source_row_count"),
+        "oth_row_count": meta.get("oth_row_count"),
+        "p10_row_count": meta.get("p10_row_count"),
+        "run_id": run["id"],
+        "status": run["status"],
+        "created_at": run["created_at"],
+        "message": run["message"],
+        "row_count": run["row_count"],
+    }
+
+
+@router.post("/reports/excavators-split-cex/run")
+def run_excavators_split_cex_report(background_tasks: BackgroundTasks):
+    run_id = _create_excavators_split_case_run(
+        "CEX",
+        "Excavators Split CEX run started",
+    )
+    background_tasks.add_task(_run_excavators_split_case_background, run_id)
+    return {
+        "run_id": run_id,
+        "case_type": "CEX",
+        "status": "running",
+        "message": "Excavators Split CEX run started",
+    }
+
+
+@router.get("/reports/excavators-split-cex/runs/{run_id}")
+def get_excavators_split_cex_run(run_id: int):
+    run = _get_excavators_split_case_run(run_id)
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "run_id": run["id"],
+        "case_type": run["case_type"],
+        "status": run["status"],
+        "message": run["message"],
+        "created_at": run["created_at"],
+        "row_count": run["row_count"],
+        **meta,
+    }
+
+
 @router.get("/reports/excavators-split-cex")
-def get_excavators_split_cex_report():
-    try:
-        return _build_cex_split_case_report()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/reports/excavators-split-cex/latest")
+def get_latest_excavators_split_cex_report():
+    return get_latest_excavators_split_case_report("CEX")
 
 @router.get("/uploads/latest/{matrix_type}")
 def get_latest_upload_by_matrix_type(matrix_type: str):

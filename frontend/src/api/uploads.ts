@@ -1,7 +1,9 @@
 import type {
   A10AdjustmentResponse,
   CrpD1CombinedReportResponse,
-  ExcavatorsSplitCaseReportResponse,
+  ExcavatorsSplitCaseLatestResponse,
+  ExcavatorsSplitCaseRunResponse,
+  ExcavatorsSplitCaseSnapshotRequest,
   LatestCrpTmaReportCleanDataResponse,
   LatestControlReportCleanDataResponse,
   LatestUploadResponse,
@@ -436,13 +438,62 @@ export async function getP00RunTimes(): Promise<P00RunTimesResponse> {
   return result as P00RunTimesResponse;
 }
 
-export async function getExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseReportResponse> {
-  const response = await apiFetch("/reports/excavators-split-cex");
+export async function runExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseRunResponse> {
+  const response = await apiFetch("/reports/excavators-split-cex/run", {
+    method: "POST",
+  });
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.detail || "Failed to fetch Split CEX Case report");
+    throw new Error(result.detail || "Failed to start Split CEX Case report");
   }
 
-  return result as ExcavatorsSplitCaseReportResponse;
+  return result as ExcavatorsSplitCaseRunResponse;
+}
+
+export async function getExcavatorsSplitCexRun(runId: number): Promise<ExcavatorsSplitCaseRunResponse> {
+  const response = await apiFetch(`/reports/excavators-split-cex/runs/${runId}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch Split CEX Case run");
+  }
+
+  return result as ExcavatorsSplitCaseRunResponse;
+}
+
+export async function getLatestExcavatorsSplitCaseReport(
+  caseType: string
+): Promise<ExcavatorsSplitCaseLatestResponse> {
+  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/latest`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || `Failed to fetch latest ${caseType} Split Case report`);
+  }
+
+  return result as ExcavatorsSplitCaseLatestResponse;
+}
+
+export async function saveExcavatorsSplitCaseSnapshot(
+  payload: ExcavatorsSplitCaseSnapshotRequest
+): Promise<ExcavatorsSplitCaseRunResponse> {
+  const response = await apiFetch("/reports/excavators-split/snapshots", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || `Failed to save ${payload.case_type} Split Case snapshot`);
+  }
+
+  return result as ExcavatorsSplitCaseRunResponse;
+}
+
+export async function getExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCaseLatestResponse> {
+  return getLatestExcavatorsSplitCaseReport("CEX");
 }

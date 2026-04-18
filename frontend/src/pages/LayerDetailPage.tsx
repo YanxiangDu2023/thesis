@@ -4,14 +4,17 @@ import FilterableTable from "../components/table/FilterableTable";
 import {
   getA10AdjustmentReport,
   getCrpD1CombinedReport,
-  getExcavatorsSplitCexReport,
+  getExcavatorsSplitCexRun,
   getLatestUploadByMatrixType,
   getLatestCrpD1CombinedReport,
   getLatestOthDeletionFlagReport,
+  getLatestExcavatorsSplitCaseReport,
   getLatestP00ThreeCheckReport,
   getOthDeletionFlagReport,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
+  runExcavatorsSplitCexReport,
+  saveExcavatorsSplitCaseSnapshot,
   saveEditedUpload,
 } from "../api/uploads";
 import type {
@@ -2283,42 +2286,6 @@ function LayerDetailPage() {
     }
   };
 
-  const handleShowLatestExcavatorsManual = async (
-    caseType: Extract<ExcavatorsSplitCaseType, "CEX" | "GEC" | "GEW">
-  ) => {
-    const matrixType = getSplitManualMatrixType(caseType);
-    if (!matrixType) {
-      setExcavatorsManualError("No latest manual data is configured for this split case.");
-      return;
-    }
-
-    try {
-      setSavingExcavatorsManual(true);
-      setExcavatorsManualError("");
-      setExcavatorsManualMessage("");
-      const latestResult = await getLatestUploadByMatrixType(matrixType);
-      const latestRows = normalizeSplitManualRows(latestResult.rows);
-      setActiveExcavatorsSplitCase(caseType);
-      setShowExcavatorsSplitCasePanel(true);
-      setExcavatorsSplitCaseRows([]);
-      setExcavatorsSplitDetailRows(latestRows);
-      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
-      setExcavatorsResplitReadyByCase((prev) => ({ ...prev, [caseType]: true }));
-      setEditingExcavatorsManual(false);
-      setExcavatorsManualRows([]);
-      setExcavatorsManualMessage(
-        `Loaded latest ${caseType} manual version (Upload ID: ${latestResult.upload_run.id}).`
-      );
-    } catch (error) {
-      console.error(error);
-      setExcavatorsManualError(
-        error instanceof Error ? error.message : "Failed to load latest manual data."
-      );
-    } finally {
-      setSavingExcavatorsManual(false);
-    }
-  };
-
   const handleApplyExcavatorsResplit = async () => {
     if (excavatorsSplitDetailRows.length === 0) {
       setExcavatorsSplitCaseMessage("No split detail rows available for re-split.");
@@ -2740,6 +2707,93 @@ function LayerDetailPage() {
     void handleRunP10Report();
   }, [autoRunHandled, layer, location.search]);
 
+  const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+  const waitForExcavatorsSplitCexRun = async (runId: number) => {
+    const maxAttempts = 180;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const run = await getExcavatorsSplitCexRun(runId);
+      if (run.status === "success") {
+        return run;
+      }
+      if (run.status === "failed") {
+        throw new Error(run.message || "Split CEX Case run failed.");
+      }
+      await sleep(2000);
+    }
+
+    throw new Error("Timed out waiting for Split CEX Case to finish.");
+  };
+
+  const normalizeExcavatorsSplitDetailRowsForDisplay = (rows: ExcavatorsSplitDetailRow[]) => {
+    if (rows.length === 0) {
+      return rows;
+    }
+
+    const hasResplitColumns = Object.prototype.hasOwnProperty.call(rows[0], "resplit");
+    return hasResplitColumns ? rows : initializeResplitColumns(rows);
+  };
+
+  const persistExcavatorsSplitCaseSnapshot = async (
+    caseType: ExcavatorsSplitCaseType,
+    summaryRows: ExcavatorsSplitCaseRow[],
+    detailRows: ExcavatorsSplitDetailRow[],
+    summary: {
+      grouped_rows: number;
+      matched_rows: number;
+      gross_fid_total: number;
+      volvo_deduction_total: number;
+      net_fid_total: number;
+    },
+    sourceRowCount: number,
+    othRowCount: number,
+    p10RowCount: number
+  ) => {
+    await saveExcavatorsSplitCaseSnapshot({
+      case_type: caseType,
+      summary_rows: summaryRows,
+      detail_rows: detailRows,
+      summary,
+      source_row_count: sourceRowCount,
+      oth_row_count: othRowCount,
+      p10_row_count: p10RowCount,
+      message: `${caseType} split case snapshot saved successfully`,
+    });
+  };
+
+  const handleShowLatestExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
+    try {
+      setShowExcavatorsSplitCasePanel(true);
+      setActiveExcavatorsSplitCase(caseType);
+      setRunningExcavatorsSplitCase(true);
+      setExcavatorsSplitCaseError("");
+      setExcavatorsSplitCaseMessage(`Loading latest ${caseType} split case...`);
+      setEditingExcavatorsManual(false);
+      setExcavatorsManualRows([]);
+      setExcavatorsManualMessage("");
+      setExcavatorsManualError("");
+
+      const latest = await getLatestExcavatorsSplitCaseReport(caseType);
+      const detailRowsWithResplit = normalizeExcavatorsSplitDetailRowsForDisplay(latest.detail_rows);
+      setExcavatorsSplitCaseRows(latest.summary_rows);
+      setExcavatorsSplitDetailRows(detailRowsWithResplit);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsSplitCaseMessage(
+        `Latest loaded. Matching grouped rows: ${latest.summary.grouped_rows ?? latest.summary_rows.length}`
+      );
+    } catch (error) {
+      console.error(error);
+      setExcavatorsSplitCaseRows([]);
+      setExcavatorsSplitDetailRows([]);
+      setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      setExcavatorsSplitCaseError(
+        error instanceof Error ? error.message : `Failed to show latest ${caseType} split case.`
+      );
+    } finally {
+      setRunningExcavatorsSplitCase(false);
+    }
+  };
+
   const handleRunExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
     try {
       setShowExcavatorsSplitCasePanel(true);
@@ -2756,13 +2810,16 @@ function LayerDetailPage() {
       setExcavatorsManualError("");
 
       if (caseType === "CEX") {
-        const result = await getExcavatorsSplitCexReport();
-        const detailRowsWithResplit = initializeResplitColumns(result.detail_rows);
-        setExcavatorsSplitCaseRows(result.summary_rows);
-        setExcavatorsSplitDetailRows(detailRowsWithResplit);
+        setExcavatorsSplitCaseRows([]);
+        setExcavatorsSplitDetailRows([]);
         setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+        const run = await runExcavatorsSplitCexReport();
         setExcavatorsSplitCaseMessage(
-          `Run successful. Matching grouped rows: ${result.summary.grouped_rows}`
+          `Run submitted. Waiting for Split CEX Case run #${run.run_id} to finish...`
+        );
+        const finishedRun = await waitForExcavatorsSplitCexRun(run.run_id);
+        setExcavatorsSplitCaseMessage(
+          `Run successful. Run #${finishedRun.run_id} is saved. Click Show Latest CEX to load it.`
         );
         return;
       }
@@ -2785,6 +2842,21 @@ function LayerDetailPage() {
       setExcavatorsSplitCaseRows(rows);
       setExcavatorsSplitDetailRows(detailRowsWithResplit);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
+      await persistExcavatorsSplitCaseSnapshot(
+        caseType,
+        rows,
+        detailRowsWithResplit,
+        {
+          grouped_rows: rows.length,
+          matched_rows: rows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: rows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: rows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: rows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        detailRowsWithResplit.length,
+        othResult.row_count,
+        threeCheckResult.row_count
+      );
       setExcavatorsSplitCaseMessage(`Run successful. Matching grouped rows: ${rows.length}`);
     } catch (error) {
       console.error(error);
@@ -3166,13 +3238,11 @@ function LayerDetailPage() {
                   type="button"
                   className="btn btn--tiny"
                   onClick={() => {
-                    if (caseType === "CEX" || caseType === "GEC" || caseType === "GEW") {
-                      void handleShowLatestExcavatorsManual(caseType);
-                    }
+                    void handleShowLatestExcavatorsSplitCase(caseType);
                   }}
-                  disabled={savingExcavatorsManual || caseType === "ALL"}
+                  disabled={runningExcavatorsSplitCase || savingExcavatorsManual}
                 >
-                  {caseType === "ALL" ? "Show Latest ALL (N/A)" : `Show Latest ${caseType}`}
+                  {`Show Latest ${caseType}`}
                 </button>
               ))}
             </div>
