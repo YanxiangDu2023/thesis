@@ -399,5 +399,35 @@ def init_db():
     ON report_run_history(report_key, triggered_at DESC, id DESC)
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS p00_report_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_key TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        row_count INTEGER,
+        status TEXT,
+        message TEXT,
+        meta_json TEXT
+    )
+    """)
+    _ensure_column(cursor, "p00_report_runs", "meta_json", "TEXT")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS p00_report_rows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_run_id INTEGER NOT NULL,
+        row_index INTEGER,
+        row_json TEXT NOT NULL,
+        FOREIGN KEY (report_run_id) REFERENCES p00_report_runs(id)
+    )
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_p00_report_runs_key_time
+    ON p00_report_runs(report_key, created_at DESC, id DESC)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_p00_report_rows_run_row
+    ON p00_report_rows(report_run_id, row_index, id)
+    """)
+
     conn.commit()
     conn.close()

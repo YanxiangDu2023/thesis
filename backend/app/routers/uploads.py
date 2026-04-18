@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import uuid
 import unicodedata
@@ -1111,6 +1112,19 @@ def get_crp_d1_combined_report(track_run: bool = False):
     result = _get_crp_d1_combined_report_data(include_all_sal=True)
     if track_run:
         _record_report_run(P00_RUN_KEYS["crp_d1_combined"])
+        _save_p00_report_snapshot(
+            P00_RUN_KEYS["crp_d1_combined"],
+            result["rows"],
+            "CRP D1 Combined report generated successfully",
+            meta={
+                "tma_upload_run_id": result["tma_upload_run_id"],
+                "volvo_upload_run_id": result["volvo_upload_run_id"],
+                "group_country_upload_run_id": result["group_country_upload_run_id"],
+                "source_matrix_upload_run_id": result["source_matrix_upload_run_id"],
+                "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
+                "reporter_list_upload_run_id": result["reporter_list_upload_run_id"],
+            },
+        )
     return result
 
 
@@ -1605,9 +1619,94 @@ def get_a10_adjustment_report():
         conn.close()
 
 
+def _save_p00_report_snapshot(
+    report_key: str,
+    rows: list[dict[str, Any]],
+    message: str,
+    meta: dict[str, Any] | None = None,
+) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO p00_report_runs (report_key, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (report_key, len(rows), "running", message, json.dumps(meta or {}, ensure_ascii=False, default=str)))
+        run_id = cursor.lastrowid
+
+        cursor.executemany("""
+            INSERT INTO p00_report_rows (report_run_id, row_index, row_json)
+            VALUES (?, ?, ?)
+        """, [
+            (run_id, index, json.dumps(row, ensure_ascii=False, default=str))
+            for index, row in enumerate(rows, start=1)
+        ])
+
+        cursor.execute("""
+            UPDATE p00_report_runs
+            SET row_count = ?, status = ?, message = ?
+            WHERE id = ?
+        """, (
+            len(rows),
+            "success",
+            message,
+            run_id,
+        ))
+        conn.commit()
+        return run_id
+    except Exception as e:
+        if "run_id" in locals():
+            cursor.execute("""
+                UPDATE p00_report_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, ("failed", str(e), run_id))
+            conn.commit()
+        raise
+    finally:
+        conn.close()
+
+
+def _get_latest_p00_report_snapshot(report_key: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM p00_report_runs
+            WHERE report_key = ? AND status = 'success'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        """, (report_key,))
+        latest_run = cursor.fetchone()
+        if latest_run is None:
+            raise HTTPException(status_code=404, detail="No report runs found")
+
+        latest_run_dict = dict(latest_run)
+        cursor.execute("""
+            SELECT row_json
+            FROM p00_report_rows
+            WHERE report_run_id = ?
+            ORDER BY row_index ASC, id ASC
+        """, (latest_run_dict["id"],))
+        rows = [json.loads(row["row_json"]) for row in cursor.fetchall()]
+        return latest_run_dict, rows
+    finally:
+        conn.close()
+
+
 @router.get("/reports/crp-d1-combined/latest")
 def get_latest_crp_d1_combined_report():
-    return get_crp_d1_combined_report(track_run=False)
+    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["crp_d1_combined"])
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "row_count": run.get("row_count") or len(rows),
+        "rows": rows,
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "created_at": run.get("created_at"),
+        **meta,
+    }
 
 
 @router.get("/reports/oth-deletion-flag")
@@ -1942,6 +2041,19 @@ def get_oth_deletion_flag_report(track_run: bool = False):
         }
         if track_run:
             _record_report_run(P00_RUN_KEYS["oth_deletion_flag"])
+            _save_p00_report_snapshot(
+                P00_RUN_KEYS["oth_deletion_flag"],
+                result["rows"],
+                "OTH Deletion Flag report generated successfully",
+                meta={
+                    "oth_upload_run_id": result["oth_upload_run_id"],
+                    "group_country_upload_run_id": result["group_country_upload_run_id"],
+                    "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
+                    "brand_mapping_upload_run_id": result["brand_mapping_upload_run_id"],
+                    "source_matrix_upload_run_id": result["source_matrix_upload_run_id"],
+                    "reporter_list_upload_run_id": result["reporter_list_upload_run_id"],
+                },
+            )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1951,7 +2063,16 @@ def get_oth_deletion_flag_report(track_run: bool = False):
 
 @router.get("/reports/oth-deletion-flag/latest")
 def get_latest_oth_deletion_flag_report():
-    return get_oth_deletion_flag_report(track_run=False)
+    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["oth_deletion_flag"])
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "row_count": run.get("row_count") or len(rows),
+        "rows": rows,
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "created_at": run.get("created_at"),
+        **meta,
+    }
 
 
 @router.get("/reports/p00-three-check")
@@ -2120,6 +2241,19 @@ def get_p00_three_check_report(track_run: bool = False):
         }
         if track_run:
             _record_report_run(P00_RUN_KEYS["three_check"])
+            _save_p00_report_snapshot(
+                P00_RUN_KEYS["three_check"],
+                result["rows"],
+                "P00 3 Check report generated successfully",
+                meta={
+                    "tma_upload_run_id": result["tma_upload_run_id"],
+                    "volvo_upload_run_id": result["volvo_upload_run_id"],
+                    "group_country_upload_run_id": result["group_country_upload_run_id"],
+                    "source_matrix_upload_run_id": result["source_matrix_upload_run_id"],
+                    "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
+                    "oth_upload_run_id": result["oth_upload_run_id"],
+                },
+            )
         return result
     finally:
         conn.close()
@@ -2127,7 +2261,16 @@ def get_p00_three_check_report(track_run: bool = False):
 
 @router.get("/reports/p00-three-check/latest")
 def get_latest_p00_three_check_report():
-    return get_p00_three_check_report(track_run=False)
+    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["three_check"])
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "row_count": run.get("row_count") or len(rows),
+        "rows": rows,
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "created_at": run.get("created_at"),
+        **meta,
+    }
 
 
 @router.get("/reports/p00-run-times")
