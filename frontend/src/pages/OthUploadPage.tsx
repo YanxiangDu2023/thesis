@@ -279,19 +279,6 @@ function OthUploadPage() {
             </button>
           </div>
 
-          <div className="summary-row">
-            <span className="summary-label">Run ID</span>
-            <span className="summary-value">{controlReportRun.id}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Status</span>
-            <span className="summary-value">{controlReportRun.status ?? "-"}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">Row Count</span>
-            <span className="summary-value">{controlReportRun.row_count ?? 0}</span>
-          </div>
-
           <FilterableTable
             columns={controlReportColumnKeys.map((column) => ({ key: column, label: column }))}
             rows={controlReportRows}
