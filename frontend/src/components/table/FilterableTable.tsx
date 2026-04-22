@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type FilterableColumn = {
   key: string;
@@ -174,15 +174,8 @@ function FilterableTable({
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [isHorizontalDragging, setIsHorizontalDragging] = useState(false);
   const filterMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
-  const horizontalDragStateRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startScrollLeft: number;
-    active: boolean;
-  } | null>(null);
   const showRowActions = editable && typeof onDeleteRow === "function";
   const normalizedFilters = useMemo(() => {
     const next: Record<string, string[]> = {};
@@ -263,25 +256,6 @@ function FilterableTable({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [openFilterKey]);
-
-  useEffect(() => {
-    if (!isHorizontalDragging) {
-      return undefined;
-    }
-
-    function handleWindowPointerUp() {
-      horizontalDragStateRef.current = null;
-      setIsHorizontalDragging(false);
-    }
-
-    window.addEventListener("pointerup", handleWindowPointerUp);
-    window.addEventListener("pointercancel", handleWindowPointerUp);
-
-    return () => {
-      window.removeEventListener("pointerup", handleWindowPointerUp);
-      window.removeEventListener("pointercancel", handleWindowPointerUp);
-    };
-  }, [isHorizontalDragging]);
 
   useEffect(() => {
     if (onFiltersChange) {
@@ -484,75 +458,6 @@ function FilterableTable({
     topSpacerHeight,
   ]);
 
-  function handleTablePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) {
-      return;
-    }
-
-    const target = event.target as HTMLElement | null;
-    if (
-      target?.closest(
-        "button, input, textarea, select, option, label, a, [role='button'], [role='checkbox']"
-      )
-    ) {
-      return;
-    }
-
-    const wrapper = tableWrapperRef.current;
-    if (!wrapper) {
-      return;
-    }
-
-    horizontalDragStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startScrollLeft: wrapper.scrollLeft,
-      active: false,
-    };
-
-    try {
-      wrapper.setPointerCapture(event.pointerId);
-    } catch {
-      // Ignore pointer capture issues on unsupported browsers.
-    }
-  }
-
-  function handleTablePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const dragState = horizontalDragStateRef.current;
-    const wrapper = tableWrapperRef.current;
-    if (!dragState || !wrapper || dragState.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const deltaX = event.clientX - dragState.startX;
-    if (!dragState.active && Math.abs(deltaX) < 4) {
-      return;
-    }
-
-    if (!dragState.active) {
-      dragState.active = true;
-      setIsHorizontalDragging(true);
-    }
-
-    event.preventDefault();
-    wrapper.scrollLeft = dragState.startScrollLeft - deltaX;
-  }
-
-  function clearHorizontalDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const dragState = horizontalDragStateRef.current;
-    if (dragState && dragState.pointerId === event.pointerId) {
-      horizontalDragStateRef.current = null;
-      setIsHorizontalDragging(false);
-
-      const wrapper = tableWrapperRef.current;
-      try {
-        wrapper?.releasePointerCapture(event.pointerId);
-      } catch {
-        // Ignore pointer capture issues on unsupported browsers.
-      }
-    }
-  }
-
   return (
     <div className="data-table-shell">
       <div className="data-table__summary">
@@ -573,12 +478,8 @@ function FilterableTable({
       </div>
       <div
         ref={tableWrapperRef}
-        className={`table-wrapper${isHorizontalDragging ? " table-wrapper--dragging" : ""}`}
+        className="table-wrapper"
         style={maxHeight ? { maxHeight } : undefined}
-        onPointerDown={handleTablePointerDown}
-        onPointerMove={handleTablePointerMove}
-        onPointerUp={clearHorizontalDrag}
-        onPointerCancel={clearHorizontalDrag}
         onScroll={(event) => {
           if (!shouldVirtualize) {
             return;
