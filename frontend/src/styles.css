@@ -1508,6 +1508,13 @@ button {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.table-wrapper--dragging {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .data-table-shell {
