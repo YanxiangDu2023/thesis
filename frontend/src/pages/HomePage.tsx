@@ -48,6 +48,15 @@ const machineLineSplitCard: LayerCard = {
   ],
 };
 
+const totalMarketCalculationCard: LayerCard = {
+  code: "TMC",
+  title: "Total Market Calculation",
+  bullets: [
+    "Define the core calculation scope for the TMC workflow.",
+    "Combine source data into the prepared market foundation.",
+  ],
+};
+
 const tmcTimeline: TimelineStep[] = [
   {
     code: "SET",
@@ -264,6 +273,31 @@ function HomePage() {
               <h4 className="card__title">{machineLineSplitCard.title}</h4>
               <ul className="card__list">
                 {machineLineSplitCard.bullets?.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          </Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <p className="section-tag">Total Market Calculation</p>
+          <h3 className="section-title">Total Market Calculation</h3>
+          <p className="section-description">
+            The core TMC scope sits below the machine line split stage and frames the
+            prepared market build.
+          </p>
+        </div>
+
+        <div className="card-grid card-grid--three">
+          <Link to="/pipeline" className="layer-card-link">
+            <article className="card layer-card">
+              <span className="layer-card__code">{totalMarketCalculationCard.code}</span>
+              <h4 className="card__title">{totalMarketCalculationCard.title}</h4>
+              <ul className="card__list">
+                {totalMarketCalculationCard.bullets?.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
