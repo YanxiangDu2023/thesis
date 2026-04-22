@@ -1845,8 +1845,12 @@ function LayerDetailPage() {
       return;
     }
 
-    if (activeWheelLoadersSplitCase !== "WLO_GT10" && activeWheelLoadersSplitCase !== "WLO_LT10") {
-      setWheelLoadersSplitMessage("Resplit is currently available for WLO >10 and WLO <10.");
+    if (
+      activeWheelLoadersSplitCase !== "WLO_GT10" &&
+      activeWheelLoadersSplitCase !== "WLO_LT10" &&
+      activeWheelLoadersSplitCase !== "WLO_LT12"
+    ) {
+      setWheelLoadersSplitMessage("Resplit is currently available for WLO >10, WLO <10, and WLO <12.");
       return;
     }
 
@@ -2940,7 +2944,8 @@ function LayerDetailPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       {showWheelLoadersSplitDetail &&
                       (activeWheelLoadersSplitCase === "WLO_GT10" ||
-                        activeWheelLoadersSplitCase === "WLO_LT10") ? (
+                        activeWheelLoadersSplitCase === "WLO_LT10" ||
+                        activeWheelLoadersSplitCase === "WLO_LT12") ? (
                         <>
                           <button
                             type="button"
