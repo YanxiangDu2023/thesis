@@ -59,6 +59,30 @@ function toNumericValue(value: string | number | null | undefined): number | nul
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function formatNumericDisplayValue(value: number, fractionDigits: number): string {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
+function formatCellValue(value: string | number | null | undefined, columnKey: string): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const numericValue = toNumericValue(value);
+  if (numericValue !== null) {
+    if (columnKey === "before_after_difference") {
+      return formatNumericDisplayValue(Math.round(numericValue), 0);
+    }
+
+    return formatNumericDisplayValue(numericValue, 2);
+  }
+
+  return String(value);
+}
+
 function shouldSummarizeColumn(
   column: FilterableColumn,
   rows: Array<Record<string, string | number | null>>,
@@ -385,7 +409,7 @@ function FilterableTable({
                     style={{ width: "100%" }}
                   />
                 ) : (
-                  toCellText(row[column.key])
+                  formatCellValue(row[column.key], column.key)
                 )}
               </td>
             ))}
@@ -437,7 +461,13 @@ function FilterableTable({
         </div>
         {summaryItems.map((item) => (
           <div key={item.key} className="data-table__summary-chip">
-            {item.label}: <strong>{item.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+            {item.label}:{" "}
+            <strong>
+              {formatNumericDisplayValue(
+                item.key === "before_after_difference" ? Math.round(item.sum) : item.sum,
+                item.key === "before_after_difference" ? 0 : 2
+              )}
+            </strong>
           </div>
         ))}
       </div>

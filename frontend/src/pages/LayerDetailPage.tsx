@@ -143,6 +143,13 @@ function roundTo4(value: number): number {
   return Number(value.toFixed(4));
 }
 
+function formatNumberDisplay(value: number, fractionDigits = 2): string {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
 function normalizeSizeClassForResplit(value: string | number | null | undefined): string {
   const key = toMatchKey(value);
   if (key === "MINI") {
@@ -2665,9 +2672,7 @@ function LayerDetailPage() {
                       <article className="card">
                         <h4 className="card__title">Net FID</h4>
                         <p className="summary-value">
-                          {excavatorsSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(excavatorsSplitCaseSummary.netFidTotal)}
                         </p>
                       </article>
                     </div>
@@ -2675,25 +2680,22 @@ function LayerDetailPage() {
                       <article className="card">
                         <h4 className="card__title">Gross FID</h4>
                         <p className="summary-value">
-                          {excavatorsSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(excavatorsSplitCaseSummary.grossFidTotal)}
                         </p>
                       </article>
                       <article className="card">
                         <h4 className="card__title">Volvo Deduction</h4>
                         <p className="summary-value">
-                          {excavatorsSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(excavatorsSplitCaseSummary.volvoDeductionTotal)}
                         </p>
                       </article>
                       <article className="card">
                         <h4 className="card__title">Net FID Check</h4>
                         <p className="summary-value">
-                          {(excavatorsSplitCaseSummary.grossFidTotal - excavatorsSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(
+                            excavatorsSplitCaseSummary.grossFidTotal -
+                              excavatorsSplitCaseSummary.volvoDeductionTotal
+                          )}
                         </p>
                       </article>
                     </div>
@@ -2893,9 +2895,7 @@ function LayerDetailPage() {
                       <article className="card">
                         <h4 className="card__title">Net FID</h4>
                         <p className="summary-value">
-                          {wheelLoadersSplitCaseSummary.netFidTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(wheelLoadersSplitCaseSummary.netFidTotal)}
                         </p>
                       </article>
                     </div>
@@ -2903,25 +2903,22 @@ function LayerDetailPage() {
                       <article className="card">
                         <h4 className="card__title">Gross FID</h4>
                         <p className="summary-value">
-                          {wheelLoadersSplitCaseSummary.grossFidTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(wheelLoadersSplitCaseSummary.grossFidTotal)}
                         </p>
                       </article>
                       <article className="card">
                         <h4 className="card__title">Volvo Deduction</h4>
                         <p className="summary-value">
-                          {wheelLoadersSplitCaseSummary.volvoDeductionTotal.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(wheelLoadersSplitCaseSummary.volvoDeductionTotal)}
                         </p>
                       </article>
                       <article className="card">
                         <h4 className="card__title">Net FID Check</h4>
                         <p className="summary-value">
-                          {(wheelLoadersSplitCaseSummary.grossFidTotal - wheelLoadersSplitCaseSummary.volvoDeductionTotal).toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatNumberDisplay(
+                            wheelLoadersSplitCaseSummary.grossFidTotal -
+                              wheelLoadersSplitCaseSummary.volvoDeductionTotal
+                          )}
                         </p>
                       </article>
                     </div>
@@ -3172,19 +3169,19 @@ function LayerDetailPage() {
               <article className="card">
                 <h4 className="card__title">Total Market (TMA)</h4>
                 <p className="summary-value">
-                  {p10Summary.total_market_sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {formatNumberDisplay(p10Summary.total_market_sum)}
                 </p>
               </article>
               <article className="card">
                 <h4 className="card__title">Volvo CE (VCE)</h4>
                 <p className="summary-value">
-                  {p10Summary.vce_sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {formatNumberDisplay(p10Summary.vce_sum)}
                 </p>
               </article>
               <article className="card">
                 <h4 className="card__title">Non-Volvo CE</h4>
                 <p className="summary-value">
-                  {p10Summary.non_vce_sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {formatNumberDisplay(p10Summary.non_vce_sum)}
                 </p>
               </article>
             </div>
@@ -3201,7 +3198,7 @@ function LayerDetailPage() {
                   }}
                 >
                   <div className="p10-donut__hole">
-                    <div className="p10-donut__value">{p10Share.vcePct.toFixed(1)}%</div>
+                    <div className="p10-donut__value">{p10Share.vcePct.toFixed(2)}%</div>
                     <div className="p10-donut__label">VCE Share</div>
                   </div>
                 </div>
@@ -3210,7 +3207,7 @@ function LayerDetailPage() {
                     <span className="p10-share-legend__dot p10-share-legend__dot--vce" />
                     <span>Volvo CE (VCE)</span>
                     <strong>
-                      {p10Share.safeVce.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({p10Share.vcePct.toFixed(1)}
+                      {formatNumberDisplay(p10Share.safeVce)} ({p10Share.vcePct.toFixed(2)}
                       %)
                     </strong>
                   </div>
@@ -3218,13 +3215,12 @@ function LayerDetailPage() {
                     <span className="p10-share-legend__dot p10-share-legend__dot--non-vce" />
                     <span>Non-Volvo CE</span>
                     <strong>
-                      {p10Share.safeNonVce.toLocaleString(undefined, { maximumFractionDigits: 2 })} (
-                      {p10Share.nonVcePct.toFixed(1)}%)
+                      {formatNumberDisplay(p10Share.safeNonVce)} ({p10Share.nonVcePct.toFixed(2)}%)
                     </strong>
                   </div>
                   <div className="p10-share-legend__total">
                     Total Market:{" "}
-                    <strong>{p10Share.totalMarket.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+                    <strong>{formatNumberDisplay(p10Share.totalMarket)}</strong>
                   </div>
                 </div>
               </div>
