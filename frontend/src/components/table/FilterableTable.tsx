@@ -76,6 +76,10 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
     return text.replace(/(-?\d+(?:\.\d+)?)%/g, (_, num: string) => `${Number(num).toFixed(2)}%`);
   }
 
+  if (columnKey === "year") {
+    return String(value);
+  }
+
   const numericValue = toNumericValue(value);
   if (numericValue !== null) {
     if (columnKey === "before_after_difference") {
