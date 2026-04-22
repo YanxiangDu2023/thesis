@@ -52,8 +52,8 @@ const totalMarketCalculationCard: LayerCard = {
   code: "TMC",
   title: "Total Market Calculation",
   bullets: [
-    "Define the core calculation scope for the TMC workflow.",
-    "Combine source data into the prepared market foundation.",
+    "Handle double-brand deletion cases before market aggregation.",
+    "Build total market values from FID, using primary and secondary sources when available.",
   ],
 };
 
@@ -286,8 +286,8 @@ function HomePage() {
           <p className="section-tag">Total Market Calculation</p>
           <h3 className="section-title">Total Market Calculation</h3>
           <p className="section-description">
-            The core TMC scope sits below the machine line split stage and frames the
-            prepared market build.
+            Resolve double-brand logic first, then calculate the total market and
+            prepare the final F00 output.
           </p>
         </div>
 
