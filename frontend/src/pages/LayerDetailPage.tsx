@@ -218,18 +218,27 @@ function applyExcavatorsResplitByCrpSource(
 
     const firstSizeClass = normalizeSizeClassForResplit(detailConfig.firstTargetLabel);
     const secondSizeClass = normalizeSizeClassForResplit(detailConfig.secondTargetLabel);
+    const thirdSizeClass = detailConfig.thirdTargetLabel
+      ? normalizeSizeClassForResplit(detailConfig.thirdTargetLabel)
+      : "";
 
     const beforeFirst = roundTo4(toNumberValue(row.after_split_fid_lt_6t));
     const beforeSecond = roundTo4(toNumberValue(row.after_split_fid_6_10t));
+    const beforeThird = detailConfig.thirdTargetLabel
+      ? roundTo4(toNumberValue(row.after_split_fid_target_three))
+      : 0;
+    const beforeTotal = roundTo4(beforeFirst + beforeSecond + beforeThird);
 
     let afterFirst = beforeFirst;
     let afterSecond = beforeSecond;
+    let afterThird = beforeThird;
 
     const unsoldSet =
       unsoldSizeClassBySourceBrandMachine.get(`${crpSourceKey}|${brandCodeKey}|${artificialKey}`) ??
       new Set<string>();
     const unsoldFirst = unsoldSet.has(firstSizeClass);
     const unsoldSecond = unsoldSet.has(secondSizeClass);
+    const unsoldThird = thirdSizeClass ? unsoldSet.has(thirdSizeClass) : false;
     const triggeredLabels: string[] = [];
 
     if (unsoldFirst && beforeFirst > 0) {
@@ -238,8 +247,65 @@ function applyExcavatorsResplitByCrpSource(
     if (unsoldSecond && beforeSecond > 0) {
       triggeredLabels.push(detailConfig.secondTargetLabel);
     }
+    if (detailConfig.thirdTargetLabel && unsoldThird && beforeThird > 0) {
+      triggeredLabels.push(detailConfig.thirdTargetLabel);
+    }
 
-    if (unsoldFirst && !unsoldSecond) {
+    if (detailConfig.thirdTargetLabel) {
+      const targetSpecs = [
+        {
+          label: detailConfig.firstTargetLabel,
+          blocked: unsoldFirst,
+          value: beforeFirst,
+        },
+        {
+          label: detailConfig.secondTargetLabel,
+          blocked: unsoldSecond,
+          value: beforeSecond,
+        },
+        {
+          label: detailConfig.thirdTargetLabel,
+          blocked: unsoldThird,
+          value: beforeThird,
+        },
+      ];
+      const allowedTargets = targetSpecs.filter((spec) => !spec.blocked);
+      const allowedWeight = allowedTargets.reduce((sum, spec) => sum + spec.value, 0);
+
+      if (triggeredLabels.length > 0) {
+        if (allowedTargets.length === 0) {
+          afterFirst = 0;
+          afterSecond = 0;
+          afterThird = 0;
+        } else if (allowedTargets.length === 1) {
+          afterFirst = targetSpecs[0].label === allowedTargets[0].label ? beforeTotal : 0;
+          afterSecond = targetSpecs[1].label === allowedTargets[0].label ? beforeTotal : 0;
+          afterThird = targetSpecs[2].label === allowedTargets[0].label ? beforeTotal : 0;
+        } else {
+          let remaining = beforeTotal;
+          const assignedByLabel = new Map<string, number>();
+
+          allowedTargets.forEach((spec, index) => {
+            if (index === allowedTargets.length - 1) {
+              assignedByLabel.set(spec.label, roundTo4(remaining));
+              return;
+            }
+
+            const rawShare =
+              allowedWeight > 0
+                ? (beforeTotal * spec.value) / allowedWeight
+                : beforeTotal / allowedTargets.length;
+            const share = roundTo4(rawShare);
+            assignedByLabel.set(spec.label, share);
+            remaining = roundTo4(remaining - share);
+          });
+
+          afterFirst = assignedByLabel.get(targetSpecs[0].label) ?? 0;
+          afterSecond = assignedByLabel.get(targetSpecs[1].label) ?? 0;
+          afterThird = assignedByLabel.get(targetSpecs[2].label) ?? 0;
+        }
+      }
+    } else if (unsoldFirst && !unsoldSecond) {
       afterSecond = roundTo4(beforeSecond + beforeFirst);
       afterFirst = 0;
     } else if (!unsoldFirst && unsoldSecond) {
@@ -252,7 +318,7 @@ function applyExcavatorsResplitByCrpSource(
       resplit: triggeredLabels.length > 0 ? `Y(${triggeredLabels.join(", ")})` : "",
       after_resplit_fid_lt_6t: afterFirst,
       after_resplit_fid_6_10t: afterSecond,
-      after_resplit_fid_target_three: "",
+      after_resplit_fid_target_three: detailConfig.thirdTargetLabel ? afterThird : "",
     };
   });
 }
