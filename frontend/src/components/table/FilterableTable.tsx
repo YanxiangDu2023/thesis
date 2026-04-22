@@ -71,6 +71,11 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
     return "";
   }
 
+  if (columnKey === "split_ratio") {
+    const text = String(value);
+    return text.replace(/(-?\d+(?:\.\d+)?)%/g, (_, num: string) => `${Number(num).toFixed(2)}%`);
+  }
+
   const numericValue = toNumericValue(value);
   if (numericValue !== null) {
     if (columnKey === "before_after_difference") {

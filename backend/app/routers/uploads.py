@@ -101,6 +101,10 @@ def _round_to_4(value: float) -> float:
     return 0.0 if abs(rounded) < 0.00005 else rounded
 
 
+def _format_percent_2(value: float) -> str:
+    return f"{value:.2f}%"
+
+
 def _get_table_insert_columns(cursor, table_name: str) -> list[str]:
     columns = get_table_columns(cursor, table_name)
     excluded = {"id", "upload_run_id", "row_index"}
@@ -2183,26 +2187,34 @@ def _build_excavators_split_detail_rows_from_three_check(
             after_first_target = _round_to_4(before_split_fid)
             after_second_target = 0.0
             after_third_target = 0.0
-            split_ratio = "100% / 0% / 0%" if third_target_label else "100% / 0%"
+            split_ratio = (
+                f"{_format_percent_2(100.0)} / {_format_percent_2(0.0)} / {_format_percent_2(0.0)}"
+                if third_target_label
+                else f"{_format_percent_2(100.0)} / {_format_percent_2(0.0)}"
+            )
         elif first_target_tm <= 0 and second_target_tm > 0 and third_target_tm <= 0:
             after_first_target = 0.0
             after_second_target = _round_to_4(before_split_fid)
             after_third_target = 0.0
-            split_ratio = "0% / 100% / 0%" if third_target_label else "0% / 100%"
+            split_ratio = (
+                f"{_format_percent_2(0.0)} / {_format_percent_2(100.0)} / {_format_percent_2(0.0)}"
+                if third_target_label
+                else f"{_format_percent_2(0.0)} / {_format_percent_2(100.0)}"
+            )
         elif tm_total > 0:
             after_first_target = _round_to_4((before_split_fid * first_target_tm) / tm_total)
             after_second_target = _round_to_4((before_split_fid * second_target_tm) / tm_total)
             after_third_target = _round_to_4((before_split_fid * third_target_tm) / tm_total)
             if third_target_label:
                 split_ratio = (
-                    f"{_round_to_4((first_target_tm / tm_total) * 100)}% / "
-                    f"{_round_to_4((second_target_tm / tm_total) * 100)}% / "
-                    f"{_round_to_4((third_target_tm / tm_total) * 100)}%"
+                    f"{_format_percent_2((first_target_tm / tm_total) * 100)} / "
+                    f"{_format_percent_2((second_target_tm / tm_total) * 100)} / "
+                    f"{_format_percent_2((third_target_tm / tm_total) * 100)}"
                 )
             else:
                 split_ratio = (
-                    f"{_round_to_4((first_target_tm / tm_total) * 100)}% / "
-                    f"{_round_to_4((second_target_tm / tm_total) * 100)}%"
+                    f"{_format_percent_2((first_target_tm / tm_total) * 100)} / "
+                    f"{_format_percent_2((second_target_tm / tm_total) * 100)}"
                 )
 
         difference = _round_to_4(before_split_fid - after_first_target - after_second_target - after_third_target)
@@ -3121,7 +3133,7 @@ def _build_cex_split_case_report():
             return ""
         lt_6t_ratio = (tm_non_vce_lt_6t / total_reference) * 100
         ratio_6_10t = (tm_non_vce_6_10t / total_reference) * 100
-        return f"<6T {lt_6t_ratio:.4f}% | 6<10T {ratio_6_10t:.4f}%"
+        return f"<6T {lt_6t_ratio:.2f}% | 6<10T {ratio_6_10t:.2f}%"
 
     summary_by_group: dict[str, dict[str, Any]] = {}
     detail_rows: list[dict[str, Any]] = []
