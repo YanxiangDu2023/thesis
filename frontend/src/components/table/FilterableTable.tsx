@@ -67,7 +67,7 @@ function formatNumericDisplayValue(value: number, fractionDigits: number): strin
 }
 
 function shouldRenderAsText(columnKey: string): boolean {
-  return /(^|_)(year|code|flag|id|index|row)(_|$)/i.test(columnKey);
+  return /(^|_)(calendar|year|code|flag|id|index|row)(_|$)/i.test(columnKey);
 }
 
 function formatCellValue(value: string | number | null | undefined, columnKey: string): string {
@@ -82,6 +82,11 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
 
   if (columnKey === "year") {
     return String(value);
+  }
+
+  if (columnKey === "calendar") {
+    const numericValue = toNumericValue(value);
+    return numericValue !== null ? String(Math.round(numericValue)) : String(value);
   }
 
   if (shouldRenderAsText(columnKey)) {
