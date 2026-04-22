@@ -66,6 +66,10 @@ function formatNumericDisplayValue(value: number, fractionDigits: number): strin
   });
 }
 
+function shouldRenderAsText(columnKey: string): boolean {
+  return /(^|_)(year|code|flag|id|index|row)(_|$)/i.test(columnKey);
+}
+
 function formatCellValue(value: string | number | null | undefined, columnKey: string): string {
   if (value === null || value === undefined) {
     return "";
@@ -77,6 +81,10 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
   }
 
   if (columnKey === "year") {
+    return String(value);
+  }
+
+  if (shouldRenderAsText(columnKey)) {
     return String(value);
   }
 
@@ -104,7 +112,7 @@ function shouldSummarizeColumn(
     return true;
   }
 
-  if (/(^|_)(year|code|flag|id|index|row)(_|$)/i.test(column.key)) {
+  if (shouldRenderAsText(column.key)) {
     return false;
   }
 
