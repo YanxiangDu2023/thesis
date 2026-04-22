@@ -29,6 +29,7 @@ MATRIX_TYPE_TO_TABLE = {
     "split_manual_gew": "split_manual_rows",
     "split_manual_wlo_gt10": "split_manual_rows",
     "split_manual_wlo_lt10": "split_manual_rows",
+    "split_manual_wlo_lt12": "split_manual_rows",
 }
 REQUIRED_UPLOAD_TYPES = [
     "source_matrix",

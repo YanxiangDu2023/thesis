@@ -1101,6 +1101,9 @@ function getSplitManualMatrixType(caseType: SplitDetailCaseType): string | null 
   if (caseType === "WLO_LT10") {
     return "split_manual_wlo_lt10";
   }
+  if (caseType === "WLO_LT12") {
+    return "split_manual_wlo_lt12";
+  }
   return null;
 }
 
@@ -1626,7 +1629,9 @@ function LayerDetailPage() {
       activeExcavatorsSplitCase === "GEW") &&
     excavatorsResplitReadyByCase[activeExcavatorsSplitCase];
   const canEditWheelManual =
-    (activeWheelLoadersSplitCase === "WLO_GT10" || activeWheelLoadersSplitCase === "WLO_LT10") &&
+    (activeWheelLoadersSplitCase === "WLO_GT10" ||
+      activeWheelLoadersSplitCase === "WLO_LT10" ||
+      activeWheelLoadersSplitCase === "WLO_LT12") &&
     wheelResplitReadyByCase[activeWheelLoadersSplitCase];
 
   const getLatestSizeClassRows = async (): Promise<UploadRow[]> => {
