@@ -55,11 +55,6 @@ const tmcTimeline: TimelineStep[] = [
     description: "Maintain matrix rules and load source data for the run.",
   },
   {
-    code: "TMC",
-    title: "Total Market Calculation",
-    description: "Start the core TMC process and define the calculation scope.",
-  },
-  {
     code: "P00",
     title: "Raw Preparation",
     description: "Merge TMA, SAL, OTH, and CRP-ready fields into a clean base.",
@@ -78,6 +73,11 @@ const tmcTimeline: TimelineStep[] = [
     code: "SPL",
     title: "Machine Line Split",
     description: "Split adjusted results into machine-line level output.",
+  },
+  {
+    code: "TMC",
+    title: "Total Market Calculation",
+    description: "Start the core TMC process and define the calculation scope.",
   },
   {
     code: "RES",
