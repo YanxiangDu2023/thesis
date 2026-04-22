@@ -292,7 +292,7 @@ function HomePage() {
         </div>
 
         <div className="card-grid card-grid--three">
-          <Link to="/pipeline" className="layer-card-link">
+          <Link to="/total-market-calculation" className="layer-card-link">
             <article className="card layer-card">
               <span className="layer-card__code">{totalMarketCalculationCard.code}</span>
               <h4 className="card__title">{totalMarketCalculationCard.title}</h4>

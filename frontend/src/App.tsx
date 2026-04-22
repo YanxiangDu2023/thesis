@@ -18,6 +18,7 @@ import CrpUploadPage from "./pages/CrpUploadPage";
 import UploadResultPage from "./pages/UploadResultPage";
 import LayerDetailPage from "./pages/LayerDetailPage";
 import AuthPage from "./pages/AuthPage";
+import TotalMarketCalculationPage from "./pages/TotalMarketCalculationPage";
 
 function readBoolEnv(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) {
@@ -183,6 +184,7 @@ function App() {
             }
           >
             <Route path="/" element={<HomePage />} />
+            <Route path="/total-market-calculation" element={<TotalMarketCalculationPage />} />
             <Route path="/matrix" element={<MatrixSubmissionPage />} />
             <Route path="/pipeline" element={<PipelineViewerPage />} />
             <Route path="/upload/oth" element={<OthUploadPage />} />
