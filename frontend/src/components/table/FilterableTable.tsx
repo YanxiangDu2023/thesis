@@ -66,6 +66,15 @@ function formatNumericDisplayValue(value: number, fractionDigits: number): strin
   });
 }
 
+function shouldHideDotZeroForP10Metrics(columnKey: string): boolean {
+  return (
+    columnKey === "total_market" ||
+    columnKey === "vce" ||
+    columnKey === "non_vce" ||
+    columnKey === "vce_share_pct"
+  );
+}
+
 function shouldRenderAsText(columnKey: string): boolean {
   return /(^|_)(calendar|year|code|flag|id|index|row)(_|$)/i.test(columnKey);
 }
@@ -97,6 +106,11 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
   if (numericValue !== null) {
     if (columnKey === "before_after_difference") {
       return formatNumericDisplayValue(Math.round(numericValue), 0);
+    }
+
+    if (shouldHideDotZeroForP10Metrics(columnKey)) {
+      const fractionDigits = Number.isInteger(numericValue) ? 0 : 2;
+      return formatNumericDisplayValue(numericValue, fractionDigits);
     }
 
     return formatNumericDisplayValue(numericValue, 2);
@@ -487,7 +501,11 @@ function FilterableTable({
             <strong>
               {formatNumericDisplayValue(
                 item.key === "before_after_difference" ? Math.round(item.sum) : item.sum,
-                item.key === "before_after_difference" ? 0 : 2
+                item.key === "before_after_difference"
+                  ? 0
+                  : shouldHideDotZeroForP10Metrics(item.key) && Number.isInteger(item.sum)
+                    ? 0
+                    : 2
               )}
             </strong>
           </div>
