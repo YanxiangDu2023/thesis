@@ -66,6 +66,10 @@ function formatNumericDisplayValue(value: number, fractionDigits: number): strin
   });
 }
 
+function isEffectivelyInteger(value: number): boolean {
+  return Math.abs(value - Math.round(value)) < 1e-9;
+}
+
 function shouldHideDotZeroForP10Metrics(columnKey: string): boolean {
   return (
     columnKey === "total_market" ||
@@ -109,7 +113,7 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
     }
 
     if (shouldHideDotZeroForP10Metrics(columnKey)) {
-      const fractionDigits = Number.isInteger(numericValue) ? 0 : 2;
+      const fractionDigits = isEffectivelyInteger(numericValue) ? 0 : 2;
       return formatNumericDisplayValue(numericValue, fractionDigits);
     }
 
@@ -503,7 +507,7 @@ function FilterableTable({
                 item.key === "before_after_difference" ? Math.round(item.sum) : item.sum,
                 item.key === "before_after_difference"
                   ? 0
-                  : shouldHideDotZeroForP10Metrics(item.key) && Number.isInteger(item.sum)
+                  : shouldHideDotZeroForP10Metrics(item.key) && isEffectivelyInteger(item.sum)
                     ? 0
                     : 2
               )}
