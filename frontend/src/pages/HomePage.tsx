@@ -304,6 +304,14 @@ function HomePage() {
             </article>
           </Link>
         </div>
+
+        <div className="overview-actions" style={{ marginTop: "20px" }}>
+          <div className="overview-actions__buttons">
+            <Link to="/total-market-calculation" className="btn btn--overview">
+              Open Total Market Calculation
+            </Link>
+          </div>
+        </div>
       </section>
     </div>
   );

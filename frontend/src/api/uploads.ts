@@ -13,6 +13,7 @@ import type {
   P00ThreeCheckResponse,
   UploadRow,
   P10VceNonVceResponse,
+  TotalMarketCalculationEligibleOthResponse,
   RunCrpTmaReportCleanDataResponse,
   RunControlReportCleanDataResponse,
   SaveEditedUploadResponse,
@@ -403,6 +404,17 @@ export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
   }
 
   return result as P10VceNonVceResponse;
+}
+
+export async function getTotalMarketCalculationEligibleOthRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/eligible-oth");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch Total Market Calculation rows");
+  }
+
+  return result as TotalMarketCalculationEligibleOthResponse;
 }
 
 export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise<P00ThreeCheckResponse> {

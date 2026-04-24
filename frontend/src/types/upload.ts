@@ -284,6 +284,15 @@ export type P10VceNonVceResponse = {
   source_matrix_upload_run_id: number;
 };
 
+export type TotalMarketCalculationEligibleOthResponse = {
+  row_count: number;
+  rows: OthDeletionFlagRow[];
+  source_row_count: number;
+  split_machine_lines: string[];
+  source_report_run_id?: number;
+  source_report_created_at?: string;
+};
+
 export type ExcavatorsSplitCaseRow = {
   year: string;
   machine_line_name: string;

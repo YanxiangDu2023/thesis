@@ -2745,6 +2745,46 @@ def get_latest_oth_deletion_flag_report():
     }
 
 
+@router.get("/reports/total-market-calculation/eligible-oth")
+def get_total_market_calculation_eligible_oth_rows():
+    split_machine_lines = {"CEX", "GEC", "GEW", "WLO"}
+
+    try:
+        source_report = get_latest_oth_deletion_flag_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        source_report = get_oth_deletion_flag_report(track_run=False)
+
+    filtered_rows = [
+        row
+        for row in source_report["rows"]
+        if _to_case_insensitive_key(row.get("reporter_flag")) == "Y"
+        and _to_case_insensitive_key(row.get("artificial_machine_line")) in split_machine_lines
+    ]
+
+    filtered_rows.sort(
+        key=lambda row: (
+            _to_text(row.get("year")),
+            _to_text(row.get("country")),
+            _to_text(row.get("artificial_machine_line")),
+            _to_text(row.get("machine_line_name")),
+            _to_text(row.get("brand_name")),
+            _to_text(row.get("size_class_flag")),
+            _to_text(row.get("source")),
+        )
+    )
+
+    return {
+        "row_count": len(filtered_rows),
+        "rows": filtered_rows,
+        "source_row_count": source_report.get("row_count", len(source_report["rows"])),
+        "split_machine_lines": sorted(split_machine_lines),
+        "source_report_run_id": source_report.get("run_id"),
+        "source_report_created_at": source_report.get("created_at"),
+    }
+
+
 @router.get("/reports/p00-three-check")
 def get_p00_three_check_report(track_run: bool = False):
     combined = _get_crp_d1_combined_report_data(include_all_sal=True)
