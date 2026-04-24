@@ -131,6 +131,13 @@ const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, strin
 };
 
 const LATEST_TABLE_MAX_HEIGHT = "72vh";
+const INTEGER_LIKE_DOWNLOAD_COLUMNS = new Set([
+  "calendar",
+  "year",
+  "machine",
+  "machine_code",
+  "machine_line_code",
+]);
 
 function getRowsForDisplay(label: string, rows: UploadRow[]): UploadRow[] {
   if (label !== "oth_data") {
@@ -176,10 +183,25 @@ function toCsvCell(value: string | number | null | undefined): string {
   return text;
 }
 
+function normalizeCsvDownloadValue(column: string, value: string | number | null | undefined): string | number | null | undefined {
+  if (!INTEGER_LIKE_DOWNLOAD_COLUMNS.has(column) || value === null || value === undefined) {
+    return value;
+  }
+
+  const text = String(value).trim();
+  if (/^[+-]?\d+(?:\.0+)?$/.test(text.replace(/,/g, ""))) {
+    return String(Math.trunc(Number(text.replace(/,/g, ""))));
+  }
+
+  return value;
+}
+
 function buildCsvContent(label: string, columns: string[], rows: UploadRow[]): string {
   const labelOverrides = COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label] ?? {};
   const header = columns.map((column) => toCsvCell(labelOverrides[column] ?? column)).join(",");
-  const dataLines = rows.map((row) => columns.map((column) => toCsvCell(row[column])).join(","));
+  const dataLines = rows.map((row) =>
+    columns.map((column) => toCsvCell(normalizeCsvDownloadValue(column, row[column]))).join(",")
+  );
   return [header, ...dataLines].join("\r\n");
 }
 

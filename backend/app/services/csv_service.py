@@ -1,6 +1,7 @@
 import os
 import uuid
 import pandas as pd
+import re
 import unicodedata
 from datetime import datetime
 from fastapi import UploadFile, HTTPException
@@ -172,6 +173,14 @@ BRAND_MAPPING_DELETION_INDICATOR_ALIASES = [
     "Change Indicator",
     "deletion_indicator",
 ]
+INTEGER_LIKE_FIELDS = {
+    "calendar",
+    "year",
+    "machine",
+    "machine_code",
+    "machine_line_code",
+}
+INTEGER_LIKE_PATTERN = re.compile(r"^[+-]?\d+(?:\.0+)?$")
 
 
 def _clean_cell(value) -> str:
@@ -181,7 +190,24 @@ def _clean_cell(value) -> str:
     return "" if text.lower() == "nan" else text
 
 
+def _normalize_integer_like_text(value) -> str:
+    text = _clean_cell(value)
+    if not text:
+        return ""
+
+    normalized = text.replace(",", "")
+    if INTEGER_LIKE_PATTERN.fullmatch(normalized):
+        try:
+            return str(int(float(normalized)))
+        except ValueError:
+            return text
+    return text
+
+
 def _normalize_uploaded_value(field_name: str, value) -> str:
+    if field_name in INTEGER_LIKE_FIELDS:
+        return _normalize_integer_like_text(value)
+
     text = _clean_cell(value)
     if field_name in {"size_class", "size_class_mapping"}:
         return text.upper()
@@ -596,11 +622,11 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _get_cell_by_header_aliases(
+                    _normalize_uploaded_value("calendar", _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
                         ["Calendar Year", "Calendar", "Year"]
-                    ),
+                    )),
                     _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
@@ -616,11 +642,11 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         reporter_column_lookup,
                         ["Machine Line"]
                     ),
-                    _get_cell_by_header_aliases(
+                    _normalize_uploaded_value("machine_code", _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
                         ["Machine Line Code", "Machine Code", "machine_code", "Unnamed: 4"]
-                    ),
+                    )),
                     _get_cell_by_header_aliases(
                         row,
                         reporter_column_lookup,
@@ -674,13 +700,13 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                         1,
                         source_matrix_columns,
                     ),
-                    _get_cell_by_header_aliases_or_index(
+                    _normalize_uploaded_value("machine_line_code", _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
                         SOURCE_MATRIX_MACHINE_LINE_CODE_ALIASES,
                         2,
                         source_matrix_columns,
-                    ),
+                    )),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
@@ -746,11 +772,11 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("calendar", "")),
+                    _normalize_uploaded_value("calendar", row.get("calendar", "")),
                     _clean_cell(row.get("source", "")),
                     _clean_cell(row.get("source_code", "")),
                     _clean_cell(row.get("machine_line", "")),
-                    _clean_cell(row.get("machine_code", "")),
+                    _normalize_uploaded_value("machine_code", row.get("machine_code", "")),
                     _clean_cell(row.get("brand_name", "")),
                     _clean_cell(row.get("brand_code", "")),
                     _normalize_uploaded_value("size_class", row.get("size_class", ""))
@@ -817,7 +843,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("year", "")),
+                    _normalize_uploaded_value("year", row.get("year", "")),
                     _clean_cell(row.get("group_code", "")),
                     _clean_cell(row.get("country_code", "")),
                     _clean_cell(row.get("country_name", "")),
@@ -846,7 +872,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                     upload_run_id,
                     idx + 1,
                     _clean_cell(row.get("machine_line_name", "")),
-                    _clean_cell(row.get("machine_line_code", "")),
+                    _normalize_uploaded_value("machine_line_code", row.get("machine_line_code", "")),
                     _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("artificial_machine_line", "")),
                     _clean_cell(row.get("position", ""))
@@ -872,7 +898,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("year", "")),
+                    _normalize_uploaded_value("year", row.get("year", "")),
                     _clean_cell(row.get("source", "")),
                     _clean_cell(row.get("brand_name", "")),
                     _clean_cell(row.get("machine_line", "")),
@@ -907,11 +933,11 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("calendar", "")),
+                    _normalize_uploaded_value("calendar", row.get("calendar", "")),
                     _clean_cell(row.get("region", "")),
                     _clean_cell(row.get("market", "")),
                     _clean_cell(row.get("country", "")),
-                    _clean_cell(row.get("machine", "")),
+                    _normalize_uploaded_value("machine", row.get("machine", "")),
                     _clean_cell(row.get("machine_line", "")),
                     _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("brand_owner_code", "")),
@@ -946,14 +972,14 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
                 """, (
                     upload_run_id,
                     idx + 1,
-                    _clean_cell(row.get("year", "")),
+                    _normalize_uploaded_value("year", row.get("year", "")),
                     _clean_cell(row.get("geographical_region", "")),
                     _clean_cell(row.get("geographical_market_area", "")),
                     _clean_cell(row.get("end_country", "")),
                     _clean_cell(row.get("end_country_code", "")),
                     _clean_cell(row.get("machine_family", "")),
                     _clean_cell(row.get("machine_line", "")),
-                    _clean_cell(row.get("machine_line_code", "")),
+                    _normalize_uploaded_value("machine_line_code", row.get("machine_line_code", "")),
                     _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _normalize_uploaded_value("size_class_mapping", row.get("size_class_mapping", "")),
                     _clean_cell(row.get("total_market_fid_sales", ""))

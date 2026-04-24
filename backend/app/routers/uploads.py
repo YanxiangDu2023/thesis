@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import re
 import uuid
 import unicodedata
 from datetime import datetime
@@ -46,6 +47,14 @@ P00_RUN_KEYS = {
     "oth_deletion_flag": "p00_oth_deletion_flag",
     "three_check": "p00_three_check",
 }
+INTEGER_LIKE_COLUMNS = {
+    "calendar",
+    "year",
+    "machine",
+    "machine_code",
+    "machine_line_code",
+}
+INTEGER_LIKE_PATTERN = re.compile(r"^[+-]?\d+(?:\.0+)?$")
 
 
 class SaveEditedUploadRequest(BaseModel):
@@ -77,10 +86,27 @@ def _to_case_insensitive_key(value: Any) -> str:
 
 
 def _normalize_saved_value(column: str, value: Any) -> str:
+    if column in INTEGER_LIKE_COLUMNS:
+        text = _to_text(value)
+        normalized = text.replace(",", "")
+        if normalized and INTEGER_LIKE_PATTERN.fullmatch(normalized):
+            try:
+                return str(int(float(normalized)))
+            except ValueError:
+                return text
+        return text
+
     text = _to_text(value)
     if column in {"size_class", "size_class_mapping"}:
         return text.upper()
     return text
+
+
+def _serialize_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: _normalize_saved_value(key, value) if key != "id" and key != "upload_run_id" and key != "row_index" else value
+        for key, value in row.items()
+    }
 
 
 def _to_number(value: Any) -> float:
@@ -275,7 +301,7 @@ def get_uploads():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM upload_runs ORDER BY uploaded_at DESC")
-    rows = [dict(row) for row in cursor.fetchall()]
+    rows = [_serialize_row(dict(row)) for row in cursor.fetchall()]
     conn.close()
     return rows
 
@@ -506,7 +532,7 @@ def get_latest_control_report_clean_data():
         WHERE control_run_id = ?
         ORDER BY row_index ASC, id ASC
     """, (latest_run_dict["id"],))
-    rows = [dict(row) for row in cursor.fetchall()]
+    rows = [_serialize_row(dict(row)) for row in cursor.fetchall()]
     conn.close()
 
     return {
@@ -669,7 +695,7 @@ def get_latest_crp_tma_report_clean_data():
         WHERE report_run_id = ?
         ORDER BY row_index ASC, id ASC
     """, (latest_run_dict["id"],))
-    rows = [dict(row) for row in cursor.fetchall()]
+    rows = [_serialize_row(dict(row)) for row in cursor.fetchall()]
     conn.close()
 
     return {

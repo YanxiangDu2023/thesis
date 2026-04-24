@@ -1,4 +1,17 @@
 from app.database import get_connection, get_table_columns
+import re
+
+INTEGER_LIKE_COLUMNS_BY_TABLE = {
+    "reporter_list_rows": ["calendar", "machine_code"],
+    "source_matrix_rows": ["machine_line_code"],
+    "size_class_rows": ["calendar", "machine_code"],
+    "group_country_rows": ["year"],
+    "machine_line_mapping_rows": ["machine_line_code"],
+    "oth_data_rows": ["year"],
+    "volvo_sale_data_rows": ["calendar", "machine"],
+    "tma_data_rows": ["year", "machine_line_code"],
+}
+INTEGER_LIKE_PATTERN = re.compile(r"^[+-]?\d+(?:\.0+)?$")
 
 def _ensure_column(cursor, table_name: str, column_name: str, column_type: str):
     existing_columns = set(get_table_columns(cursor, table_name))
@@ -61,6 +74,45 @@ def _ensure_oth_data_schema(cursor):
     """)
 
     cursor.execute("DROP TABLE oth_data_rows__legacy")
+
+
+def _normalize_integer_like_text(value) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if text.lower() == "nan" or text == "":
+        return ""
+
+    normalized = text.replace(",", "")
+    if INTEGER_LIKE_PATTERN.fullmatch(normalized):
+        try:
+            return str(int(float(normalized)))
+        except ValueError:
+            return text
+    return text
+
+
+def _normalize_integer_like_columns(cursor):
+    for table_name, columns in INTEGER_LIKE_COLUMNS_BY_TABLE.items():
+        existing_columns = set(get_table_columns(cursor, table_name))
+        applicable_columns = [column for column in columns if column in existing_columns]
+        if not applicable_columns:
+            continue
+
+        for column in applicable_columns:
+            cursor.execute(f"SELECT id, {column} FROM {table_name}")
+            updates = []
+            for row in cursor.fetchall():
+                original = row[column]
+                normalized = _normalize_integer_like_text(original)
+                if normalized != ("" if original is None else str(original).strip()):
+                    updates.append((normalized, row["id"]))
+
+            if updates:
+                cursor.executemany(
+                    f"UPDATE {table_name} SET {column} = ? WHERE id = ?",
+                    updates,
+                )
 
 
 def init_db():
@@ -459,6 +511,8 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_excavators_split_case_rows_run_section_row
     ON excavators_split_case_rows(report_run_id, section, row_index, id)
     """)
+
+    _normalize_integer_like_columns(cursor)
 
     conn.commit()
     conn.close()
