@@ -293,6 +293,20 @@ export type TotalMarketCalculationEligibleOthResponse = {
   source_report_created_at?: string;
 };
 
+export type TotalMarketCalculationDoubleBrandCheckRow = OthDeletionFlagRow & {
+  distinct_source_count: number;
+  distinct_sources: string;
+};
+
+export type TotalMarketCalculationDoubleBrandCheckResponse = {
+  row_count: number;
+  rows: TotalMarketCalculationDoubleBrandCheckRow[];
+  duplicate_group_count: number;
+  source_row_count: number;
+  source_report_run_id?: number;
+  source_report_created_at?: string;
+};
+
 export type ExcavatorsSplitCaseRow = {
   year: string;
   machine_line_name: string;

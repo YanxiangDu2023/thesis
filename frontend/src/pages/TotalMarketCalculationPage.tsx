@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import FilterableTable from "../components/table/FilterableTable";
-import { getTotalMarketCalculationEligibleOthRows } from "../api/uploads";
-import type { OthDeletionFlagRow } from "../types/upload";
+import {
+  getTotalMarketCalculationDoubleBrandCheckRows,
+  getTotalMarketCalculationEligibleOthRows,
+} from "../api/uploads";
+import type {
+  OthDeletionFlagRow,
+  TotalMarketCalculationDoubleBrandCheckRow,
+} from "../types/upload";
 
 function TotalMarketCalculationPage() {
   const [loading, setLoading] = useState(false);
@@ -10,6 +16,12 @@ function TotalMarketCalculationPage() {
   const [rows, setRows] = useState<OthDeletionFlagRow[]>([]);
   const [sourceRowCount, setSourceRowCount] = useState(0);
   const [splitMachineLines, setSplitMachineLines] = useState<string[]>([]);
+  const [doubleBrandLoading, setDoubleBrandLoading] = useState(false);
+  const [doubleBrandError, setDoubleBrandError] = useState("");
+  const [doubleBrandMessage, setDoubleBrandMessage] = useState("");
+  const [doubleBrandRows, setDoubleBrandRows] = useState<TotalMarketCalculationDoubleBrandCheckRow[]>([]);
+  const [doubleBrandGroupCount, setDoubleBrandGroupCount] = useState(0);
+  const [doubleBrandSourceRowCount, setDoubleBrandSourceRowCount] = useState(0);
 
   const columns = useMemo(
     () => [
@@ -30,6 +42,30 @@ function TotalMarketCalculationPage() {
       { key: "deletion_flag", label: "Deletion Flag" },
       { key: "pri_sec", label: "Pri/Sec" },
       { key: "reporter_flag", label: "Reporter Flag" },
+    ],
+    []
+  );
+
+  const doubleBrandColumns = useMemo(
+    () => [
+      { key: "year", label: "Year" },
+      { key: "source", label: "Source" },
+      { key: "country_code", label: "Country Code" },
+      { key: "country", label: "Country" },
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "region", label: "Region" },
+      { key: "market_area", label: "Market Area" },
+      { key: "machine_line_name", label: "Machine Line Name" },
+      { key: "machine_line_code", label: "Machine Line Code" },
+      { key: "artificial_machine_line", label: "Artificial Machine Line" },
+      { key: "brand_name", label: "Brand Name" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "size_class_flag", label: "Size Class" },
+      { key: "fid", label: "FID" },
+      { key: "pri_sec", label: "Pri/Sec" },
+      { key: "reporter_flag", label: "Reporter Flag" },
+      { key: "distinct_source_count", label: "Distinct Sources" },
+      { key: "distinct_sources", label: "Source Set" },
     ],
     []
   );
@@ -59,6 +95,31 @@ function TotalMarketCalculationPage() {
     }
   }
 
+  async function handleReportCheckDoubleBrand() {
+    setDoubleBrandLoading(true);
+    setDoubleBrandError("");
+    setDoubleBrandMessage("Checking OTH duplicate groups across different sources...");
+
+    try {
+      const result = await getTotalMarketCalculationDoubleBrandCheckRows();
+      setDoubleBrandRows(result.rows);
+      setDoubleBrandGroupCount(result.duplicate_group_count);
+      setDoubleBrandSourceRowCount(result.source_row_count);
+      setDoubleBrandMessage(
+        `Found ${result.row_count} rows across ${result.duplicate_group_count} duplicate groups (same country + machine line code + artificial machine line + size class + brand code, but different source).`
+      );
+    } catch (fetchError) {
+      setDoubleBrandError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to run Report check double brand."
+      );
+      setDoubleBrandMessage("");
+    } finally {
+      setDoubleBrandLoading(false);
+    }
+  }
+
   return (
     <div className="page">
       <section className="section section--layer-detail-wide">
@@ -73,6 +134,14 @@ function TotalMarketCalculationPage() {
 
         <div className="overview-actions" style={{ marginBottom: "20px" }}>
           <div className="overview-actions__buttons">
+            <button
+              type="button"
+              className="btn btn--overview"
+              onClick={handleReportCheckDoubleBrand}
+              disabled={doubleBrandLoading}
+            >
+              {doubleBrandLoading ? "Checking..." : "Report check double brand"}
+            </button>
             <button
               type="button"
               className="btn btn--primary"
@@ -111,6 +180,38 @@ function TotalMarketCalculationPage() {
             rows={rows}
             maxHeight="620px"
             emptyMessage="No eligible OTH reporter rows found yet."
+          />
+        </div>
+
+        {doubleBrandMessage ? (
+          <p style={{ color: "#0a8f3d", marginTop: "16px", marginBottom: "12px" }}>{doubleBrandMessage}</p>
+        ) : null}
+        {doubleBrandError ? (
+          <p style={{ color: "#d62828", marginTop: "16px", marginBottom: "12px" }}>{doubleBrandError}</p>
+        ) : null}
+
+        <div className="card-grid card-grid--three" style={{ marginTop: "12px", marginBottom: "16px" }}>
+          <article className="card">
+            <h4 className="card__title">Duplicate Rows</h4>
+            <p className="card__text">{doubleBrandRows.length.toLocaleString()}</p>
+          </article>
+          <article className="card">
+            <h4 className="card__title">Duplicate Groups</h4>
+            <p className="card__text">{doubleBrandGroupCount.toLocaleString()}</p>
+          </article>
+          <article className="card">
+            <h4 className="card__title">Scanned OTH Rows</h4>
+            <p className="card__text">{doubleBrandSourceRowCount.toLocaleString()}</p>
+          </article>
+        </div>
+
+        <div className="section summary-card" style={{ marginTop: "8px" }}>
+          <strong>Report Check Double Brand</strong>
+          <FilterableTable
+            columns={doubleBrandColumns}
+            rows={doubleBrandRows}
+            maxHeight="620px"
+            emptyMessage="No cross-source duplicate OTH rows found for the same country + machine line code + artificial machine line + size class + brand code."
           />
         </div>
       </section>

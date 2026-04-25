@@ -2811,6 +2811,98 @@ def get_total_market_calculation_eligible_oth_rows():
     }
 
 
+@router.get("/reports/total-market-calculation/double-brand-check")
+def get_total_market_calculation_double_brand_check_rows():
+    try:
+        source_report = get_latest_oth_deletion_flag_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        source_report = get_oth_deletion_flag_report(track_run=False)
+
+    grouped_rows: dict[
+        tuple[str, str, str, str, str],
+        dict[str, Any],
+    ] = {}
+
+    for row in source_report["rows"]:
+        country_key = _to_case_insensitive_key(row.get("country"))
+        machine_line_code_key = _to_case_insensitive_key(row.get("machine_line_code"))
+        artificial_machine_line_key = _to_case_insensitive_key(row.get("artificial_machine_line"))
+        size_class_key = _to_case_insensitive_key(row.get("size_class_flag"))
+        brand_code_key = _to_case_insensitive_key(row.get("brand_code"))
+
+        # Skip incomplete keys to avoid false duplicates caused by missing master-data mappings.
+        if not (
+            country_key
+            and machine_line_code_key
+            and artificial_machine_line_key
+            and size_class_key
+            and brand_code_key
+        ):
+            continue
+
+        group_key = (
+            country_key,
+            machine_line_code_key,
+            artificial_machine_line_key,
+            size_class_key,
+            brand_code_key,
+        )
+        if group_key not in grouped_rows:
+            grouped_rows[group_key] = {
+                "rows": [],
+                "source_labels_by_key": {},
+            }
+
+        source_key = _to_case_insensitive_key(row.get("source"))
+        source_label = _to_text(row.get("source"))
+        if source_key:
+            grouped_rows[group_key]["source_labels_by_key"][source_key] = source_label or source_key
+        grouped_rows[group_key]["rows"].append(row)
+
+    duplicate_rows: list[dict[str, Any]] = []
+    duplicate_group_count = 0
+
+    for grouped in grouped_rows.values():
+        source_labels_by_key: dict[str, str] = grouped["source_labels_by_key"]
+        if len(source_labels_by_key) < 2:
+            continue
+
+        duplicate_group_count += 1
+        distinct_sources = sorted(source_labels_by_key.values(), key=lambda value: value.upper())
+        distinct_sources_text = ", ".join(distinct_sources)
+        distinct_source_count = len(distinct_sources)
+
+        for row in grouped["rows"]:
+            duplicate_rows.append({
+                **row,
+                "distinct_source_count": distinct_source_count,
+                "distinct_sources": distinct_sources_text,
+            })
+
+    duplicate_rows.sort(
+        key=lambda row: (
+            _to_text(row.get("year")),
+            _to_text(row.get("country")),
+            _to_text(row.get("machine_line_code")),
+            _to_text(row.get("artificial_machine_line")),
+            _to_text(row.get("size_class_flag")),
+            _to_text(row.get("brand_code")),
+            _to_text(row.get("source")),
+        )
+    )
+
+    return {
+        "row_count": len(duplicate_rows),
+        "rows": duplicate_rows,
+        "duplicate_group_count": duplicate_group_count,
+        "source_row_count": source_report.get("row_count", len(source_report["rows"])),
+        "source_report_run_id": source_report.get("run_id"),
+        "source_report_created_at": source_report.get("created_at"),
+    }
+
+
 @router.get("/reports/p00-three-check")
 def get_p00_three_check_report(track_run: bool = False):
     combined = _get_crp_d1_combined_report_data(include_all_sal=True)

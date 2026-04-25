@@ -13,6 +13,7 @@ import type {
   P00ThreeCheckResponse,
   UploadRow,
   P10VceNonVceResponse,
+  TotalMarketCalculationDoubleBrandCheckResponse,
   TotalMarketCalculationEligibleOthResponse,
   RunCrpTmaReportCleanDataResponse,
   RunControlReportCleanDataResponse,
@@ -415,6 +416,17 @@ export async function getTotalMarketCalculationEligibleOthRows(): Promise<TotalM
   }
 
   return result as TotalMarketCalculationEligibleOthResponse;
+}
+
+export async function getTotalMarketCalculationDoubleBrandCheckRows(): Promise<TotalMarketCalculationDoubleBrandCheckResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/double-brand-check");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch Double Brand check rows");
+  }
+
+  return result as TotalMarketCalculationDoubleBrandCheckResponse;
 }
 
 export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise<P00ThreeCheckResponse> {
