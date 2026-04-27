@@ -46,6 +46,7 @@ P00_RUN_KEYS = {
     "crp_d1_combined": "p00_crp_d1_combined",
     "oth_deletion_flag": "p00_oth_deletion_flag",
     "three_check": "p00_three_check",
+    "total_market_eligible_oth": "p00_total_market_eligible_oth",
 }
 INTEGER_LIKE_COLUMNS = {
     "calendar",
@@ -1709,6 +1710,148 @@ def _save_p00_report_snapshot(
         conn.close()
 
 
+def _create_p00_report_run(
+    report_key: str,
+    message: str,
+    meta: dict[str, Any] | None = None,
+) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO p00_report_runs (report_key, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            report_key,
+            0,
+            "running",
+            message,
+            json.dumps(meta or {}, ensure_ascii=False, default=str),
+        ))
+        run_id = cursor.lastrowid
+        conn.commit()
+        return run_id
+    finally:
+        conn.close()
+
+
+def _get_p00_report_run(run_id: int) -> dict[str, Any]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM p00_report_runs
+            WHERE id = ?
+        """, (run_id,))
+        run = cursor.fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail="P00 report run not found")
+        return dict(run)
+    finally:
+        conn.close()
+
+
+def _update_p00_report_run(
+    run_id: int,
+    *,
+    row_count: int | None = None,
+    status: str | None = None,
+    message: str | None = None,
+    meta: dict[str, Any] | None = None,
+) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM p00_report_runs
+            WHERE id = ?
+        """, (run_id,))
+        run = cursor.fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail="P00 report run not found")
+        run_dict = dict(run)
+
+        next_row_count = row_count if row_count is not None else run_dict["row_count"]
+        next_status = status if status is not None else run_dict["status"]
+        next_message = message if message is not None else run_dict["message"]
+        next_meta = json.dumps(
+            meta if meta is not None else json.loads(run_dict.get("meta_json") or "{}"),
+            ensure_ascii=False,
+            default=str,
+        )
+
+        cursor.execute("""
+            UPDATE p00_report_runs
+            SET row_count = ?, status = ?, message = ?, meta_json = ?
+            WHERE id = ?
+        """, (next_row_count, next_status, next_message, next_meta, run_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _save_p00_report_snapshot_to_existing_run(
+    run_id: int,
+    rows: list[dict[str, Any]],
+    message: str,
+    meta: dict[str, Any] | None = None,
+) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM p00_report_runs
+            WHERE id = ?
+        """, (run_id,))
+        run = cursor.fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail="P00 report run not found")
+        run_dict = dict(run)
+        next_meta = json.dumps(
+            meta if meta is not None else json.loads(run_dict.get("meta_json") or "{}"),
+            ensure_ascii=False,
+            default=str,
+        )
+
+        cursor.execute("""
+            DELETE FROM p00_report_rows
+            WHERE report_run_id = ?
+        """, (run_id,))
+        cursor.executemany("""
+            INSERT INTO p00_report_rows (report_run_id, row_index, row_json)
+            VALUES (?, ?, ?)
+        """, [
+            (run_id, index, json.dumps(row, ensure_ascii=False, default=str))
+            for index, row in enumerate(rows, start=1)
+        ])
+
+        cursor.execute("""
+            UPDATE p00_report_runs
+            SET row_count = ?, status = ?, message = ?, meta_json = ?
+            WHERE id = ?
+        """, (
+            len(rows),
+            "success",
+            message,
+            next_meta,
+            run_id,
+        ))
+        conn.commit()
+    except Exception as e:
+        cursor.execute("""
+            UPDATE p00_report_runs
+            SET status = ?, message = ?
+            WHERE id = ?
+        """, ("failed", str(e), run_id))
+        conn.commit()
+        raise
+    finally:
+        conn.close()
+
+
 def _get_latest_p00_report_snapshot(report_key: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     conn = get_connection()
     cursor = conn.cursor()
@@ -2771,8 +2914,132 @@ def get_latest_oth_deletion_flag_report():
     }
 
 
-@router.get("/reports/total-market-calculation/eligible-oth")
-def get_total_market_calculation_eligible_oth_rows():
+def _build_total_market_split_input_key_from_oth_row(row: dict[str, Any]) -> str:
+    return "|".join([
+        _to_case_insensitive_key(row.get("year")),
+        _to_case_insensitive_key(row.get("country_grouping")),
+        _to_case_insensitive_key(row.get("country")),
+        _to_case_insensitive_key(row.get("region")),
+        _to_case_insensitive_key(row.get("machine_line_name")),
+        _to_case_insensitive_key(row.get("artificial_machine_line")),
+        _to_case_insensitive_key(row.get("brand_code")),
+        _to_case_insensitive_key(row.get("source")),
+        _to_case_insensitive_key(row.get("pri_sec")),
+        _to_size_class_key(row.get("size_class_flag")),
+        _to_case_insensitive_key(row.get("reporter_flag")),
+    ])
+
+
+def _build_total_market_split_input_key_from_detail_row(row: dict[str, Any]) -> str:
+    return "|".join([
+        _to_case_insensitive_key(row.get("year")),
+        _to_case_insensitive_key(row.get("country_grouping")),
+        _to_case_insensitive_key(row.get("country")),
+        _to_case_insensitive_key(row.get("region")),
+        _to_case_insensitive_key(row.get("machine_line")),
+        _to_case_insensitive_key(row.get("artificial_machine_line")),
+        _to_case_insensitive_key(row.get("brand_code")),
+        _to_case_insensitive_key(row.get("source")),
+        _to_case_insensitive_key(row.get("pri_sec")),
+        _to_size_class_key(row.get("size_class")),
+        _to_case_insensitive_key(row.get("reporter_flag")),
+    ])
+
+
+def _is_volvo_oth_row(row: dict[str, Any]) -> bool:
+    brand_code_key = _to_case_insensitive_key(row.get("brand_code"))
+    brand_name_key = _to_case_insensitive_key(row.get("brand_name"))
+    return (
+        brand_code_key in {"VCE", "VOL", "VOLVO"}
+        or "VOLVO" in brand_name_key
+    )
+
+
+def _expand_total_market_rows_with_split(
+    oth_rows: list[dict[str, Any]],
+    three_check_rows: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    split_cases = ["CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"]
+    split_plans_by_key: dict[str, list[dict[str, Any]]] = {}
+
+    for case_type in split_cases:
+        detail_config = _get_excavators_split_detail_config(case_type)
+        if detail_config is None:
+            continue
+
+        detail_rows = _build_excavators_split_detail_rows_from_three_check(three_check_rows, case_type)
+        for detail_row in detail_rows:
+            if _to_case_insensitive_key(detail_row.get("row_type")) != "OTH":
+                continue
+
+            key = _build_total_market_split_input_key_from_detail_row(detail_row)
+            split_targets: list[tuple[str, float]] = [
+                (detail_config["first_target_label"], _to_number(detail_row.get("after_split_fid_lt_6t"))),
+                (detail_config["second_target_label"], _to_number(detail_row.get("after_split_fid_6_10t"))),
+            ]
+            third_target_label = detail_config.get("third_target_label")
+            if third_target_label:
+                split_targets.append((third_target_label, _to_number(detail_row.get("after_split_fid_target_three"))))
+
+            outputs: list[dict[str, Any]] = [
+                {"size_class_flag": size_label, "fid": _round_to_4(fid)}
+                for size_label, fid in split_targets
+                if _round_to_4(fid) > 0
+            ]
+            if len(outputs) == 0:
+                continue
+
+            if key not in split_plans_by_key:
+                split_plans_by_key[key] = []
+            split_plans_by_key[key].append({
+                "outputs": outputs,
+                "before_split_fid": _round_to_4(_to_number(detail_row.get("before_split_fid_lt_10t"))),
+            })
+
+    expanded_rows: list[dict[str, Any]] = []
+    split_input_rows = 0
+    split_output_rows = 0
+
+    for row in oth_rows:
+        key = _build_total_market_split_input_key_from_oth_row(row)
+        plan_queue = split_plans_by_key.get(key)
+
+        if not plan_queue:
+            expanded_rows.append(row)
+            continue
+
+        plan = plan_queue.pop(0)
+        if len(plan_queue) == 0:
+            split_plans_by_key.pop(key, None)
+
+        outputs = list(plan.get("outputs", []))
+        if len(outputs) == 0:
+            expanded_rows.append(row)
+            continue
+
+        # Keep total FID invariant when split values were rounded.
+        original_fid = _round_to_4(_to_number(row.get("fid")))
+        split_total = _round_to_4(sum(_to_number(item.get("fid")) for item in outputs))
+        delta = _round_to_4(original_fid - split_total)
+        if abs(delta) >= 0.0001:
+            outputs[-1]["fid"] = _round_to_4(_to_number(outputs[-1].get("fid")) + delta)
+
+        split_input_rows += 1
+        split_output_rows += len(outputs)
+        for item in outputs:
+            expanded_rows.append({
+                **row,
+                "size_class_flag": item["size_class_flag"],
+                "fid": item["fid"],
+            })
+
+    return expanded_rows, {
+        "split_input_rows": split_input_rows,
+        "split_output_rows": split_output_rows,
+    }
+
+
+def _compute_total_market_calculation_eligible_oth_result() -> dict[str, Any]:
     split_machine_lines = {"CEX", "GEC", "GEW", "WLO"}
 
     try:
@@ -2782,12 +3049,18 @@ def get_total_market_calculation_eligible_oth_rows():
             raise
         source_report = get_oth_deletion_flag_report(track_run=False)
 
-    filtered_rows = [
-        row
-        for row in source_report["rows"]
-        if _to_case_insensitive_key(row.get("reporter_flag")) == "Y"
-        and _to_case_insensitive_key(row.get("artificial_machine_line")) in split_machine_lines
-    ]
+    try:
+        three_check_report = get_latest_p00_three_check_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        three_check_report = get_p00_three_check_report(track_run=False)
+
+    filtered_rows, split_meta = _expand_total_market_rows_with_split(
+        source_report["rows"],
+        three_check_report["rows"],
+    )
+    filtered_rows = [row for row in filtered_rows if not _is_volvo_oth_row(row)]
 
     filtered_rows.sort(
         key=lambda row: (
@@ -2808,6 +3081,107 @@ def get_total_market_calculation_eligible_oth_rows():
         "split_machine_lines": sorted(split_machine_lines),
         "source_report_run_id": source_report.get("run_id"),
         "source_report_created_at": source_report.get("created_at"),
+        "three_check_report_run_id": three_check_report.get("run_id"),
+        "three_check_report_created_at": three_check_report.get("created_at"),
+        **split_meta,
+    }
+
+
+def _run_total_market_calculation_eligible_oth_background(run_id: int) -> None:
+    try:
+        result = _compute_total_market_calculation_eligible_oth_result()
+        _record_report_run(P00_RUN_KEYS["total_market_eligible_oth"])
+        _save_p00_report_snapshot_to_existing_run(
+            run_id,
+            result["rows"],
+            "Total Market Calculation eligible OTH rows generated successfully",
+            meta={
+                "source_row_count": result["source_row_count"],
+                "split_machine_lines": result["split_machine_lines"],
+                "source_report_run_id": result["source_report_run_id"],
+                "source_report_created_at": result["source_report_created_at"],
+                "three_check_report_run_id": result["three_check_report_run_id"],
+                "three_check_report_created_at": result["three_check_report_created_at"],
+                "split_input_rows": result["split_input_rows"],
+                "split_output_rows": result["split_output_rows"],
+            },
+        )
+    except Exception as e:
+        try:
+            _update_p00_report_run(run_id, status="failed", message=str(e))
+        except Exception:
+            pass
+
+
+@router.get("/reports/total-market-calculation/eligible-oth")
+def get_total_market_calculation_eligible_oth_rows():
+    result = _compute_total_market_calculation_eligible_oth_result()
+
+    _record_report_run(P00_RUN_KEYS["total_market_eligible_oth"])
+    snapshot_run_id = _save_p00_report_snapshot(
+        P00_RUN_KEYS["total_market_eligible_oth"],
+        result["rows"],
+        "Total Market Calculation eligible OTH rows generated successfully",
+        meta={
+            "source_row_count": result["source_row_count"],
+            "split_machine_lines": result["split_machine_lines"],
+            "source_report_run_id": result["source_report_run_id"],
+            "source_report_created_at": result["source_report_created_at"],
+            "three_check_report_run_id": result["three_check_report_run_id"],
+            "three_check_report_created_at": result["three_check_report_created_at"],
+            "split_input_rows": result["split_input_rows"],
+            "split_output_rows": result["split_output_rows"],
+        },
+    )
+    return {
+        **result,
+        "run_id": snapshot_run_id,
+    }
+
+
+@router.post("/reports/total-market-calculation/eligible-oth/run")
+def run_total_market_calculation_eligible_oth_report(background_tasks: BackgroundTasks):
+    run_id = _create_p00_report_run(
+        P00_RUN_KEYS["total_market_eligible_oth"],
+        "Running Total Market Calculation eligible OTH report",
+    )
+    background_tasks.add_task(_run_total_market_calculation_eligible_oth_background, run_id)
+    run = _get_p00_report_run(run_id)
+    return {
+        "run_id": run_id,
+        "status": run.get("status"),
+        "message": run.get("message"),
+        "created_at": run.get("created_at"),
+    }
+
+
+@router.get("/reports/total-market-calculation/eligible-oth/runs/{run_id}")
+def get_total_market_calculation_eligible_oth_run(run_id: int):
+    run = _get_p00_report_run(run_id)
+    if run.get("report_key") != P00_RUN_KEYS["total_market_eligible_oth"]:
+        raise HTTPException(status_code=404, detail="Total Market Calculation run not found")
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "message": run.get("message"),
+        "row_count": run.get("row_count"),
+        "created_at": run.get("created_at"),
+        **meta,
+    }
+
+
+@router.get("/reports/total-market-calculation/eligible-oth/latest")
+def get_latest_total_market_calculation_eligible_oth_rows():
+    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "row_count": run.get("row_count") or len(rows),
+        "rows": rows,
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "created_at": run.get("created_at"),
+        **meta,
     }
 
 

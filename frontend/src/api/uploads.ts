@@ -15,6 +15,7 @@ import type {
   P10VceNonVceResponse,
   TotalMarketCalculationDoubleBrandCheckResponse,
   TotalMarketCalculationEligibleOthResponse,
+  TotalMarketCalculationEligibleOthRunResponse,
   RunCrpTmaReportCleanDataResponse,
   RunControlReportCleanDataResponse,
   SaveEditedUploadResponse,
@@ -413,6 +414,43 @@ export async function getTotalMarketCalculationEligibleOthRows(): Promise<TotalM
 
   if (!response.ok) {
     throw new Error(result.detail || "Failed to fetch Total Market Calculation rows");
+  }
+
+  return result as TotalMarketCalculationEligibleOthResponse;
+}
+
+export async function runTotalMarketCalculationEligibleOthReport(): Promise<TotalMarketCalculationEligibleOthRunResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/eligible-oth/run", {
+    method: "POST",
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to start Total Market Calculation run");
+  }
+
+  return result as TotalMarketCalculationEligibleOthRunResponse;
+}
+
+export async function getTotalMarketCalculationEligibleOthRun(
+  runId: number
+): Promise<TotalMarketCalculationEligibleOthRunResponse> {
+  const response = await apiFetch(`/reports/total-market-calculation/eligible-oth/runs/${runId}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch Total Market Calculation run status");
+  }
+
+  return result as TotalMarketCalculationEligibleOthRunResponse;
+}
+
+export async function getLatestTotalMarketCalculationEligibleOthRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/eligible-oth/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest Total Market Calculation rows");
   }
 
   return result as TotalMarketCalculationEligibleOthResponse;

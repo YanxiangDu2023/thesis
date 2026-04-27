@@ -202,6 +202,7 @@ export type OthDeletionFlagRow = {
   deletion_flag: string;
   pri_sec: string;
   reporter_flag: string;
+  source_flag?: string;
 };
 
 export type OthDeletionFlagResponse = {
@@ -289,8 +290,31 @@ export type TotalMarketCalculationEligibleOthResponse = {
   rows: OthDeletionFlagRow[];
   source_row_count: number;
   split_machine_lines: string[];
+  split_input_rows?: number;
+  split_output_rows?: number;
+  run_id?: number;
+  status?: string;
+  created_at?: string;
   source_report_run_id?: number;
   source_report_created_at?: string;
+  three_check_report_run_id?: number;
+  three_check_report_created_at?: string;
+};
+
+export type TotalMarketCalculationEligibleOthRunResponse = {
+  run_id: number;
+  status: string;
+  message: string;
+  row_count?: number;
+  created_at?: string;
+  source_row_count?: number;
+  split_machine_lines?: string[];
+  split_input_rows?: number;
+  split_output_rows?: number;
+  source_report_run_id?: number;
+  source_report_created_at?: string;
+  three_check_report_run_id?: number;
+  three_check_report_created_at?: string;
 };
 
 export type TotalMarketCalculationDoubleBrandCheckRow = OthDeletionFlagRow & {

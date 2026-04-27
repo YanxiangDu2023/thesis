@@ -779,6 +779,87 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 320px));
   gap: 12px;
+  align-items: start;
+}
+
+.tmc-actions-grid {
+  grid-template-columns: repeat(4, minmax(200px, 320px));
+  grid-template-areas:
+    "raw report namzar delete"
+    "latest . . .";
+  align-items: start;
+}
+
+.tmc-action-main {
+  width: 100%;
+  min-height: 74px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.tmc-action-raw {
+  grid-area: raw;
+}
+
+.tmc-action-report {
+  grid-area: report;
+}
+
+.tmc-action-nam-zar {
+  grid-area: namzar;
+}
+
+.tmc-action-delete {
+  grid-area: delete;
+}
+
+.tmc-action-latest {
+  grid-area: latest;
+  justify-self: start;
+}
+
+.tmc-delete-case-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tmc-delete-case-btn {
+  border: 1px solid #c5c7cc;
+  background: #f6f7f9;
+  color: #1f2430;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tmc-delete-case-btn:hover {
+  background: #eceef2;
+}
+
+.tmc-delete-case-btn--label {
+  color: #2b2b2b;
+  cursor: pointer;
+}
+
+.tmc-delete-case-btn--label:hover {
+  background: #eceef2;
+}
+
+.tmc-delete-case-btn--active {
+  background: #e2e5ea;
+  border-color: #9ea4ad;
+}
+
+.tmc-delete-case-btn--save {
+  background: #f2f2f2;
+  border-color: #b5bac2;
 }
 
 /* Cards */
@@ -1917,6 +1998,29 @@ button {
 
   .overview-actions__buttons {
     grid-template-columns: 1fr;
+  }
+
+  .tmc-actions-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "raw"
+      "report"
+      "namzar"
+      "delete"
+      "latest";
+  }
+
+  .tmc-action-latest {
+    justify-self: stretch;
+  }
+
+  .tmc-delete-case-bar {
+    align-items: stretch;
+  }
+
+  .tmc-delete-case-btn {
+    width: 100%;
+    text-align: left;
   }
 
   .step-health__hero {

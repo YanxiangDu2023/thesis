@@ -113,6 +113,10 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
 
   const numericValue = toNumericValue(value);
   if (numericValue !== null) {
+    if (columnKey === "db_indicator_by_country") {
+      return formatNumericDisplayValue(Math.round(numericValue), 0);
+    }
+
     if (columnKey === "before_after_difference") {
       return formatNumericDisplayValue(Math.round(numericValue), 0);
     }
