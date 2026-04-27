@@ -331,6 +331,26 @@ export type TotalMarketCalculationDoubleBrandCheckResponse = {
   source_report_created_at?: string;
 };
 
+export type SaveTotalMarketCalculationEligibleOthSnapshotRequest = {
+  rows: OthDeletionFlagRow[];
+  message: string;
+  source_row_count?: number;
+  split_machine_lines?: string[];
+  split_input_rows?: number;
+  split_output_rows?: number;
+  source_report_run_id?: number;
+  source_report_created_at?: string;
+  three_check_report_run_id?: number;
+  three_check_report_created_at?: string;
+};
+
+export type SaveTotalMarketCalculationEligibleOthSnapshotResponse = {
+  run_id: number;
+  row_count: number;
+  status: string;
+  message: string;
+};
+
 export type ExcavatorsSplitCaseRow = {
   year: string;
   machine_line_name: string;

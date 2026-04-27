@@ -13,6 +13,8 @@ import type {
   P00ThreeCheckResponse,
   UploadRow,
   P10VceNonVceResponse,
+  SaveTotalMarketCalculationEligibleOthSnapshotRequest,
+  SaveTotalMarketCalculationEligibleOthSnapshotResponse,
   TotalMarketCalculationDoubleBrandCheckResponse,
   TotalMarketCalculationEligibleOthResponse,
   TotalMarketCalculationEligibleOthRunResponse,
@@ -465,6 +467,25 @@ export async function getTotalMarketCalculationDoubleBrandCheckRows(): Promise<T
   }
 
   return result as TotalMarketCalculationDoubleBrandCheckResponse;
+}
+
+export async function saveTotalMarketCalculationEligibleOthSnapshot(
+  payload: SaveTotalMarketCalculationEligibleOthSnapshotRequest
+): Promise<SaveTotalMarketCalculationEligibleOthSnapshotResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/eligible-oth/snapshots", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to save Total Market Calculation snapshot");
+  }
+
+  return result as SaveTotalMarketCalculationEligibleOthSnapshotResponse;
 }
 
 export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise<P00ThreeCheckResponse> {

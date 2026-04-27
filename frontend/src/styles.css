@@ -783,10 +783,10 @@ button {
 }
 
 .tmc-actions-grid {
-  grid-template-columns: repeat(4, minmax(200px, 320px));
+  grid-template-columns: repeat(5, minmax(180px, 320px));
   grid-template-areas:
-    "raw report namzar delete"
-    "latest . . .";
+    "raw report namzar delete calculate"
+    "latest . . . .";
   align-items: start;
 }
 
@@ -813,6 +813,10 @@ button {
 
 .tmc-action-delete {
   grid-area: delete;
+}
+
+.tmc-action-calculate {
+  grid-area: calculate;
 }
 
 .tmc-action-latest {
@@ -2007,6 +2011,7 @@ button {
       "report"
       "namzar"
       "delete"
+      "calculate"
       "latest";
   }
 

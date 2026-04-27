@@ -75,6 +75,19 @@ class ExcavatorsSplitCaseSnapshotRequest(BaseModel):
     message: str = "Excavators split case snapshot saved"
 
 
+class TotalMarketEligibleOthSnapshotRequest(BaseModel):
+    rows: list[dict[str, Any]]
+    message: str = "Total Market Calculation snapshot saved from editor"
+    source_row_count: int | None = None
+    split_machine_lines: list[str] | None = None
+    split_input_rows: int | None = None
+    split_output_rows: int | None = None
+    source_report_run_id: int | None = None
+    source_report_created_at: str | None = None
+    three_check_report_run_id: int | None = None
+    three_check_report_created_at: str | None = None
+
+
 def _to_text(value: Any) -> str:
     if value is None:
         return ""
@@ -3182,6 +3195,59 @@ def get_latest_total_market_calculation_eligible_oth_rows():
         "status": run.get("status"),
         "created_at": run.get("created_at"),
         **meta,
+    }
+
+
+@router.post("/reports/total-market-calculation/eligible-oth/snapshots")
+def save_total_market_calculation_eligible_oth_snapshot(
+    request: TotalMarketEligibleOthSnapshotRequest
+):
+    if len(request.rows) == 0:
+        raise HTTPException(status_code=400, detail="No rows to save")
+
+    latest_meta: dict[str, Any] = {}
+    try:
+        latest_run, _ = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+        latest_meta = json.loads(latest_run.get("meta_json") or "{}")
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+
+    request_meta: dict[str, Any] = {}
+    if request.source_row_count is not None:
+        request_meta["source_row_count"] = request.source_row_count
+    if request.split_machine_lines is not None:
+        request_meta["split_machine_lines"] = request.split_machine_lines
+    if request.split_input_rows is not None:
+        request_meta["split_input_rows"] = request.split_input_rows
+    if request.split_output_rows is not None:
+        request_meta["split_output_rows"] = request.split_output_rows
+    if request.source_report_run_id is not None:
+        request_meta["source_report_run_id"] = request.source_report_run_id
+    if request.source_report_created_at is not None:
+        request_meta["source_report_created_at"] = request.source_report_created_at
+    if request.three_check_report_run_id is not None:
+        request_meta["three_check_report_run_id"] = request.three_check_report_run_id
+    if request.three_check_report_created_at is not None:
+        request_meta["three_check_report_created_at"] = request.three_check_report_created_at
+
+    final_meta = {
+        **latest_meta,
+        **request_meta,
+    }
+
+    _record_report_run(P00_RUN_KEYS["total_market_eligible_oth"])
+    run_id = _save_p00_report_snapshot(
+        P00_RUN_KEYS["total_market_eligible_oth"],
+        request.rows,
+        request.message,
+        meta=final_meta,
+    )
+    return {
+        "run_id": run_id,
+        "row_count": len(request.rows),
+        "status": "success",
+        "message": request.message,
     }
 
 
