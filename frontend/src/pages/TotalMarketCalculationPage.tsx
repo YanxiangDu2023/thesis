@@ -466,6 +466,37 @@ function TotalMarketCalculationPage() {
     ].join("||");
   }
 
+  function filterRowsByRequiredSourceGroups(
+    baseRows: OthDeletionFlagRow[],
+    requiredSourceGroups: string[][]
+  ): OthDeletionFlagRow[] {
+    const normalizedGroups = requiredSourceGroups.map((group) => new Set(group.map(toKey)));
+    const allowedSources = new Set(normalizedGroups.flatMap((group) => Array.from(group)));
+
+    const candidateRows = baseRows.filter((row) => allowedSources.has(toKey(row.source)));
+    const groupSources = new Map<string, Set<string>>();
+
+    for (const row of candidateRows) {
+      const key = getYbrPinGroupKey(row);
+      if (!groupSources.has(key)) {
+        groupSources.set(key, new Set<string>());
+      }
+      groupSources.get(key)?.add(toKey(row.source));
+    }
+
+    const qualifiedGroupKeys = new Set<string>();
+    for (const [groupKey, sourcesInGroup] of groupSources.entries()) {
+      const hasAllRequiredGroups = normalizedGroups.every((requiredGroup) =>
+        Array.from(requiredGroup).some((requiredSource) => sourcesInGroup.has(requiredSource))
+      );
+      if (hasAllRequiredGroups) {
+        qualifiedGroupKeys.add(groupKey);
+      }
+    }
+
+    return candidateRows.filter((row) => qualifiedGroupKeys.has(getYbrPinGroupKey(row)));
+  }
+
   function buildSnapshotRowKey(row: OthDeletionFlagRow): string {
     return [
       toKey(row.year),
@@ -1295,11 +1326,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "YBR" || source === "PIN";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["YBR"], ["PIN"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -1328,7 +1355,7 @@ function TotalMarketCalculationPage() {
       setYbrPinRows(filtered);
       setYbrPinSavedRows(cloneYbrPinRows(filtered));
       setYbrPinMessage(
-        `Loaded ${filtered.length} rows where Source is YBR or PIN. Click "Apply YBR/PIN Rule" to mark keep/drop and set dropped FID to 0.`
+        `Loaded ${filtered.length} rows where YBR and PIN both exist in the same group. Click "Apply YBR/PIN Rule" to mark keep/drop and set dropped FID to 0.`
       );
       setDoubleBrandMessage("Selected YBR/PIN Case.");
     } catch (err) {
@@ -1370,18 +1397,10 @@ function TotalMarketCalculationPage() {
         const groupRows = groupedRows.get(getYbrPinGroupKey(row)) ?? [];
         const brandCode = toKey(row.brand_code);
         const source = toKey(row.source);
-        const country = toKey(row.country_code || row.country);
         const hasYbr = groupRows.some((item) => toKey(item.source) === "YBR");
         const hasPin = groupRows.some((item) => toKey(item.source) === "PIN");
 
         row.original_fid = row.original_fid ?? row.fid;
-
-        if (excludedBrands.has(brandCode)) {
-          row.fid = row.original_fid;
-          row.ybr_pin_decision = "MANUAL_REVIEW_EXCLUDED_BRAND";
-          manualCount += 1;
-          return;
-        }
 
         if (!(hasYbr && hasPin)) {
           row.fid = row.original_fid;
@@ -1390,27 +1409,20 @@ function TotalMarketCalculationPage() {
           return;
         }
 
-        if (country === "CN") {
-          if (source === "PIN") {
-            row.fid = row.original_fid;
-            row.ybr_pin_decision = "KEEP_CN_PIN";
-            keepCount += 1;
-          } else if (source === "YBR") {
-            row.fid = 0;
-            row.ybr_pin_decision = "DROP_CN_YBR_FID_0";
-            droppedRowIndices.add(index);
-            dropCount += 1;
-          }
+        if (excludedBrands.has(brandCode)) {
+          row.fid = row.original_fid;
+          row.ybr_pin_decision = "MANUAL_REVIEW_EXCLUDED_BRAND";
+          manualCount += 1;
           return;
         }
 
         if (source === "YBR") {
           row.fid = row.original_fid;
-          row.ybr_pin_decision = "KEEP_NON_CN_YBR";
+          row.ybr_pin_decision = "KEEP_YBR_TRUSTED";
           keepCount += 1;
         } else if (source === "PIN") {
           row.fid = 0;
-          row.ybr_pin_decision = "DROP_NON_CN_PIN_FID_0";
+          row.ybr_pin_decision = "DROP_PIN_FID_0_YBR_TRUSTED";
           droppedRowIndices.add(index);
           dropCount += 1;
         }
@@ -1509,11 +1521,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "OCN" || source === "OTN";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["OCN"], ["OTN"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -1542,7 +1550,7 @@ function TotalMarketCalculationPage() {
       setOcnOtnRows(filtered);
       setOcnOtnSavedRows(cloneOcnOtnRows(filtered));
       setOcnOtnMessage(
-        `Loaded ${filtered.length} rows where Source is OCN or OTN. Click "Apply OCN/OTN Rule" to keep OCN and adjust OTN by max(OTN-OCN, 0).`
+        `Loaded ${filtered.length} rows where OCN and OTN both exist in the same group. Click "Apply OCN/OTN Rule" to keep OCN and adjust OTN by max(OTN-OCN, 0).`
       );
       setDoubleBrandMessage("Selected OCN/OTN Case.");
     } catch (err) {
@@ -1753,11 +1761,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "CMA" || source === "CMM" || source === "OHR";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["CMA", "CMM"], ["OHR"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -1786,7 +1790,7 @@ function TotalMarketCalculationPage() {
       setCmaOhrRows(filtered);
       setCmaOhrSavedRows(cloneCmaOhrRows(filtered));
       setCmaOhrMessage(
-        `Loaded ${filtered.length} rows where Source is CMA/CMM/OHR. Click "Apply CMA/OHR Rule" to decide which source to keep.`
+        `Loaded ${filtered.length} rows where CMA/CMM and OHR both exist in the same group. Click "Apply CMA/OHR Rule" to decide which source to keep.`
       );
       setDoubleBrandMessage("Selected CMA/OHR Case.");
     } catch (err) {
@@ -1983,7 +1987,13 @@ function TotalMarketCalculationPage() {
       }
 
       const filtered = baseRows
-        .filter((row) => toKey(row.source) === "CNX")
+        .filter((row) => {
+          if (toKey(row.source) !== "CNX") {
+            return false;
+          }
+          const key = getYbrPinGroupKey(row);
+          return hasOtherSourceByGroup[key] ?? false;
+        })
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -2013,7 +2023,7 @@ function TotalMarketCalculationPage() {
       setCnxRows(filtered);
       setCnxSavedRows(cloneCnxRows(filtered));
       setCnxMessage(
-        `Loaded ${filtered.length} CNX rows. Click "Apply CNX Rule" to set CNX FID to 0 only when the same group also has non-CNX source(s).`
+        `Loaded ${filtered.length} CNX rows where the same group also has non-CNX source(s). Click "Apply CNX Rule" to set CNX FID to 0.`
       );
       setDoubleBrandMessage("Selected CNX Case.");
     } catch (err) {
@@ -2150,11 +2160,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "OHR" || source === "PIN";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["OHR"], ["PIN"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -2183,7 +2189,7 @@ function TotalMarketCalculationPage() {
       setOhrPinRows(filtered);
       setOhrPinSavedRows(cloneOhrPinRows(filtered));
       setOhrPinMessage(
-        `Loaded ${filtered.length} rows where Source is OHR or PIN. Click "Apply OHR/PIN Rule" to keep OHR and set duplicated PIN rows to FID 0.`
+        `Loaded ${filtered.length} rows where OHR and PIN both exist in the same group. Click "Apply OHR/PIN Rule" to keep OHR and set duplicated PIN rows to FID 0.`
       );
       setDoubleBrandMessage("Selected OHR/PIN Case.");
     } catch (err) {
@@ -2355,11 +2361,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "RIM" || source === "PIN";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["RIM"], ["PIN"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -2388,7 +2390,7 @@ function TotalMarketCalculationPage() {
       setRimPinRows(filtered);
       setRimPinSavedRows(cloneRimPinRows(filtered));
       setRimPinMessage(
-        `Loaded ${filtered.length} rows where Source is RIM or PIN. Click "Apply RIM/PIN Rule" to keep RIM and set duplicated PIN rows to FID 0.`
+        `Loaded ${filtered.length} rows where RIM and PIN both exist in the same group. Click "Apply RIM/PIN Rule" to keep RIM and set duplicated PIN rows to FID 0.`
       );
       setDoubleBrandMessage("Selected RIM/PIN Case.");
     } catch (err) {
@@ -2568,11 +2570,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const filtered = baseRows
-        .filter((row) => {
-          const source = toKey(row.source);
-          return source === "ERG" || source === "PIN";
-        })
+      const filtered = filterRowsByRequiredSourceGroups(baseRows, [["ERG"], ["PIN"]])
         .map((row) => ({
           ...row,
           source_flag: "OTH",
@@ -2601,7 +2599,7 @@ function TotalMarketCalculationPage() {
       setErgPinRows(filtered);
       setErgPinSavedRows(cloneErgPinRows(filtered));
       setErgPinMessage(
-        `Loaded ${filtered.length} rows where Source is ERG or PIN. Click "Apply ERG/PIN Rule" to keep ERG and set duplicated PIN rows to FID 0.`
+        `Loaded ${filtered.length} rows where ERG and PIN both exist in the same group. Click "Apply ERG/PIN Rule" to keep ERG and set duplicated PIN rows to FID 0.`
       );
       setDoubleBrandMessage("Selected ERG/PIN Case.");
     } catch (err) {
