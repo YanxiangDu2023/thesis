@@ -1649,6 +1649,30 @@ button {
   color: #475569;
 }
 
+.data-table td.data-table__cell--group-country-highlight {
+  background: #fff7d8;
+}
+
+.data-table th.data-table__cell--group-country-strong-text,
+.data-table td.data-table__cell--group-country-strong-text {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.data-table th.data-table__cell--group-country-strong-text .data-table__filter-summary {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.data-table tbody td.data-table__cell--group-country-soft-text {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.data-table td.data-table__cell--group-country-core {
+  background: #f5f7fb;
+}
+
 .data-table__row--result td {
   font-weight: 700;
   color: #0f172a;

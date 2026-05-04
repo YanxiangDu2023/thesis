@@ -44,10 +44,10 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
   ],
   group_country: [
     "year",
-    "country_grouping",
-    "group_code",
     "country_code",
     "country_name",
+    "country_grouping",
+    "group_code",
     "market_area",
     "market_area_code",
     "region",
@@ -131,6 +131,14 @@ const COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE: Record<string, Record<string, strin
 };
 
 const LATEST_TABLE_MAX_HEIGHT = "72vh";
+const MATRIX_SUBMISSION_STYLED_LABELS = new Set([
+  "source_matrix",
+  "reporter_list",
+  "size_class",
+  "brand_mapping",
+  "group_country",
+  "machine_line_mapping",
+]);
 const INTEGER_LIKE_DOWNLOAD_COLUMNS = new Set([
   "calendar",
   "year",
@@ -231,6 +239,28 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   const latestColumns = useMemo(() => {
     return getVisibleColumns(label, latestRowsForDisplay);
   }, [label, latestRowsForDisplay]);
+  const useMatrixSubmissionStyle = useMemo(
+    () => MATRIX_SUBMISSION_STYLED_LABELS.has(label),
+    [label]
+  );
+  const matrixSubmissionHighlightedColumns = useMemo(() => {
+    if (!useMatrixSubmissionStyle) {
+      return new Set<string>();
+    }
+    return new Set(latestColumns.slice(3));
+  }, [latestColumns, useMatrixSubmissionStyle]);
+  const matrixSubmissionCoreColumns = useMemo(() => {
+    if (!useMatrixSubmissionStyle) {
+      return new Set<string>();
+    }
+    return new Set(latestColumns.slice(0, 2));
+  }, [latestColumns, useMatrixSubmissionStyle]);
+  const matrixSubmissionSoftTextColumns = useMemo(() => {
+    if (!useMatrixSubmissionStyle) {
+      return new Set<string>();
+    }
+    return new Set(latestColumns.slice(0, 3));
+  }, [latestColumns, useMatrixSubmissionStyle]);
 
   const editableRowsForDisplay = useMemo(() => {
     if (isEditingLatest) {
@@ -487,11 +517,28 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
                 <p>No row data found in SQL for this upload.</p>
               ) : (
                 <FilterableTable
-                  columns={latestColumns.map((column) => ({
-                    key: column,
-                    label: COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label]?.[column] ?? column,
-                    filterable: !((NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []).includes(column)),
-                  }))}
+                  columns={latestColumns.map((column) => {
+                    const classNames: string[] = [];
+                    if (useMatrixSubmissionStyle) {
+                      classNames.push("data-table__cell--group-country-strong-text");
+                    }
+                    if (matrixSubmissionSoftTextColumns.has(column)) {
+                      classNames.push("data-table__cell--group-country-soft-text");
+                    }
+                    if (matrixSubmissionHighlightedColumns.has(column)) {
+                      classNames.push("data-table__cell--group-country-highlight");
+                    }
+                    if (matrixSubmissionCoreColumns.has(column)) {
+                      classNames.push("data-table__cell--group-country-core");
+                    }
+
+                    return {
+                      key: column,
+                      label: COLUMN_LABEL_OVERRIDES_BY_MATRIX_TYPE[label]?.[column] ?? column,
+                      filterable: !((NON_FILTERABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []).includes(column)),
+                      className: classNames.length > 0 ? classNames.join(" ") : undefined,
+                    };
+                  })}
                   rows={editableRowsForDisplay}
                   maxHeight={LATEST_TABLE_MAX_HEIGHT}
                   editable={isEditingLatest}

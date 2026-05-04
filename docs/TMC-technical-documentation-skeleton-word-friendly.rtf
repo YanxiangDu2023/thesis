@@ -1,0 +1,286 @@
+{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0 Calibri;}{\\f1 Consolas;}}
+\\fs22
+\\par\\b\\fs36 TMC Technical Documentation - Skeleton (SAP-style)\\b0\\fs22
+\\par 
+\\par Document ID: `TMC-TECHDOC-YYYY-VX`
+\\par Version: `0.1-draft`
+\\par Status: `Draft`
+\\par Owner: `<Name / Team>`
+\\par Last Updated: `<YYYY-MM-DD>`
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 1. Purpose\\b0\\fs22
+\\par 
+\\par\\b\\fs24 1.1 Business Goal\\b0\\fs22
+\\par Describe why this process exists and what business outcome it supports.
+\\par 
+\\par\\b\\fs24 1.2 Scope\\b0\\fs22
+\\par\tab\\bullet\tab In scope:
+\\par\tab\\bullet\tab Out of scope:
+\\par 
+\\par\\b\\fs24 1.3 Audience\\b0\\fs22
+\\par\tab\\bullet\tab Business users
+\\par\tab\\bullet\tab Technical team
+\\par\tab\\bullet\tab Support / Operations
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 2. Document Control\\b0\\fs22
+\\par 
+\\par\\f1 | Version | Date | Author | Change Summary | Reviewer | Approval |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | 0.1 | <YYYY-MM-DD> | <Name> | Initial skeleton | <Name> | Pending |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 3. Process Overview (End-to-End)\\b0\\fs22
+\\par 
+\\par\\b\\fs24 3.1 High-Level Flow\\b0\\fs22
+\\par 1. Request intake
+\\par 2. Validation and enrichment
+\\par 3. Processing in TMC / SAP interfaces
+\\par 4. Result posting
+\\par 5. Exception handling
+\\par 6. Reporting and closure
+\\par 
+\\par\\b\\fs24 3.2 Process Diagram\\b0\\fs22
+\\par Insert diagram link or image here.
+\\par 
+\\par Example:
+\\par `docs/diagrams/tmc-e2e-flow.drawio`
+\\par 
+\\par\\b\\fs24 3.3 RACI (Roles and Responsibilities)\\b0\\fs22
+\\par 
+\\par\\f1 | Activity | Requestor | Business Analyst | Developer | Basis / Ops | Approver |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | Define requirement | R | A | C | I | I |\\f0
+\\par\\f1 | Build/configure | I | C | R | C | I |\\f0
+\\par\\f1 | Test and sign-off | C | R | C | I | A |\\f0
+\\par\\f1 | Production deployment | I | I | C | R | A |\\f0
+\\par 
+\\par Legend: `R=Responsible`, `A=Accountable`, `C=Consulted`, `I=Informed`
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 4. Detailed Process Steps\\b0\\fs22
+\\par 
+\\par Use one subsection per step.
+\\par 
+\\par\\b\\fs24 4.1 Step S01 - Request Intake\\b0\\fs22
+\\par\tab\\bullet\tab Objective:
+\\par\tab\\bullet\tab Trigger:
+\\par\tab\\bullet\tab Preconditions:
+\\par\tab\\bullet\tab Inputs:
+\\par\tab\\bullet\tab Actions:
+\\par\tab\\bullet\tab Outputs:
+\\par\tab\\bullet\tab Postconditions:
+\\par\tab\\bullet\tab Owner:
+\\par\tab\\bullet\tab SLA / Expected Duration:
+\\par 
+\\par\\b\\fs24 4.2 Step S02 - Validation\\b0\\fs22
+\\par\tab\\bullet\tab Objective:
+\\par\tab\\bullet\tab Trigger:
+\\par\tab\\bullet\tab Preconditions:
+\\par\tab\\bullet\tab Inputs:
+\\par\tab\\bullet\tab Actions:
+\\par\tab\\bullet\tab Outputs:
+\\par\tab\\bullet\tab Postconditions:
+\\par\tab\\bullet\tab Owner:
+\\par\tab\\bullet\tab SLA / Expected Duration:
+\\par 
+\\par\\b\\fs24 4.3 Step S03 - Processing\\b0\\fs22
+\\par\tab\\bullet\tab Objective:
+\\par\tab\\bullet\tab Trigger:
+\\par\tab\\bullet\tab Preconditions:
+\\par\tab\\bullet\tab Inputs:
+\\par\tab\\bullet\tab Actions:
+\\par\tab\\bullet\tab Outputs:
+\\par\tab\\bullet\tab Postconditions:
+\\par\tab\\bullet\tab Owner:
+\\par\tab\\bullet\tab SLA / Expected Duration:
+\\par 
+\\par\\b\\fs24 4.4 Step S04 - Exception / Rework\\b0\\fs22
+\\par\tab\\bullet\tab Objective:
+\\par\tab\\bullet\tab Trigger:
+\\par\tab\\bullet\tab Preconditions:
+\\par\tab\\bullet\tab Inputs:
+\\par\tab\\bullet\tab Actions:
+\\par\tab\\bullet\tab Outputs:
+\\par\tab\\bullet\tab Postconditions:
+\\par\tab\\bullet\tab Owner:
+\\par\tab\\bullet\tab SLA / Expected Duration:
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 5. Interface and Data Mapping\\b0\\fs22
+\\par 
+\\par\\b\\fs24 5.1 System Landscape\\b0\\fs22
+\\par 
+\\par\\f1 | Source System | Target System | Interface Type | Direction | Frequency | Owner |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | <System A> | <System B> | API / IDoc / File | Inbound / Outbound | Real-time / Batch | <Team> |\\f0
+\\par 
+\\par\\b\\fs24 5.2 Data Mapping Table\\b0\\fs22
+\\par 
+\\par\\f1 | Field ID | Source Field | Target Field | Data Type | Length | Rule / Transformation | Mandatory | Example |\\f0
+\\par\\f1 |---|---|---|---|---|---|---|---|\\f0
+\\par\\f1 | F001 | <src_field> | <tgt_field> | String | 50 | Trim + uppercase | Y | ABC123 |\\f0
+\\par 
+\\par\\b\\fs24 5.3 Validation Rules\\b0\\fs22
+\\par 
+\\par\\f1 | Rule ID | Rule Description | Severity | Action on Fail |\\f0
+\\par\\f1 |---|---|---|---|\\f0
+\\par\\f1 | VR-01 | Required field must not be null | Error | Reject record |\\f0
+\\par\\f1 | VR-02 | Date format must be YYYY-MM-DD | Error | Reject record |\\f0
+\\par\\f1 | VR-03 | Unknown code list value | Warning | Route to manual check |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 6. Configuration and Dependencies\\b0\\fs22
+\\par 
+\\par\\b\\fs24 6.1 SAP / TMC Configuration Objects\\b0\\fs22
+\\par 
+\\par\\f1 | Object Type | Object Name | Environment | Transport ID | Owner | Notes |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | Table / View / BAdI | <name> | DEV / QA / PROD | <TR123456> | <Name> | <notes> |\\f0
+\\par 
+\\par\\b\\fs24 6.2 External Dependencies\\b0\\fs22
+\\par 
+\\par\\f1 | Dependency | Purpose | Contact | Risk if Unavailable |\\f0
+\\par\\f1 |---|---|---|---|\\f0
+\\par\\f1 | <service / team> | <purpose> | <email/team> | <impact> |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 7. Error Handling and Support Runbook\\b0\\fs22
+\\par 
+\\par\\b\\fs24 7.1 Error Catalog\\b0\\fs22
+\\par 
+\\par\\f1 | Error Code | Error Message | Root Cause | Resolution Steps | Escalation Path |\\f0
+\\par\\f1 |---|---|---|---|---|\\f0
+\\par\\f1 | E001 | Missing required field | Upstream payload issue | Correct source record and retry | L2 Support |\\f0
+\\par 
+\\par\\b\\fs24 7.2 Retry and Recovery\\b0\\fs22
+\\par\tab\\bullet\tab Auto-retry policy:
+\\par\tab\\bullet\tab Manual retry procedure:
+\\par\tab\\bullet\tab Data reconciliation method:
+\\par 
+\\par\\b\\fs24 7.3 Monitoring\\b0\\fs22
+\\par 
+\\par\\f1 | Monitor Item | Tool / Transaction | Threshold | Alert Channel | Owner |\\f0
+\\par\\f1 |---|---|---|---|---|\\f0
+\\par\\f1 | Interface queue backlog | <tool> | > 100 records | Email / Teams | Ops |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 8. Security and Compliance\\b0\\fs22
+\\par 
+\\par\\b\\fs24 8.1 Access Matrix\\b0\\fs22
+\\par 
+\\par\\f1 | Role | System | Access Level | Approval Required | Review Frequency |\\f0
+\\par\\f1 |---|---|---|---|---|\\f0
+\\par\\f1 | <role> | <system> | Read / Write / Admin | Yes / No | Quarterly |\\f0
+\\par 
+\\par\\b\\fs24 8.2 Data Classification\\b0\\fs22
+\\par 
+\\par\\f1 | Data Element | Classification | Retention | Masking Required |\\f0
+\\par\\f1 |---|---|---|---|\\f0
+\\par\\f1 | Customer ID | Internal | 5 years | Yes |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 9. Test Strategy and Evidence\\b0\\fs22
+\\par 
+\\par\\b\\fs24 9.1 Test Scope\\b0\\fs22
+\\par\tab\\bullet\tab Unit test:
+\\par\tab\\bullet\tab Integration test:
+\\par\tab\\bullet\tab UAT:
+\\par 
+\\par\\b\\fs24 9.2 Test Case Matrix\\b0\\fs22
+\\par 
+\\par\\f1 | Test Case ID | Scenario | Input | Expected Result | Actual Result | Status | Evidence Link |\\f0
+\\par\\f1 |---|---|---|---|---|---|---|\\f0
+\\par\\f1 | TC-001 | Valid payload | <sample> | Process success | <actual> | Pass | <link> |\\f0
+\\par 
+\\par\\b\\fs24 9.3 Entry / Exit Criteria\\b0\\fs22
+\\par\tab\\bullet\tab Entry criteria:
+\\par\tab\\bullet\tab Exit criteria:
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 10. Deployment and Release\\b0\\fs22
+\\par 
+\\par\\b\\fs24 10.1 Deployment Plan\\b0\\fs22
+\\par 
+\\par\\f1 | Step | Environment | Action | Owner | Planned Time | Rollback Step |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | D1 | QA | Import transport | Basis | <time> | Restore previous transport |\\f0
+\\par 
+\\par\\b\\fs24 10.2 Release Checklist\\b0\\fs22
+\\par\tab\\bullet\tab [ ] Technical review completed
+\\par\tab\\bullet\tab [ ] Security review completed
+\\par\tab\\bullet\tab [ ] Test evidence attached
+\\par\tab\\bullet\tab [ ] Business sign-off completed
+\\par\tab\\bullet\tab [ ] Backout plan validated
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 11. Risks, Assumptions, and Open Items\\b0\\fs22
+\\par 
+\\par\\b\\fs24 11.1 Risks\\b0\\fs22
+\\par 
+\\par\\f1 | Risk ID | Description | Probability | Impact | Mitigation | Owner |\\f0
+\\par\\f1 |---|---|---|---|---|---|\\f0
+\\par\\f1 | R-01 | Upstream schema change | Medium | High | Versioned contract + alerting | Dev Lead |\\f0
+\\par 
+\\par\\b\\fs24 11.2 Assumptions\\b0\\fs22
+\\par\tab\\bullet\tab A-01:
+\\par\tab\\bullet\tab A-02:
+\\par 
+\\par\\b\\fs24 11.3 Open Items\\b0\\fs22
+\\par 
+\\par\\f1 | Item ID | Description | Owner | Due Date | Status |\\f0
+\\par\\f1 |---|---|---|---|---|\\f0
+\\par\\f1 | O-01 | Confirm code list source | <Name> | <YYYY-MM-DD> | Open |\\f0
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 12. Appendices\\b0\\fs22
+\\par 
+\\par\\b\\fs24 12.1 Glossary\\b0\\fs22
+\\par 
+\\par\\f1 | Term | Definition |\\f0
+\\par\\f1 |---|---|\\f0
+\\par\\f1 | TMC | <definition> |\\f0
+\\par\\f1 | IDoc | SAP Intermediate Document |\\f0
+\\par 
+\\par\\b\\fs24 12.2 Reference Links\\b0\\fs22
+\\par\tab\\bullet\tab SAP functional spec:
+\\par\tab\\bullet\tab SAP technical spec:
+\\par\tab\\bullet\tab API contract:
+\\par\tab\\bullet\tab Runbook:
+\\par 
+\\par\\b\\fs24 12.3 Sample Payloads\\b0\\fs22
+\\par 
+\\par \{
+\\par   "requestId": "REQ-12345",
+\\par   "sourceSystem": "SYSTEM_A",
+\\par   "timestamp": "2026-05-03T10:00:00Z"
+\\par \}
+\\par 
+\\par\\brdrb\\brdrs\\brdrw10\\brsp20\\par
+\\par 
+\\par\\b\\fs28 13. Quick Fill Guide\\b0\\fs22
+\\par 
+\\par Fill these first for a usable V1:
+\\par 1. Section 1 (Purpose + Scope)
+\\par 2. Section 3 (High-level flow + RACI)
+\\par 3. Section 4 (Detailed steps S01-S04)
+\\par 4. Section 5.2 (Data mapping table)
+\\par 5. Section 7.1 (Error catalog)
+\\par 6. Section 10 (Deployment and release)
+\\par 
+}
+

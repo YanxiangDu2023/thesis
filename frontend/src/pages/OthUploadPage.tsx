@@ -15,7 +15,7 @@ import type {
 const MATRIX_TYPE_LABELS: Record<string, string> = {
   source_matrix: "Source Matrix",
   reporter_list: "Reporter List",
-  size_class: "Size Class",
+  size_class: "Size Class Flag",
   brand_mapping: "Brand Mapping",
   group_country: "Group Country",
   machine_line_mapping: "Machine Line Mapping",

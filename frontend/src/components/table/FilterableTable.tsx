@@ -5,6 +5,7 @@ export type FilterableColumn = {
   label?: string;
   filterable?: boolean;
   summarizable?: boolean;
+  className?: string;
 };
 
 type FilterableTableProps = {
@@ -441,7 +442,7 @@ function FilterableTable({
             className={getRowClassName?.(row, index)}
           >
             {columns.map((column) => (
-              <td key={`${row.id ?? index}-${column.key}`}>
+              <td key={`${row.id ?? index}-${column.key}`} className={column.className}>
                 {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (
                   <input
                     className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
@@ -539,7 +540,9 @@ function FilterableTable({
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column.key}>{column.label ?? column.key}</th>
+                <th key={column.key} className={column.className}>
+                  {column.label ?? column.key}
+                </th>
               ))}
               {showRowActions ? <th>Actions</th> : null}
             </tr>
@@ -547,11 +550,11 @@ function FilterableTable({
               {columns.map((column) => {
                 const isFilterable = !editable && column.filterable !== false;
                 if (!isFilterable) {
-                  return <th key={`${column.key}-filter`} />;
+                  return <th key={`${column.key}-filter`} className={column.className} />;
                 }
 
                 return (
-                  <th key={`${column.key}-filter`}>
+                  <th key={`${column.key}-filter`} className={column.className}>
                     <div
                       className="data-table__filter-menu"
                       ref={(node) => {

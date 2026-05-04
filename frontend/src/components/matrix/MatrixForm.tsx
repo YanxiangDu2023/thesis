@@ -17,7 +17,7 @@ function MatrixForm() {
 
       <UploadForm
         label="size_class"
-        title="Size Class CSV"
+        title="Size Class Flag CSV"
         compact
       />
 
