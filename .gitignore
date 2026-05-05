@@ -37,6 +37,7 @@ backend/tmc.db
 *.log
 *.tmp
 tmc_doc_tmp.odt
+~$*
 
 # Generated images or archives if any
 *.zip
