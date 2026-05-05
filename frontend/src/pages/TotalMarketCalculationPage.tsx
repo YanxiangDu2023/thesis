@@ -60,10 +60,8 @@ type ErgPinCaseRow = OthDeletionFlagRow & {
 
 function TotalMarketCalculationPage() {
   const [activeView, setActiveView] = useState<"raw" | "doubleBrand" | "deleteDoubleBrand">("raw");
-  const [doubleBrandMode, setDoubleBrandMode] = useState<"all" | "namZar">("all");
   const [showDeleteCaseButtons, setShowDeleteCaseButtons] = useState(false);
-  const [selectedDeleteCase, setSelectedDeleteCase] = useState("YBR/PIN Case");
-  const [compactionLoading, setCompactionLoading] = useState(false);
+  const [selectedDeleteCase, setSelectedDeleteCase] = useState("OCN/OTN Case");
   const [compactionRequested, setCompactionRequested] = useState(false);
   const [compactionRows, setCompactionRows] = useState<CompactionDoubleBrandRow[]>([]);
   const [compactionSavedRows, setCompactionSavedRows] = useState<CompactionDoubleBrandRow[]>([]);
@@ -145,7 +143,8 @@ function TotalMarketCalculationPage() {
   const [ergPinRuleApplied, setErgPinRuleApplied] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [latestLoading, setLatestLoading] = useState(false);
+  const [rawLatestLoading, setRawLatestLoading] = useState(false);
+  const [calculatedLatestLoading, setCalculatedLatestLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [rows, setRows] = useState<OthDeletionFlagRow[]>([]);
@@ -166,13 +165,9 @@ function TotalMarketCalculationPage() {
   const [doubleBrandSourceRowCount, setDoubleBrandSourceRowCount] = useState(0);
   const deleteCaseButtons = useMemo(
     () => [
-      "YBR/PIN Case",
       "OCN/OTN Case",
-      "CMA/OHR Case",
       "CNX Case",
       "OHR/PIN Case",
-      "RIM/PIN Case",
-      "ERG/PIN Case",
     ],
     []
   );
@@ -413,24 +408,6 @@ function TotalMarketCalculationPage() {
     []
   );
 
-  function getDuplicateGroupKey(row: TotalMarketCalculationDoubleBrandCheckRow): string {
-    return [
-      String(row.country ?? "").trim().toUpperCase(),
-      String(row.machine_line_code ?? "").trim().toUpperCase(),
-      String(row.artificial_machine_line ?? "").trim().toUpperCase(),
-      String(row.size_class_flag ?? "").trim().toUpperCase(),
-      String(row.brand_code ?? "").trim().toUpperCase(),
-    ].join("||");
-  }
-
-  function isNamZarDuplicate(row: TotalMarketCalculationDoubleBrandCheckRow): boolean {
-    const tokens = String(row.distinct_sources ?? "")
-      .split(",")
-      .map((item) => item.trim().toUpperCase())
-      .filter(Boolean);
-    return tokens.includes("NAM") && tokens.includes("ZAR");
-  }
-
   function toKey(value: string | number | null | undefined): string {
     return String(value ?? "").trim().toUpperCase();
   }
@@ -556,7 +533,10 @@ function TotalMarketCalculationPage() {
   }
 
   function applyLoadedRawRows(result: Awaited<ReturnType<typeof getLatestTotalMarketCalculationEligibleOthRows>>) {
-    const normalizedRows = result.rows.map((row) => ({ ...row, source_flag: "OTH" }));
+    const normalizedRows = result.rows.map((row) => ({
+      ...row,
+      source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+    }));
     setRows(normalizedRows);
     setSourceRowCount(result.source_row_count);
     setSplitMachineLines(result.split_machine_lines);
@@ -565,7 +545,10 @@ function TotalMarketCalculationPage() {
   function applyLoadedWorkflowRows(
     result: Awaited<ReturnType<typeof getLatestTotalMarketCalculationEligibleOthRows>>
   ) {
-    const normalizedRows = result.rows.map((row) => ({ ...row, source_flag: "OTH" }));
+    const normalizedRows = result.rows.map((row) => ({
+      ...row,
+      source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+    }));
     setWorkflowRows(normalizedRows);
     setSourceRowCount(result.source_row_count);
     setSplitMachineLines(result.split_machine_lines);
@@ -583,7 +566,10 @@ function TotalMarketCalculationPage() {
     }
     const latest = await getLatestTotalMarketCalculationEligibleOthRows();
     applyLoadedWorkflowRows(latest);
-    return latest.rows.map((row) => ({ ...row, source_flag: "OTH" }));
+    return latest.rows.map((row) => ({
+      ...row,
+      source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+    }));
   }
 
   async function saveCaseRowsToBackend(
@@ -737,9 +723,9 @@ function TotalMarketCalculationPage() {
   async function handleShowLatestRaw() {
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
-    setLatestLoading(true);
+    setRawLatestLoading(true);
     setError("");
-    setMessage("Loading latest saved Total Market Calculation rows...");
+    setMessage("Loading latest raw rows...");
 
     try {
       const result = await getLatestTotalMarketCalculationEligibleOthRows();
@@ -755,13 +741,37 @@ function TotalMarketCalculationPage() {
       );
       setMessage("");
     } finally {
-      setLatestLoading(false);
+      setRawLatestLoading(false);
+    }
+  }
+
+  async function handleShowLatestCalculated() {
+    setActiveView("raw");
+    setShowDeleteCaseButtons(false);
+    setCalculatedLatestLoading(true);
+    setError("");
+    setMessage("Loading latest calculated rows...");
+
+    try {
+      const result = await getLatestTotalMarketCalculationEligibleOthRows();
+      applyLoadedRawRows(result);
+      setMessage(
+        `Latest calculated result loaded. Row Count: ${result.row_count}${result.run_id ? ` (Run #${result.run_id})` : ""}.`
+      );
+    } catch (fetchError) {
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to load latest calculated Total Market rows."
+      );
+      setMessage("");
+    } finally {
+      setCalculatedLatestLoading(false);
     }
   }
 
   async function handleReportCheckDoubleBrand() {
     setActiveView("doubleBrand");
-    setDoubleBrandMode("all");
     setShowDeleteCaseButtons(false);
     setDoubleBrandLoading(true);
     setDoubleBrandError("");
@@ -780,39 +790,6 @@ function TotalMarketCalculationPage() {
         fetchError instanceof Error
           ? fetchError.message
           : "Failed to run Report check double brand."
-      );
-      setDoubleBrandMessage("");
-    } finally {
-      setDoubleBrandLoading(false);
-    }
-  }
-
-  async function handleReportCheckDoubleBrandNamZar() {
-    setActiveView("doubleBrand");
-    setDoubleBrandMode("namZar");
-    setShowDeleteCaseButtons(false);
-    setDoubleBrandLoading(true);
-    setDoubleBrandError("");
-    setDoubleBrandMessage("Checking NAM/ZAR duplicate groups...");
-
-    try {
-      const result = await getTotalMarketCalculationDoubleBrandCheckRows();
-      const filteredRows = result.rows
-        .filter(isNamZarDuplicate)
-        .map((row) => ({ ...row, source_flag: "OTH" }));
-      const filteredGroupCount = new Set(filteredRows.map(getDuplicateGroupKey)).size;
-
-      setDoubleBrandRows(filteredRows);
-      setDoubleBrandGroupCount(filteredGroupCount);
-      setDoubleBrandSourceRowCount(result.source_row_count);
-      setDoubleBrandMessage(
-        `Found ${filteredRows.length} rows across ${filteredGroupCount} duplicate groups for source pair NAM/ZAR.`
-      );
-    } catch (fetchError) {
-      setDoubleBrandError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : "Failed to run Check Double Brand (NAM, ZAR)."
       );
       setDoubleBrandMessage("");
     } finally {
@@ -876,100 +853,6 @@ function TotalMarketCalculationPage() {
     resetErgPinCaseState();
     setDoubleBrandError("");
     setDoubleBrandMessage("Delete Double Brand action is ready. Select case buttons below.");
-  }
-
-  async function handleLoadDeleteDoubleBrandCompactionMachine() {
-    setYbrPinRequested(false);
-    setYbrPinRows([]);
-    setYbrPinSavedRows([]);
-    setYbrPinMessage("");
-    setYbrPinError("");
-    setYbrPinEditMode(false);
-    setYbrPinDirty(false);
-    setYbrPinRuleApplied(false);
-    setOcnOtnRequested(false);
-    setOcnOtnRows([]);
-    setOcnOtnSavedRows([]);
-    setOcnOtnMessage("");
-    setOcnOtnError("");
-    setOcnOtnEditMode(false);
-    setOcnOtnDirty(false);
-    setOcnOtnRuleApplied(false);
-    setCmaOhrRequested(false);
-    setCmaOhrRows([]);
-    setCmaOhrSavedRows([]);
-    setCmaOhrMessage("");
-    setCmaOhrError("");
-    setCmaOhrEditMode(false);
-    setCmaOhrDirty(false);
-    setCmaOhrRuleApplied(false);
-    setCnxRequested(false);
-    setCnxRows([]);
-    setCnxSavedRows([]);
-    setCnxMessage("");
-    setCnxError("");
-    setCnxEditMode(false);
-    setCnxDirty(false);
-    setCnxRuleApplied(false);
-    setCnxHasOtherSourceByGroup({});
-    setOhrPinRequested(false);
-    setOhrPinRows([]);
-    setOhrPinSavedRows([]);
-    setOhrPinMessage("");
-    setOhrPinError("");
-    setOhrPinEditMode(false);
-    setOhrPinDirty(false);
-    setOhrPinRuleApplied(false);
-    resetRimPinCaseState();
-    resetErgPinCaseState();
-    setCompactionRequested(true);
-    setCompactionLoading(true);
-    setCompactionError("");
-    setCompactionMessage("Loading Compaction Machine OTH rows...");
-
-    try {
-      const baseRows = await ensureWorkflowRowsLoaded();
-      const compactionOnlyRows = baseRows.filter(isCompactionMachineRow);
-      const withIndicator = buildCompactionRowsWithIndicator(compactionOnlyRows);
-
-      withIndicator.sort((a, b) => {
-        const keyA = [
-          toKey(a.country),
-          toKey(a.machine_line_name),
-          toKey(a.size_class_flag),
-          toKey(a.brand_code || a.brand_name),
-          toKey(a.source),
-        ].join("|");
-        const keyB = [
-          toKey(b.country),
-          toKey(b.machine_line_name),
-          toKey(b.size_class_flag),
-          toKey(b.brand_code || b.brand_name),
-          toKey(b.source),
-        ].join("|");
-        return keyA.localeCompare(keyB);
-      });
-
-      setCompactionRows(withIndicator);
-      setCompactionSavedRows(cloneCompactionRows(withIndicator));
-      setCompactionSourceRowCount(compactionOnlyRows.length);
-      setCompactionEditMode(false);
-      setCompactionDirty(false);
-      setCompactionMessage(
-        `Loaded ${withIndicator.length} Compaction Machine OTH rows. DB indicator by country is computed per country + machine line + size class + brand.`
-      );
-    } catch (err) {
-      setCompactionRows([]);
-      setCompactionSourceRowCount(0);
-      setCompactionError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load Delete Double Brand (Compaction Machine) rows."
-      );
-      setCompactionMessage("");
-    } finally {
-      setCompactionLoading(false);
-    }
   }
 
   function handleSelectDeleteCase(caseName: string) {
@@ -2712,9 +2595,8 @@ function TotalMarketCalculationPage() {
           <p className="section-tag">Total Market Calculation</p>
           <h1 className="section-title">Total Market Calculation</h1>
           <p className="section-description">
-            Review the full OTH Deletion Flag dataset (all reporter/deletion states). For rows
-            that are split-applicable, this view shows split output rows. Volvo rows are excluded
-            from this input view.
+            Calculate and review a unified Total Market input table: SAL (reporter = Y), all TMA,
+            and machine-line-split OTH (reporter = Y), with deletion flag = Y excluded.
           </p>
         </div>
 
@@ -2724,9 +2606,9 @@ function TotalMarketCalculationPage() {
               type="button"
               className="btn btn--primary tmc-action-main tmc-action-raw"
               onClick={handleShowLatestRaw}
-              disabled={latestLoading}
+              disabled={rawLatestLoading}
             >
-              {latestLoading ? "Loading raw..." : "Show Raw Total Market Calculation Rows"}
+              {rawLatestLoading ? "Loading raw..." : "Show Raw Total Market Calculation Rows"}
             </button>
             <button
               type="button"
@@ -2734,19 +2616,7 @@ function TotalMarketCalculationPage() {
               onClick={handleReportCheckDoubleBrand}
               disabled={doubleBrandLoading}
             >
-              {doubleBrandLoading && doubleBrandMode === "all"
-                ? "Checking..."
-                : "Report check double brand"}
-            </button>
-            <button
-              type="button"
-              className="btn btn--overview tmc-action-main tmc-action-nam-zar"
-              onClick={handleReportCheckDoubleBrandNamZar}
-              disabled={doubleBrandLoading}
-            >
-              {doubleBrandLoading && doubleBrandMode === "namZar"
-                ? "Checking..."
-                : "Check Double Brand (NAM, ZAR)"}
+              {doubleBrandLoading ? "Checking..." : "Report check double brand"}
             </button>
             <button
               type="button"
@@ -2766,23 +2636,23 @@ function TotalMarketCalculationPage() {
             </button>
             <button
               type="button"
-              className="btn btn--tiny tmc-action-latest"
+              className="btn btn--tiny tmc-action-latest tmc-action-raw-latest"
               onClick={handleShowLatestRaw}
-              disabled={loading || latestLoading}
+              disabled={loading || rawLatestLoading}
             >
-              {latestLoading ? "Loading latest..." : "Show latest"}
+              {rawLatestLoading ? "Loading latest..." : "Show latest (Raw)"}
+            </button>
+            <button
+              type="button"
+              className="btn btn--tiny tmc-action-latest tmc-action-calc-latest"
+              onClick={handleShowLatestCalculated}
+              disabled={loading || calculatedLatestLoading}
+            >
+              {calculatedLatestLoading ? "Loading latest..." : "Show latest (Calculated)"}
             </button>
           </div>
           {showDeleteCaseButtons ? (
             <div className="tmc-delete-case-bar" style={{ marginTop: "12px" }}>
-              <button
-                type="button"
-                className="tmc-delete-case-btn tmc-delete-case-btn--label"
-                onClick={handleLoadDeleteDoubleBrandCompactionMachine}
-                disabled={compactionLoading}
-              >
-                Delete Double Brand (Compaction Machine)
-              </button>
               {deleteCaseButtons.map((caseName) => (
                 <button
                   key={caseName}
@@ -2818,7 +2688,7 @@ function TotalMarketCalculationPage() {
                 <p className="card__text">{rows.length.toLocaleString()}</p>
               </article>
               <article className="card">
-                <h4 className="card__title">Source OTH Rows</h4>
+                <h4 className="card__title">Source Rows</h4>
                 <p className="card__text">{sourceRowCount.toLocaleString()}</p>
               </article>
               <article className="card">
@@ -2830,7 +2700,7 @@ function TotalMarketCalculationPage() {
             </div>
 
             <div className="section summary-card" style={{ marginTop: "8px" }}>
-              <strong>Total Market Calculation Input</strong>
+              <strong>Total Market Calculation Output</strong>
               <FilterableTable
                 columns={columns}
                 rows={rows}
@@ -2871,21 +2741,13 @@ function TotalMarketCalculationPage() {
             </div>
 
             <div className="section summary-card" style={{ marginTop: "8px" }}>
-              <strong>
-                {doubleBrandMode === "namZar"
-                  ? "Report Check Double Brand (NAM, ZAR)"
-                  : "Report Check Double Brand"}
-              </strong>
+              <strong>Report Check Double Brand</strong>
               <FilterableTable
                 columns={doubleBrandColumns}
                 rows={doubleBrandRows}
                 maxHeight="520px"
                 compact
-                emptyMessage={
-                  doubleBrandMode === "namZar"
-                    ? "No NAM/ZAR duplicate OTH rows found for the same country + machine line code + artificial machine line + size class + brand code."
-                    : "No cross-source duplicate OTH rows found for the same country + machine line code + artificial machine line + size class + brand code."
-                }
+                emptyMessage="No cross-source duplicate OTH rows found for the same country + machine line code + artificial machine line + size class + brand code."
               />
             </div>
           </>

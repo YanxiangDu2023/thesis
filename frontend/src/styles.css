@@ -783,10 +783,10 @@ button {
 }
 
 .tmc-actions-grid {
-  grid-template-columns: repeat(5, minmax(180px, 320px));
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
   grid-template-areas:
-    "raw report namzar delete calculate"
-    "latest . . . .";
+    "raw report delete calculate"
+    "rawLatest . . calcLatest";
   align-items: start;
 }
 
@@ -820,8 +820,15 @@ button {
 }
 
 .tmc-action-latest {
-  grid-area: latest;
   justify-self: start;
+}
+
+.tmc-action-raw-latest {
+  grid-area: rawLatest;
+}
+
+.tmc-action-calc-latest {
+  grid-area: calcLatest;
 }
 
 .tmc-delete-case-bar {
@@ -2032,11 +2039,11 @@ button {
     grid-template-columns: 1fr;
     grid-template-areas:
       "raw"
+      "rawLatest"
       "report"
-      "namzar"
       "delete"
       "calculate"
-      "latest";
+      "calcLatest";
   }
 
   .tmc-action-latest {

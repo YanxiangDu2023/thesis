@@ -3052,6 +3052,42 @@ def _expand_total_market_rows_with_split(
     }
 
 
+def _map_crp_combined_row_to_total_market_row(row: dict[str, Any]) -> dict[str, Any]:
+    source_text = _to_text(row.get("source"))
+    source_key = _to_case_insensitive_key(source_text)
+    brand_code = _to_text(row.get("brand_code"))
+    if source_key == "SAL" and not brand_code:
+        brand_code = "VCE"
+    if source_key == "SAL":
+        brand_name = "VOLVO CE"
+    elif source_key == "TMA":
+        brand_name = "TOTAL MARKET"
+    else:
+        brand_name = ""
+
+    return {
+        "year": _to_text(row.get("year")),
+        "source": source_text,
+        "country_code": _to_text(row.get("country_group_code")),
+        "country": _to_text(row.get("country")),
+        "country_grouping": _to_text(row.get("country_grouping")),
+        "region": _to_text(row.get("region")),
+        "market_area": "",
+        "machine_line_name": _to_text(row.get("machine_line_name")),
+        "machine_line_code": _to_text(row.get("machine_line_code")),
+        "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
+        "brand_name": brand_name,
+        "brand_code": brand_code,
+        "size_class_flag": _to_text(row.get("size_class")),
+        "fid": _round_to_4(_to_number(row.get("fid"))),
+        "ms_percent": "",
+        "deletion_flag": _to_text(row.get("deletion_flag")),
+        "pri_sec": _to_text(row.get("pri_sec")),
+        "reporter_flag": _to_text(row.get("reporter_flag")),
+        "source_flag": source_key,
+    }
+
+
 def _compute_total_market_calculation_eligible_oth_result() -> dict[str, Any]:
     split_machine_lines = {"CEX", "GEC", "GEW", "WLO"}
 
@@ -3069,28 +3105,77 @@ def _compute_total_market_calculation_eligible_oth_result() -> dict[str, Any]:
             raise
         three_check_report = get_p00_three_check_report(track_run=False)
 
-    filtered_rows, split_meta = _expand_total_market_rows_with_split(
+    try:
+        combined_report = get_latest_crp_d1_combined_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        combined_report = _get_crp_d1_combined_report_data(include_all_sal=True)
+
+    expanded_oth_rows, split_meta = _expand_total_market_rows_with_split(
         source_report["rows"],
         three_check_report["rows"],
     )
-    filtered_rows = [row for row in filtered_rows if not _is_volvo_oth_row(row)]
 
-    filtered_rows.sort(
+    oth_rows: list[dict[str, Any]] = []
+    for row in expanded_oth_rows:
+        if _is_volvo_oth_row(row):
+            continue
+        if _to_case_insensitive_key(row.get("reporter_flag")) != "Y":
+            continue
+        if _to_case_insensitive_key(row.get("deletion_flag")) == "Y":
+            continue
+        oth_rows.append({
+            **row,
+            "source_flag": _to_case_insensitive_key(row.get("source")),
+        })
+
+    combined_rows: list[dict[str, Any]] = []
+    for row in combined_report["rows"]:
+        source_key = _to_case_insensitive_key(row.get("source"))
+        reporter_key = _to_case_insensitive_key(row.get("reporter_flag"))
+        deletion_key = _to_case_insensitive_key(row.get("deletion_flag"))
+        if deletion_key == "Y":
+            continue
+        if source_key == "TMA":
+            combined_rows.append(_map_crp_combined_row_to_total_market_row(row))
+            continue
+        if source_key == "SAL" and reporter_key == "Y":
+            combined_rows.append(_map_crp_combined_row_to_total_market_row(row))
+
+    final_rows = [*combined_rows, *oth_rows]
+
+    def _source_sort_rank(source_value: Any) -> int:
+        source_key = _to_case_insensitive_key(source_value)
+        if source_key == "SAL":
+            return 0
+        if source_key == "TMA":
+            return 1
+        if source_key == "OTH":
+            return 2
+        return 9
+
+    # Keep SAL/TMA adjacent for the same business key, then show OTH rows.
+    final_rows.sort(
         key=lambda row: (
             _to_text(row.get("year")),
+            _to_text(row.get("country_grouping")),
             _to_text(row.get("country")),
-            _to_text(row.get("artificial_machine_line")),
+            _to_text(row.get("region")),
+            _to_text(row.get("machine_line_code")),
             _to_text(row.get("machine_line_name")),
-            _to_text(row.get("brand_name")),
+            _to_text(row.get("artificial_machine_line")),
             _to_text(row.get("size_class_flag")),
-            _to_text(row.get("source")),
+            _source_sort_rank(row.get("source")),
+            _to_text(row.get("brand_code")),
+            _to_text(row.get("brand_name")),
         )
     )
 
     return {
-        "row_count": len(filtered_rows),
-        "rows": filtered_rows,
-        "source_row_count": source_report.get("row_count", len(source_report["rows"])),
+        "row_count": len(final_rows),
+        "rows": final_rows,
+        "source_row_count": len(combined_report["rows"]) + len(expanded_oth_rows),
         "split_machine_lines": sorted(split_machine_lines),
         "source_report_run_id": source_report.get("run_id"),
         "source_report_created_at": source_report.get("created_at"),
@@ -3107,7 +3192,7 @@ def _run_total_market_calculation_eligible_oth_background(run_id: int) -> None:
         _save_p00_report_snapshot_to_existing_run(
             run_id,
             result["rows"],
-            "Total Market Calculation eligible OTH rows generated successfully",
+            "Total Market Calculation rows generated successfully",
             meta={
                 "source_row_count": result["source_row_count"],
                 "split_machine_lines": result["split_machine_lines"],
@@ -3134,7 +3219,7 @@ def get_total_market_calculation_eligible_oth_rows():
     snapshot_run_id = _save_p00_report_snapshot(
         P00_RUN_KEYS["total_market_eligible_oth"],
         result["rows"],
-        "Total Market Calculation eligible OTH rows generated successfully",
+        "Total Market Calculation rows generated successfully",
         meta={
             "source_row_count": result["source_row_count"],
             "split_machine_lines": result["split_machine_lines"],
@@ -3156,7 +3241,7 @@ def get_total_market_calculation_eligible_oth_rows():
 def run_total_market_calculation_eligible_oth_report(background_tasks: BackgroundTasks):
     run_id = _create_p00_report_run(
         P00_RUN_KEYS["total_market_eligible_oth"],
-        "Running Total Market Calculation eligible OTH report",
+        "Running Total Market Calculation report",
     )
     background_tasks.add_task(_run_total_market_calculation_eligible_oth_background, run_id)
     run = _get_p00_report_run(run_id)
