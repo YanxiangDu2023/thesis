@@ -349,6 +349,7 @@ export type SaveTotalMarketCalculationEligibleOthSnapshotResponse = {
   row_count: number;
   status: string;
   message: string;
+  previous_row_count?: number;
 };
 
 export type ExcavatorsSplitCaseRow = {

@@ -458,6 +458,17 @@ export async function getLatestTotalMarketCalculationEligibleOthRows(): Promise<
   return result as TotalMarketCalculationEligibleOthResponse;
 }
 
+export async function getLatestTotalMarketCalculationCalculatedRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/calculated/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest calculated Total Market rows");
+  }
+
+  return result as TotalMarketCalculationEligibleOthResponse;
+}
+
 export async function getTotalMarketCalculationDoubleBrandCheckRows(): Promise<TotalMarketCalculationDoubleBrandCheckResponse> {
   const response = await apiFetch("/reports/total-market-calculation/double-brand-check");
   const result = await response.json();
@@ -483,6 +494,25 @@ export async function saveTotalMarketCalculationEligibleOthSnapshot(
 
   if (!response.ok) {
     throw new Error(result.detail || "Failed to save Total Market Calculation snapshot");
+  }
+
+  return result as SaveTotalMarketCalculationEligibleOthSnapshotResponse;
+}
+
+export async function saveTotalMarketCalculationCalculatedSnapshot(
+  payload: SaveTotalMarketCalculationEligibleOthSnapshotRequest
+): Promise<SaveTotalMarketCalculationEligibleOthSnapshotResponse> {
+  const response = await apiFetch("/reports/total-market-calculation/calculated/snapshots", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to save calculated Total Market snapshot");
   }
 
   return result as SaveTotalMarketCalculationEligibleOthSnapshotResponse;

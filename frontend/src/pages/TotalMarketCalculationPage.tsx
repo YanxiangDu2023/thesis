@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
 import {
-  getTotalMarketCalculationEligibleOthRun,
+  getTotalMarketCalculationEligibleOthRows,
   getLatestTotalMarketCalculationEligibleOthRows,
+  getLatestTotalMarketCalculationCalculatedRows,
   getTotalMarketCalculationDoubleBrandCheckRows,
-  runTotalMarketCalculationEligibleOthReport,
   saveTotalMarketCalculationEligibleOthSnapshot,
+  saveTotalMarketCalculationCalculatedSnapshot,
 } from "../api/uploads";
 import type {
   OthDeletionFlagRow,
@@ -455,8 +456,9 @@ function TotalMarketCalculationPage() {
 
   function getYbrPinGroupKey(row: OthDeletionFlagRow): string {
     return [
+      toKey(row.year),
       toKey(row.country),
-      toKey(row.machine_line_code || row.machine_line_name),
+      toKey(row.artificial_machine_line || row.machine_line_code || row.machine_line_name),
       toKey(row.size_class_flag),
       toKey(row.brand_code || row.brand_name),
     ].join("||");
@@ -534,10 +536,15 @@ function TotalMarketCalculationPage() {
       const key = buildSnapshotRowKey(row);
       const queue = queuesByKey.get(key);
       if (!queue || queue.length === 0) {
+        // Keep untouched case rows. Only rows explicitly included in the
+        // current case editor should overwrite values; all other case rows
+        // must remain in the working table.
+        mergedRows.push(row);
         continue;
       }
       const edited = queue.shift();
       if (!edited) {
+        mergedRows.push(row);
         continue;
       }
       mergedRows.push({
@@ -596,7 +603,12 @@ function TotalMarketCalculationPage() {
     editedRows: OthDeletionFlagRow[],
     isCaseRow: (row: OthDeletionFlagRow) => boolean,
     message: string
-  ): Promise<{ runId: number; mergedRows: OthDeletionFlagRow[] }> {
+  ): Promise<{
+    runId: number;
+    mergedRows: OthDeletionFlagRow[];
+    previousRowCount?: number;
+    latestRowCount: number;
+  }> {
     const mergedRows = mergeCaseRowsIntoBaseRows(baseRows, editedRows, isCaseRow);
     const snapshot = await saveTotalMarketCalculationEligibleOthSnapshot({
       rows: mergedRows,
@@ -610,9 +622,17 @@ function TotalMarketCalculationPage() {
       three_check_report_run_id: threeCheckReportRunId,
       three_check_report_created_at: threeCheckReportCreatedAt,
     });
+    const latest = await getLatestTotalMarketCalculationEligibleOthRows();
+    applyLoadedWorkflowRows(latest);
+    applyLoadedRawRows(latest);
     return {
       runId: snapshot.run_id,
-      mergedRows,
+      mergedRows: latest.rows.map((row) => ({
+        ...row,
+        source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+      })),
+      previousRowCount: snapshot.previous_row_count,
+      latestRowCount: latest.row_count,
     };
   }
 
@@ -695,38 +715,31 @@ function TotalMarketCalculationPage() {
     setShowDeleteCaseButtons(false);
     setLoading(true);
     setError("");
-    setMessage("Starting Total Market Calculation run...");
+    setMessage("Calculating from current saved working table...");
 
     try {
-      const started = await runTotalMarketCalculationEligibleOthReport();
-      setMessage(`Run #${started.run_id} started. Waiting for completion...`);
-
-      const maxAttempts = 300;
-      let finished = false;
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const run = await getTotalMarketCalculationEligibleOthRun(started.run_id);
-        if (run.status === "success") {
-          setMessage(
-            `Run successful. Row Count: ${run.row_count ?? 0} (Run #${run.run_id}). Click Show latest to load.`
-          );
-          finished = true;
-          break;
-        }
-
-        if (run.status === "failed") {
-          throw new Error(run.message || `Run #${run.run_id} failed.`);
-        }
-
-        setMessage(`Run #${run.run_id} is running... (${attempt}/${maxAttempts})`);
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      const currentRows = await ensureWorkflowRowsLoaded();
+      if (currentRows.length === 0) {
+        throw new Error("No working rows found. Please load raw rows first.");
       }
 
-      if (!finished) {
-        throw new Error(
-          `Run did not finish in time. Please click Show latest after a while to check results.`
-        );
-      }
+      const snapshot = await saveTotalMarketCalculationCalculatedSnapshot({
+        rows: currentRows,
+        message: "Calculated Total Market output saved from current working table",
+        source_row_count: sourceRowCount > 0 ? sourceRowCount : currentRows.length,
+        split_machine_lines: splitMachineLines,
+        split_input_rows: splitInputRows,
+        split_output_rows: splitOutputRows,
+        source_report_run_id: sourceReportRunId,
+        source_report_created_at: sourceReportCreatedAt,
+        three_check_report_run_id: threeCheckReportRunId,
+        three_check_report_created_at: threeCheckReportCreatedAt,
+      });
+      const latestCalculated = await getLatestTotalMarketCalculationCalculatedRows();
+      applyLoadedRawRows(latestCalculated);
+      setMessage(
+        `Calculated result saved and reloaded from backend. Rows: ${snapshot.previous_row_count ?? currentRows.length} -> ${latestCalculated.row_count} (Run #${snapshot.run_id}).`
+      );
     } catch (fetchError) {
       setError(
         fetchError instanceof Error
@@ -764,6 +777,37 @@ function TotalMarketCalculationPage() {
     }
   }
 
+  async function handleRunRawTotalMarketRows() {
+    setActiveView("raw");
+    setShowDeleteCaseButtons(false);
+    setRawLatestLoading(true);
+    setError("");
+    setMessage("Running raw Total Market Calculation rows...");
+
+    try {
+      const result = await getTotalMarketCalculationEligibleOthRows();
+      applyLoadedRawRows(result);
+      setWorkflowRows(
+        result.rows.map((row) => ({
+          ...row,
+          source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+        }))
+      );
+      setMessage(
+        `Raw run successful. Row Count: ${result.row_count}${result.run_id ? ` (Run #${result.run_id})` : ""}.`
+      );
+    } catch (fetchError) {
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to run raw Total Market Calculation rows."
+      );
+      setMessage("");
+    } finally {
+      setRawLatestLoading(false);
+    }
+  }
+
   async function handleShowLatestCalculated() {
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
@@ -772,7 +816,7 @@ function TotalMarketCalculationPage() {
     setMessage("Loading latest calculated rows...");
 
     try {
-      const result = await getLatestTotalMarketCalculationEligibleOthRows();
+      const result = await getLatestTotalMarketCalculationCalculatedRows();
       applyLoadedRawRows(result);
       setMessage(
         `Latest calculated result loaded. Row Count: ${result.row_count}${result.run_id ? ` (Run #${result.run_id})` : ""}.`
@@ -802,7 +846,7 @@ function TotalMarketCalculationPage() {
       setDoubleBrandGroupCount(result.duplicate_group_count);
       setDoubleBrandSourceRowCount(result.source_row_count);
       setDoubleBrandMessage(
-        `Found ${result.row_count} rows across ${result.duplicate_group_count} duplicate groups (same country + machine line code + artificial machine line + size class + brand code, but different source).`
+        `Found ${result.row_count} rows across ${result.duplicate_group_count} duplicate groups (same country + artificial machine line + size class + brand, but different source).`
       );
     } catch (fetchError) {
       setDoubleBrandError(
@@ -1124,7 +1168,7 @@ function TotalMarketCalculationPage() {
 
     try {
       const baseRows = await ensureWorkflowRowsLoaded();
-      const { runId, mergedRows } = await saveCaseRowsToBackend(
+      const { runId, mergedRows, previousRowCount, latestRowCount } = await saveCaseRowsToBackend(
         baseRows,
         target.rows,
         target.isCaseRow,
@@ -1132,8 +1176,14 @@ function TotalMarketCalculationPage() {
       );
       target.markSaved();
       setWorkflowRows(mergedRows);
+      setRows(
+        mergedRows.map((row) => ({
+          ...row,
+          source_flag: String(row.source ?? "").trim().toUpperCase() || String(row.source_flag ?? "OTH"),
+        }))
+      );
       setDoubleBrandMessage(
-        `${target.label} saved to backend raw data (Run #${runId}). Next case now uses this updated working table.`
+        `${target.label} saved to backend raw data (Run #${runId}). Rows: ${previousRowCount ?? baseRows.length} -> ${latestRowCount}. Backend snapshot reloaded automatically.`
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save delete-case changes.";
@@ -2624,7 +2674,7 @@ function TotalMarketCalculationPage() {
             <button
               type="button"
               className="btn btn--primary tmc-action-main tmc-action-raw"
-              onClick={handleShowLatestRaw}
+              onClick={handleRunRawTotalMarketRows}
               disabled={rawLatestLoading}
             >
               {rawLatestLoading ? "Loading raw..." : "Show Raw Total Market Calculation Rows"}
@@ -2766,7 +2816,7 @@ function TotalMarketCalculationPage() {
                 rows={doubleBrandRows}
                 maxHeight="520px"
                 compact
-                emptyMessage="No cross-source duplicate OTH rows found for the same country + machine line code + artificial machine line + size class + brand code."
+                emptyMessage="No cross-source duplicate OTH rows found for the same country + artificial machine line + size class + brand."
               />
             </div>
           </>

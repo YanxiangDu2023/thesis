@@ -1206,6 +1206,7 @@ function LayerDetailPage() {
   const [editingExcavatorsManual, setEditingExcavatorsManual] = useState(false);
   const [excavatorsManualRows, setExcavatorsManualRows] = useState<ExcavatorsSplitDetailRow[]>([]);
   const [savingExcavatorsManual, setSavingExcavatorsManual] = useState(false);
+  const [savingExcavatorsSnapshot, setSavingExcavatorsSnapshot] = useState(false);
   const [excavatorsManualMessage, setExcavatorsManualMessage] = useState("");
   const [excavatorsManualError, setExcavatorsManualError] = useState("");
   const [runningWheelLoadersSplitCase, setRunningWheelLoadersSplitCase] = useState(false);
@@ -1228,6 +1229,7 @@ function LayerDetailPage() {
   const [editingWheelManual, setEditingWheelManual] = useState(false);
   const [wheelManualRows, setWheelManualRows] = useState<ExcavatorsSplitDetailRow[]>([]);
   const [savingWheelManual, setSavingWheelManual] = useState(false);
+  const [savingWheelSnapshot, setSavingWheelSnapshot] = useState(false);
   const [wheelManualMessage, setWheelManualMessage] = useState("");
   const [wheelManualError, setWheelManualError] = useState("");
 
@@ -1759,14 +1761,29 @@ function LayerDetailPage() {
         ...prev,
         [activeExcavatorsSplitCase]: true,
       }));
+      await persistSplitCaseSnapshot(
+        activeExcavatorsSplitCase,
+        excavatorsSplitCaseRows,
+        resplitRows,
+        {
+          grouped_rows: excavatorsSplitCaseRows.length,
+          matched_rows: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        resplitRows.length,
+        excavatorsSplitCaseRows.length,
+        resplitRows.length
+      );
       setEditingExcavatorsManual(false);
       setExcavatorsManualRows([]);
       setExcavatorsManualMessage("");
       setExcavatorsManualError("");
       setExcavatorsSplitCaseMessage(
         flaggedRows > 0
-          ? `${activeExcavatorsSplitCase} re-split applied. ${flaggedRows} row(s) require re-allocation.`
-          : `${activeExcavatorsSplitCase} re-split applied. No rows required re-allocation.`
+          ? `${activeExcavatorsSplitCase} re-split applied and saved. ${flaggedRows} row(s) require re-allocation.`
+          : `${activeExcavatorsSplitCase} re-split applied and saved. No rows required re-allocation.`
       );
     } catch (error) {
       console.error(error);
@@ -1775,6 +1792,43 @@ function LayerDetailPage() {
       );
     } finally {
       setRunningExcavatorsSplitCase(false);
+    }
+  };
+
+  const handleSaveExcavatorsSplitSnapshot = async () => {
+    if (excavatorsSplitDetailRows.length === 0) {
+      setExcavatorsSplitCaseMessage("No split detail rows available to save.");
+      return;
+    }
+
+    try {
+      setSavingExcavatorsSnapshot(true);
+      setExcavatorsSplitCaseError("");
+      setExcavatorsSplitCaseMessage(`Saving ${activeExcavatorsSplitCase} split snapshot...`);
+
+      await persistSplitCaseSnapshot(
+        activeExcavatorsSplitCase,
+        excavatorsSplitCaseRows,
+        excavatorsSplitDetailRows,
+        {
+          grouped_rows: excavatorsSplitCaseRows.length,
+          matched_rows: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: excavatorsSplitCaseRows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        excavatorsSplitDetailRows.length,
+        excavatorsSplitCaseRows.length,
+        excavatorsSplitDetailRows.length
+      );
+      setExcavatorsSplitCaseMessage(`${activeExcavatorsSplitCase} split snapshot saved.`);
+    } catch (error) {
+      console.error(error);
+      setExcavatorsSplitCaseError(
+        error instanceof Error ? error.message : "Failed to save split snapshot."
+      );
+    } finally {
+      setSavingExcavatorsSnapshot(false);
     }
   };
 
@@ -1899,14 +1953,29 @@ function LayerDetailPage() {
         ...prev,
         [activeWheelLoadersSplitCase]: true,
       }));
+      await persistSplitCaseSnapshot(
+        activeWheelLoadersSplitCase,
+        wheelLoadersSplitCaseRows,
+        resplitRows,
+        {
+          grouped_rows: wheelLoadersSplitCaseRows.length,
+          matched_rows: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        resplitRows.length,
+        wheelLoadersSplitCaseRows.length,
+        resplitRows.length
+      );
       setEditingWheelManual(false);
       setWheelManualRows([]);
       setWheelManualMessage("");
       setWheelManualError("");
       setWheelLoadersSplitMessage(
         flaggedRows > 0
-          ? `${activeWheelLoadersSplitCase} re-split applied. ${flaggedRows} row(s) require re-allocation.`
-          : `${activeWheelLoadersSplitCase} re-split applied. No rows required re-allocation.`
+          ? `${activeWheelLoadersSplitCase} re-split applied and saved. ${flaggedRows} row(s) require re-allocation.`
+          : `${activeWheelLoadersSplitCase} re-split applied and saved. No rows required re-allocation.`
       );
     } catch (error) {
       console.error(error);
@@ -1915,6 +1984,43 @@ function LayerDetailPage() {
       );
     } finally {
       setRunningWheelLoadersSplitCase(false);
+    }
+  };
+
+  const handleSaveWheelLoadersSplitSnapshot = async () => {
+    if (wheelLoadersSplitDetailRows.length === 0) {
+      setWheelLoadersSplitMessage("No split detail rows available to save.");
+      return;
+    }
+
+    try {
+      setSavingWheelSnapshot(true);
+      setWheelLoadersSplitError("");
+      setWheelLoadersSplitMessage(`Saving ${activeWheelLoadersSplitCase} split snapshot...`);
+
+      await persistSplitCaseSnapshot(
+        activeWheelLoadersSplitCase,
+        wheelLoadersSplitCaseRows,
+        wheelLoadersSplitDetailRows,
+        {
+          grouped_rows: wheelLoadersSplitCaseRows.length,
+          matched_rows: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.matched_rows, 0),
+          gross_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.gross_fid, 0),
+          volvo_deduction_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.volvo_deduction, 0),
+          net_fid_total: wheelLoadersSplitCaseRows.reduce((sum, item) => sum + item.net_fid, 0),
+        },
+        wheelLoadersSplitDetailRows.length,
+        wheelLoadersSplitCaseRows.length,
+        wheelLoadersSplitDetailRows.length
+      );
+      setWheelLoadersSplitMessage(`${activeWheelLoadersSplitCase} split snapshot saved.`);
+    } catch (error) {
+      console.error(error);
+      setWheelLoadersSplitError(
+        error instanceof Error ? error.message : "Failed to save split snapshot."
+      );
+    } finally {
+      setSavingWheelSnapshot(false);
     }
   };
 
@@ -2631,15 +2737,15 @@ function LayerDetailPage() {
             </div>
             <div style={{ marginTop: "10px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
               {(["ALL", "CEX", "GEC", "GEW"] as ExcavatorsSplitCaseType[]).map((caseType) => (
-                <button
-                  key={`latest-${caseType}`}
-                  type="button"
-                  className="btn btn--tiny"
-                  onClick={() => {
-                    void handleShowLatestExcavatorsSplitCase(caseType);
-                  }}
-                  disabled={runningExcavatorsSplitCase || savingExcavatorsManual}
-                >
+                  <button
+                    key={`latest-${caseType}`}
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() => {
+                      void handleShowLatestExcavatorsSplitCase(caseType);
+                    }}
+                    disabled={runningExcavatorsSplitCase || savingExcavatorsManual || savingExcavatorsSnapshot}
+                  >
                   {`Show Latest ${caseType}`}
                 </button>
               ))}
@@ -2728,16 +2834,37 @@ function LayerDetailPage() {
                             onClick={() => {
                               void handleApplyExcavatorsResplit();
                             }}
-                            disabled={runningExcavatorsSplitCase || excavatorsSplitDetailRows.length === 0}
+                            disabled={
+                              runningExcavatorsSplitCase ||
+                              savingExcavatorsSnapshot ||
+                              excavatorsSplitDetailRows.length === 0
+                            }
                           >
                             Resplit FID
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--tiny"
+                            onClick={() => {
+                              void handleSaveExcavatorsSplitSnapshot();
+                            }}
+                            disabled={
+                              runningExcavatorsSplitCase ||
+                              savingExcavatorsManual ||
+                              savingExcavatorsSnapshot ||
+                              excavatorsSplitDetailRows.length === 0
+                            }
+                          >
+                            {savingExcavatorsSnapshot ? "Saving..." : "Save"}
                           </button>
                           {!editingExcavatorsManual ? (
                             <button
                               type="button"
                               className="btn btn--tiny"
                               onClick={handleStartExcavatorsManualEdit}
-                              disabled={!canEditExcavatorsManual || savingExcavatorsManual}
+                              disabled={
+                                !canEditExcavatorsManual || savingExcavatorsManual || savingExcavatorsSnapshot
+                              }
                               title={!canEditExcavatorsManual ? "Run Resplit FID first." : undefined}
                             >
                               Manual Edit
@@ -2854,7 +2981,7 @@ function LayerDetailPage() {
                     onClick={() => {
                       void handleShowLatestWheelLoadersSplitCase(caseType);
                     }}
-                    disabled={runningWheelLoadersSplitCase || savingWheelManual}
+                    disabled={runningWheelLoadersSplitCase || savingWheelManual || savingWheelSnapshot}
                   >
                     {caseType === "ALL"
                       ? "Show Latest ALL"
@@ -2956,17 +3083,34 @@ function LayerDetailPage() {
                               void handleApplyWheelLoadersResplit();
                             }}
                             disabled={
-                              runningWheelLoadersSplitCase || wheelLoadersSplitDetailRows.length === 0
+                              runningWheelLoadersSplitCase ||
+                              savingWheelSnapshot ||
+                              wheelLoadersSplitDetailRows.length === 0
                             }
                           >
                             Resplit FID
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--tiny"
+                            onClick={() => {
+                              void handleSaveWheelLoadersSplitSnapshot();
+                            }}
+                            disabled={
+                              runningWheelLoadersSplitCase ||
+                              savingWheelManual ||
+                              savingWheelSnapshot ||
+                              wheelLoadersSplitDetailRows.length === 0
+                            }
+                          >
+                            {savingWheelSnapshot ? "Saving..." : "Save"}
                           </button>
                           {!editingWheelManual ? (
                             <button
                               type="button"
                               className="btn btn--tiny"
                               onClick={handleStartWheelManualEdit}
-                              disabled={!canEditWheelManual || savingWheelManual}
+                              disabled={!canEditWheelManual || savingWheelManual || savingWheelSnapshot}
                               title={!canEditWheelManual ? "Run Resplit FID first." : undefined}
                             >
                               Manual Edit

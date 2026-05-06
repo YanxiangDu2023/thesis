@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import FilterableTable from "../components/table/FilterableTable";
 import {
-  getLatestTotalMarketCalculationEligibleOthRows,
-  getTotalMarketCalculationEligibleOthRun,
-  runTotalMarketCalculationEligibleOthReport,
-  saveTotalMarketCalculationEligibleOthSnapshot,
+  getLatestTotalMarketCalculationCalculatedRows,
+  saveTotalMarketCalculationCalculatedSnapshot,
 } from "../api/uploads";
 import type { OthDeletionFlagRow } from "../types/upload";
 
@@ -37,6 +35,21 @@ type RestatementPreviewRow = OthDeletionFlagRow & {
   after_restatement: number;
 };
 
+type FinalRestatementResultRow = {
+  country_grouping: string;
+  country: string;
+  region: string;
+  machine_line_code: string;
+  machine_line_name: string;
+  artificial_machine_line: string;
+  size_class_flag: string;
+  row_type: string;
+  source: string;
+  brand_code: string;
+  brand_name: string;
+  fid: number;
+};
+
 function toKey(value: string | number | null | undefined): string {
   return String(value ?? "").trim().toUpperCase();
 }
@@ -50,6 +63,11 @@ function toNumber(value: string | number | null | undefined): number {
   }
   const parsed = Number(String(value).replace(/,/g, "").trim());
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toDisplayText(value: string | number | null | undefined, fallback = ""): string {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text : fallback;
 }
 
 function isOthNonVceRow(row: OthDeletionFlagRow): boolean {
@@ -68,11 +86,18 @@ function isOthNonVceRow(row: OthDeletionFlagRow): boolean {
   return true;
 }
 
+function isOthNonVceNonZeroRow(row: OthDeletionFlagRow): boolean {
+  if (!isOthNonVceRow(row)) {
+    return false;
+  }
+  return Math.abs(toNumber(row.fid)) > 0;
+}
+
 function getGroupKey(row: OthDeletionFlagRow): string {
   return [
+    toKey(row.year),
     toKey(row.country),
-    toKey(row.machine_line_code || row.machine_line_name),
-    toKey(row.artificial_machine_line),
+    toKey(row.artificial_machine_line || row.machine_line_code || row.machine_line_name),
     toKey(row.size_class_flag),
     toKey(row.brand_code || row.brand_name),
   ].join("||");
@@ -108,6 +133,16 @@ function getRestatementBaseKey(row: OthDeletionFlagRow): string {
   return [
     toKey(row.country),
     toKey(row.artificial_machine_line),
+  ].join("||");
+}
+
+function getFinalRestatementGroupKey(row: OthDeletionFlagRow): string {
+  return [
+    toKey(row.country),
+    toKey(row.machine_line_code),
+    toKey(row.machine_line_name),
+    toKey(row.artificial_machine_line),
+    toKey(row.size_class_flag),
   ].join("||");
 }
 
@@ -189,6 +224,7 @@ function RestatementPage() {
   const [fullRows, setFullRows] = useState<OthDeletionFlagRow[]>([]);
   const [rows, setRows] = useState<OthDeletionFlagRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [runLoading, setRunLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [sourceRowCount, setSourceRowCount] = useState(0);
@@ -239,6 +275,8 @@ function RestatementPage() {
   const [restatementApplied, setRestatementApplied] = useState(false);
   const [restatementApplying, setRestatementApplying] = useState(false);
   const [restatementMessage, setRestatementMessage] = useState("");
+  const [finalRestatementRows, setFinalRestatementRows] = useState<FinalRestatementResultRow[]>([]);
+  const [showFinalRestatementResult, setShowFinalRestatementResult] = useState(false);
 
   const dataColumns = useMemo(
     () => [
@@ -290,15 +328,34 @@ function RestatementPage() {
         : dataColumns,
     [dataColumns, restatementApplied]
   );
+  const finalRestatementColumns = useMemo(
+    () => [
+      { key: "country_grouping", label: "Country Grouping" },
+      { key: "country", label: "Country" },
+      { key: "region", label: "Region" },
+      { key: "machine_line_code", label: "Machine Line" },
+      { key: "machine_line_name", label: "Machine Line Name" },
+      { key: "artificial_machine_line", label: "Artificial Machine Line" },
+      { key: "size_class_flag", label: "Size Class Flag" },
+      { key: "row_type", label: "Row Type" },
+      { key: "source", label: "Source" },
+      { key: "brand_code", label: "Brand Code" },
+      { key: "brand_name", label: "Brand Name" },
+      { key: "fid", label: "FID" },
+    ],
+    []
+  );
 
   async function loadLatestRestatementInput() {
-    const result = await getLatestTotalMarketCalculationEligibleOthRows();
+    const result = await getLatestTotalMarketCalculationCalculatedRows();
     setFullRows(result.rows);
-    const filtered = result.rows.filter(isOthNonVceRow);
+    const filtered = result.rows.filter(isOthNonVceNonZeroRow);
     setRows(filtered);
     setRestatementRows([]);
     setRestatementApplied(false);
     setRestatementMessage("");
+    setFinalRestatementRows([]);
+    setShowFinalRestatementResult(false);
     setSourceRowCount(result.row_count);
     setSplitMachineLines(result.split_machine_lines);
     setSplitInputRows(result.split_input_rows);
@@ -313,33 +370,20 @@ function RestatementPage() {
   async function handleRun() {
     setActivePanel("data");
     setLoading(true);
+    setRunLoading(true);
     setError("");
-    setMessage("Running OTH Non VCE Total Market Data...");
+    setMessage("Loading latest Calculate Total Market result...");
     try {
-      const started = await runTotalMarketCalculationEligibleOthReport();
-      const maxAttempts = 300;
-      let finished = false;
-      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const run = await getTotalMarketCalculationEligibleOthRun(started.run_id);
-        if (run.status === "success") {
-          finished = true;
-          break;
-        }
-        if (run.status === "failed") {
-          throw new Error(run.message || `Run #${run.run_id} failed.`);
-        }
-        setMessage(`Run #${run.run_id} is running... (${attempt}/${maxAttempts})`);
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      }
-      if (!finished) {
-        throw new Error("Run timed out. Please try again.");
-      }
-      setMessage(`Run successful. Please click "Show latest"${started.run_id ? ` (Run #${started.run_id})` : ""}.`);
+      const loaded = await loadLatestRestatementInput();
+      setMessage(
+        `Loaded from latest Calculate Total Market snapshot. ${loaded.filteredCount} OTH rows (FID != 0)${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
+      );
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Failed to run OTH Non VCE Total Market Data.");
+      setError(fetchError instanceof Error ? fetchError.message : "Failed to load OTH Non VCE Total Market Data.");
       setMessage("");
     } finally {
       setLoading(false);
+      setRunLoading(false);
     }
   }
 
@@ -423,50 +467,270 @@ function RestatementPage() {
 
       let fallbackGroupCount = 0;
       const fallbackUsedKeys = new Set<string>();
-      const nextRows: RestatementPreviewRow[] = rows.map((row) => {
+      const groupMeta = new Map<
+        string,
+        {
+          baseKey: string;
+          useFallback: boolean;
+          targetNonVce: number;
+          othSum: number;
+        }
+      >();
+
+      for (const row of rows) {
         const groupKey = getRestatementGroupKey(row);
+        if (groupMeta.has(groupKey)) {
+          continue;
+        }
         const baseKey = getRestatementBaseKey(row);
-        const before = toNumber(row.fid);
         const hasFullTma = tmaByGroup.has(groupKey);
         const hasFullSal = vceSalByGroup.has(groupKey);
         const useFallback = !hasFullTma && !hasFullSal;
-
         if (useFallback && !fallbackUsedKeys.has(groupKey)) {
           fallbackUsedKeys.add(groupKey);
           fallbackGroupCount += 1;
         }
-
         const tma = useFallback ? (tmaByBase.get(baseKey) ?? 0) : (tmaByGroup.get(groupKey) ?? 0);
         const vceSal = useFallback ? (vceSalByBase.get(baseKey) ?? 0) : (vceSalByGroup.get(groupKey) ?? 0);
         const targetNonVce = Math.max(tma - vceSal, 0);
         const othSum = useFallback ? (othByBase.get(baseKey) ?? 0) : (othByGroup.get(groupKey) ?? 0);
+        groupMeta.set(groupKey, { baseKey, useFallback, targetNonVce, othSum });
+      }
+
+      const nextRows: RestatementPreviewRow[] = rows.map((row) => {
+        const groupKey = getRestatementGroupKey(row);
+        const meta = groupMeta.get(groupKey);
+        const before = toNumber(row.fid);
+        const targetNonVce = meta?.targetNonVce ?? 0;
+        const othSum = meta?.othSum ?? 0;
 
         let after = before;
+        // Case 1: shrink non-VCE OTH proportionally when above target.
         if (othSum > 0 && othSum > targetNonVce) {
           after = (before / othSum) * targetNonVce;
         }
 
         return {
           ...row,
+          fid: Number(after.toFixed(2)),
           before_restatement: Number(before.toFixed(2)),
           after_restatement: Number(after.toFixed(2)),
         };
       });
 
-      const adjustedGroupCount = Array.from(othByGroup.entries()).filter(([groupKey, othSum]) => {
-        const tma = tmaByGroup.get(groupKey) ?? 0;
-        const vceSal = vceSalByGroup.get(groupKey) ?? 0;
-        return othSum > Math.max(tma - vceSal, 0);
-      }).length;
+      const rowsByGroup = new Map<string, number[]>();
+      nextRows.forEach((row, index) => {
+        const key = getRestatementGroupKey(row);
+        if (!rowsByGroup.has(key)) {
+          rowsByGroup.set(key, []);
+        }
+        rowsByGroup.get(key)?.push(index);
+      });
 
-      setRestatementRows(nextRows);
+      let adjustedGroupCount = 0;
+      let toppedUpGroupCount = 0;
+      let createdUrsRowCount = 0;
+      const topUpRowsByGroup = new Map<string, RestatementPreviewRow[]>();
+
+      for (const [groupKey, meta] of groupMeta.entries()) {
+        const othSum = meta.othSum;
+        const targetNonVce = meta.targetNonVce;
+        if (othSum > targetNonVce) {
+          adjustedGroupCount += 1;
+          continue;
+        }
+        if (targetNonVce - othSum <= 0.0001) {
+          continue;
+        }
+        toppedUpGroupCount += 1;
+        const gap = targetNonVce - othSum;
+        const groupIndexes = rowsByGroup.get(groupKey) ?? [];
+
+        const template = groupIndexes.length > 0 ? nextRows[groupIndexes[0]] : undefined;
+        if (!template) {
+          continue;
+        }
+        // Always add a dedicated top-up row for shortage groups, as requested.
+        const newRow: RestatementPreviewRow = {
+          ...template,
+          brand_name: "Other Reporting Brands",
+          brand_code: "Other Reporting Brands",
+          source: "OTH",
+          source_flag: "OTH",
+          fid: Number(gap.toFixed(2)),
+          before_restatement: 0,
+          after_restatement: Number(gap.toFixed(2)),
+        };
+        if (!topUpRowsByGroup.has(groupKey)) {
+          topUpRowsByGroup.set(groupKey, []);
+        }
+        topUpRowsByGroup.get(groupKey)?.push(newRow);
+        createdUrsRowCount += 1;
+      }
+
+      const lastIndexByGroup = new Map<string, number>();
+      nextRows.forEach((row, index) => {
+        lastIndexByGroup.set(getRestatementGroupKey(row), index);
+      });
+
+      const orderedNextRows: RestatementPreviewRow[] = [];
+      nextRows.forEach((row, index) => {
+        const groupKey = getRestatementGroupKey(row);
+        orderedNextRows.push(row);
+        if (lastIndexByGroup.get(groupKey) === index) {
+          const topUps = topUpRowsByGroup.get(groupKey) ?? [];
+          if (topUps.length > 0) {
+            orderedNextRows.push(...topUps);
+          }
+        }
+      });
+
+      setRestatementRows(orderedNextRows);
       setRestatementApplied(true);
+      setFinalRestatementRows([]);
+      setShowFinalRestatementResult(false);
       setRestatementMessage(
-        `Restatement rule applied. Adjusted groups: ${adjustedGroupCount}. Fallback groups (country + artificial machine line): ${fallbackGroupCount}.`
+        `Restatement rule applied. Adjusted groups: ${adjustedGroupCount}. Top-up groups: ${toppedUpGroupCount}. Added URS rows: ${createdUrsRowCount}. Fallback groups (country + artificial machine line): ${fallbackGroupCount}.`
       );
     } finally {
       setRestatementApplying(false);
     }
+  }
+
+  function handleShowFinalRestatementResult() {
+    if (!restatementApplied || restatementRows.length === 0) {
+      setRestatementMessage('Please click "Apply Restatement Rule" first.');
+      return;
+    }
+
+    type GroupMeta = Pick<
+      FinalRestatementResultRow,
+      "country_grouping" | "country" | "region" | "machine_line_code" | "machine_line_name" | "artificial_machine_line" | "size_class_flag"
+    >;
+    const groupMetaByKey = new Map<string, GroupMeta>();
+    const restatedBrandRowsByKey = new Map<string, RestatementPreviewRow[]>();
+
+    const ensureGroupMeta = (row: OthDeletionFlagRow) => {
+      const groupKey = getFinalRestatementGroupKey(row);
+      if (!groupMetaByKey.has(groupKey)) {
+        groupMetaByKey.set(groupKey, {
+          country_grouping: row.country_grouping,
+          country: row.country,
+          region: row.region,
+          machine_line_code: row.machine_line_code,
+          machine_line_name: row.machine_line_name,
+          artificial_machine_line: row.artificial_machine_line,
+          size_class_flag: row.size_class_flag,
+        });
+      }
+      return groupKey;
+    };
+
+    for (const row of fullRows) {
+      const sourceKey = toKey(row.source);
+      const isVceSal =
+        sourceKey === "SAL" &&
+        (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
+      if (sourceKey === "TMA" || isVceSal) {
+        ensureGroupMeta(row);
+      }
+    }
+
+    for (const row of restatementRows) {
+      const groupKey = ensureGroupMeta(row);
+      if (!restatedBrandRowsByKey.has(groupKey)) {
+        restatedBrandRowsByKey.set(groupKey, []);
+      }
+      restatedBrandRowsByKey.get(groupKey)?.push(row);
+    }
+
+    const tmaByKey = new Map<string, number>();
+    const salByKey = new Map<string, number>();
+    for (const row of fullRows) {
+      const groupKey = getFinalRestatementGroupKey(row);
+      if (!groupMetaByKey.has(groupKey)) {
+        continue;
+      }
+      const sourceKey = toKey(row.source);
+      if (sourceKey === "TMA") {
+        tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid));
+        continue;
+      }
+      const isVceSal =
+        sourceKey === "SAL" &&
+        (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
+      if (isVceSal) {
+        salByKey.set(groupKey, (salByKey.get(groupKey) ?? 0) + toNumber(row.fid));
+      }
+    }
+
+    const groupOrder = Array.from(groupMetaByKey.entries())
+      .sort(([, a], [, b]) => {
+        return (
+          a.country_grouping.localeCompare(b.country_grouping) ||
+          a.country.localeCompare(b.country) ||
+          a.machine_line_code.localeCompare(b.machine_line_code) ||
+          a.machine_line_name.localeCompare(b.machine_line_name) ||
+          a.artificial_machine_line.localeCompare(b.artificial_machine_line) ||
+          a.size_class_flag.localeCompare(b.size_class_flag)
+        );
+      })
+      .map(([key]) => key);
+
+    const resultRows: FinalRestatementResultRow[] = [];
+    for (const groupKey of groupOrder) {
+      const meta = groupMetaByKey.get(groupKey);
+      if (!meta) {
+        continue;
+      }
+
+      resultRows.push({
+        ...meta,
+        row_type: "TMA",
+        source: "TMA",
+        brand_code: "#",
+        brand_name: "TOTAL MARKET",
+        fid: Number((tmaByKey.get(groupKey) ?? 0).toFixed(2)),
+      });
+
+      resultRows.push({
+        ...meta,
+        row_type: "SAL",
+        source: "SAL",
+        brand_code: "VCE",
+        brand_name: "VOLVO CE",
+        fid: Number((salByKey.get(groupKey) ?? 0).toFixed(2)),
+      });
+
+      const brands = (restatedBrandRowsByKey.get(groupKey) ?? []).slice().sort((a, b) => {
+        return (
+          toKey(a.brand_code).localeCompare(toKey(b.brand_code)) ||
+          toKey(a.brand_name).localeCompare(toKey(b.brand_name)) ||
+          toKey(a.source).localeCompare(toKey(b.source))
+        );
+      });
+
+      for (const brandRow of brands) {
+        resultRows.push({
+          ...meta,
+          row_type: "Restated OTH",
+          source: toDisplayText(brandRow.source, "OTH"),
+          brand_code: toDisplayText(brandRow.brand_code),
+          brand_name: toDisplayText(brandRow.brand_name),
+          fid: Number(toNumber(brandRow.after_restatement).toFixed(2)),
+        });
+      }
+    }
+
+    setFinalRestatementRows(resultRows);
+    setShowFinalRestatementResult(true);
+    setRestatementMessage(`Final Restatement Result generated: ${groupOrder.length} groups, ${resultRows.length} rows.`);
+    window.setTimeout(() => {
+      const section = document.getElementById("restatement-panel-top");
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
   }
 
   function handleReportCheckDoubleBrand() {
@@ -845,7 +1109,7 @@ function RestatementPage() {
     setSnapshotSaving(true);
     try {
       const mergedRows = mergeCaseRowsIntoBaseRows(fullRows, target.rows, target.isCaseRow);
-      const snapshot = await saveTotalMarketCalculationEligibleOthSnapshot({
+      const snapshot = await saveTotalMarketCalculationCalculatedSnapshot({
         rows: mergedRows,
         message: `${target.label} snapshot saved from Restatement`,
         source_row_count: sourceRowCount > 0 ? sourceRowCount : mergedRows.length,
@@ -857,10 +1121,11 @@ function RestatementPage() {
         three_check_report_run_id: threeCheckReportRunId,
         three_check_report_created_at: threeCheckReportCreatedAt,
       });
-      setFullRows(mergedRows);
-      setRows(mergedRows.filter(isOthNonVceRow));
+      const loaded = await loadLatestRestatementInput();
       target.onSaved();
-      setDoubleBrandMessage(`${target.label} saved (Run #${snapshot.run_id}).`);
+      setDoubleBrandMessage(
+        `${target.label} saved (Run #${snapshot.run_id}). Rows: ${snapshot.previous_row_count ?? mergedRows.length} -> ${loaded.filteredCount}. Reloaded from backend calculated snapshot.`
+      );
     } catch (err) {
       const m = err instanceof Error ? err.message : "Failed to save delete-case changes.";
       target.onError(m);
@@ -871,6 +1136,10 @@ function RestatementPage() {
   }
 
   const totalFid = rows.reduce((sum, row) => sum + toNumber(row.fid), 0);
+  const restatementDisplayRows = restatementApplied ? restatementRows : rows;
+  const restatementDisplayTotal = restatementApplied
+    ? restatementRows.reduce((sum, row) => sum + toNumber(row.after_restatement), 0)
+    : totalFid;
 
   return (
     <div className="page">
@@ -885,7 +1154,7 @@ function RestatementPage() {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-start" }}>
             <div style={{ display: "inline-flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
               <button type="button" className="btn btn--overview" onClick={handleRun} disabled={loading}>
-                {loading ? "Running..." : "OTH Non VCE Total Market Data"}
+                {runLoading ? "Running..." : "OTH Non VCE Total Market Data"}
               </button>
               <button type="button" className="btn btn--tiny" onClick={handleShowLatest} disabled={loading}>
                 Show latest
@@ -937,7 +1206,7 @@ function RestatementPage() {
         ) : null}
 
         {activePanel === "report" ? (
-          <div className="section summary-card" style={{ marginTop: "16px" }}>
+          <div id="restatement-panel-top" className="section summary-card" style={{ marginTop: "16px" }}>
             {doubleBrandMessage ? <p style={{ color: "#0a8f3d", marginBottom: "12px" }}>{doubleBrandMessage}</p> : null}
             {doubleBrandError ? <p style={{ color: "#d62828", marginBottom: "12px" }}>{doubleBrandError}</p> : null}
             <div className="card-grid card-grid--three" style={{ marginBottom: "16px" }}>
@@ -1140,7 +1409,7 @@ function RestatementPage() {
         {activePanel === "restatement" ? (
           <div className="section summary-card" style={{ marginTop: "16px" }}>
             {doubleBrandMessage ? <p style={{ color: "#0a8f3d", marginBottom: "12px" }}>{doubleBrandMessage}</p> : null}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "8px", flexWrap: "wrap" }}>
               <strong>Restatement Final OTH Result (After Delete Double Brand)</strong>
               <button
                 type="button"
@@ -1150,29 +1419,61 @@ function RestatementPage() {
               >
                 {restatementApplying ? "Applying..." : "Apply Restatement Rule"}
               </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={handleShowFinalRestatementResult}
+                disabled={!restatementApplied || restatementApplying}
+              >
+                Final Restatement Result
+              </button>
+              {showFinalRestatementResult ? (
+                <button
+                  type="button"
+                  className="btn btn--tiny"
+                  onClick={() => setShowFinalRestatementResult(false)}
+                >
+                  Back To Restatement Data
+                </button>
+              ) : null}
             </div>
             {restatementMessage ? <p style={{ color: "#0a8f3d", marginBottom: "12px" }}>{restatementMessage}</p> : null}
-            <div className="card-grid card-grid--three" style={{ marginTop: "12px", marginBottom: "12px" }}>
-              <article className="card">
-                <h4 className="card__title">Final OTH Rows</h4>
-                <p className="card__text">{rows.length.toLocaleString()}</p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Source Rows</h4>
-                <p className="card__text">{sourceRowCount.toLocaleString()}</p>
-              </article>
-              <article className="card">
-                <h4 className="card__title">Final FID Sum</h4>
-                <p className="card__text">{totalFid.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-              </article>
-            </div>
-            <FilterableTable
-              columns={restatementColumns}
-              rows={restatementApplied ? restatementRows : rows}
-              maxHeight="560px"
-              compact
-              emptyMessage='No final OTH rows loaded yet. Run "OTH Non VCE Total Market Data", click "Show latest", then apply/save Delete Double Brand rules.'
-            />
+            {!showFinalRestatementResult ? (
+              <>
+                <div className="card-grid card-grid--three" style={{ marginTop: "12px", marginBottom: "12px" }}>
+                  <article className="card">
+                    <h4 className="card__title">Final OTH Rows</h4>
+                    <p className="card__text">{restatementDisplayRows.length.toLocaleString()}</p>
+                  </article>
+                  <article className="card">
+                    <h4 className="card__title">Source Rows</h4>
+                    <p className="card__text">{sourceRowCount.toLocaleString()}</p>
+                  </article>
+                  <article className="card">
+                    <h4 className="card__title">Final FID Sum</h4>
+                    <p className="card__text">{restatementDisplayTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  </article>
+                </div>
+                <FilterableTable
+                  columns={restatementColumns}
+                  rows={restatementDisplayRows}
+                  maxHeight="560px"
+                  compact
+                  emptyMessage='No final OTH rows loaded yet. Run "OTH Non VCE Total Market Data", click "Show latest", then apply/save Delete Double Brand rules.'
+                />
+              </>
+            ) : (
+              <div id="final-restatement-result" className="section summary-card" style={{ marginTop: "14px" }}>
+                <strong>Final Restatement Result (TMA / SAL / Restated Non-VCE)</strong>
+                <FilterableTable
+                  columns={finalRestatementColumns}
+                  rows={finalRestatementRows}
+                  maxHeight="420px"
+                  compact
+                  emptyMessage='No final restatement result rows. Click "Apply Restatement Rule" first, then "Final Restatement Result".'
+                />
+              </div>
+            )}
           </div>
         ) : null}
       </section>

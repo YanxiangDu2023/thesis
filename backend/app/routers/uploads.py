@@ -47,6 +47,7 @@ P00_RUN_KEYS = {
     "oth_deletion_flag": "p00_oth_deletion_flag",
     "three_check": "p00_three_check",
     "total_market_eligible_oth": "p00_total_market_eligible_oth",
+    "total_market_calculated": "p00_total_market_calculated",
 }
 INTEGER_LIKE_COLUMNS = {
     "calendar",
@@ -2958,6 +2959,31 @@ def _build_total_market_split_input_key_from_detail_row(row: dict[str, Any]) -> 
         _to_case_insensitive_key(row.get("reporter_flag")),
     ])
 
+def _build_total_market_split_relaxed_key_from_oth_row(row: dict[str, Any]) -> str:
+    return "|".join([
+        _to_case_insensitive_key(row.get("year")),
+        _to_case_insensitive_key(row.get("country")),
+        _to_case_insensitive_key(row.get("artificial_machine_line")),
+        _to_case_insensitive_key(row.get("brand_code")),
+        _to_case_insensitive_key(row.get("source")),
+        _to_case_insensitive_key(row.get("pri_sec")),
+        _to_size_class_key(row.get("size_class_flag")),
+        _to_case_insensitive_key(row.get("reporter_flag")),
+    ])
+
+
+def _build_total_market_split_relaxed_key_from_detail_row(row: dict[str, Any]) -> str:
+    return "|".join([
+        _to_case_insensitive_key(row.get("year")),
+        _to_case_insensitive_key(row.get("country")),
+        _to_case_insensitive_key(row.get("artificial_machine_line")),
+        _to_case_insensitive_key(row.get("brand_code")),
+        _to_case_insensitive_key(row.get("source")),
+        _to_case_insensitive_key(row.get("pri_sec")),
+        _to_size_class_key(row.get("size_class")),
+        _to_case_insensitive_key(row.get("reporter_flag")),
+    ])
+
 
 def _is_volvo_oth_row(row: dict[str, Any]) -> bool:
     brand_code_key = _to_case_insensitive_key(row.get("brand_code"))
@@ -2968,31 +2994,91 @@ def _is_volvo_oth_row(row: dict[str, Any]) -> bool:
     )
 
 
+def _load_total_market_split_detail_rows(
+    case_type: str,
+    three_check_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    try:
+        _, _, detail_rows = _get_latest_excavators_split_case_snapshot(case_type)
+        if detail_rows:
+            return detail_rows
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Missing saved split/resplit snapshot for case '{case_type}'. "
+                    "Please finish re-split and save the case first."
+                ),
+            )
+        raise
+    # Strict mode: Total Market must be built from saved split/resplit snapshots only.
+    # No fallback to raw split recomputation.
+    return detail_rows
+
+
+def _pick_total_market_split_value(
+    detail_row: dict[str, Any],
+    resplit_field: str,
+) -> float:
+    resplit_text = _to_text(detail_row.get(resplit_field))
+    if resplit_text == "":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Total Market is configured to require re-split values, but one or more rows are missing "
+                f"'{resplit_field}'. Please complete and save re-split results first."
+            ),
+        )
+    return _to_number(detail_row.get(resplit_field))
+
+
 def _expand_total_market_rows_with_split(
     oth_rows: list[dict[str, Any]],
     three_check_rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     split_cases = ["CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"]
     split_plans_by_key: dict[str, list[dict[str, Any]]] = {}
+    split_plans_by_relaxed_key: dict[str, list[dict[str, Any]]] = {}
 
     for case_type in split_cases:
         detail_config = _get_excavators_split_detail_config(case_type)
         if detail_config is None:
             continue
 
-        detail_rows = _build_excavators_split_detail_rows_from_three_check(three_check_rows, case_type)
+        detail_rows = _load_total_market_split_detail_rows(case_type, three_check_rows)
         for detail_row in detail_rows:
             if _to_case_insensitive_key(detail_row.get("row_type")) != "OTH":
                 continue
 
             key = _build_total_market_split_input_key_from_detail_row(detail_row)
             split_targets: list[tuple[str, float]] = [
-                (detail_config["first_target_label"], _to_number(detail_row.get("after_split_fid_lt_6t"))),
-                (detail_config["second_target_label"], _to_number(detail_row.get("after_split_fid_6_10t"))),
+                (
+                    detail_config["first_target_label"],
+                    _pick_total_market_split_value(
+                        detail_row,
+                        "after_resplit_fid_lt_6t",
+                    ),
+                ),
+                (
+                    detail_config["second_target_label"],
+                    _pick_total_market_split_value(
+                        detail_row,
+                        "after_resplit_fid_6_10t",
+                    ),
+                ),
             ]
             third_target_label = detail_config.get("third_target_label")
             if third_target_label:
-                split_targets.append((third_target_label, _to_number(detail_row.get("after_split_fid_target_three"))))
+                split_targets.append(
+                    (
+                        third_target_label,
+                        _pick_total_market_split_value(
+                            detail_row,
+                            "after_resplit_fid_target_three",
+                        ),
+                    )
+                )
 
             outputs: list[dict[str, Any]] = [
                 {"size_class_flag": size_label, "fid": _round_to_4(fid)}
@@ -3004,10 +3090,16 @@ def _expand_total_market_rows_with_split(
 
             if key not in split_plans_by_key:
                 split_plans_by_key[key] = []
-            split_plans_by_key[key].append({
+            plan_entry = {
                 "outputs": outputs,
                 "before_split_fid": _round_to_4(_to_number(detail_row.get("before_split_fid_lt_10t"))),
-            })
+            }
+            split_plans_by_key[key].append(plan_entry)
+
+            relaxed_key = _build_total_market_split_relaxed_key_from_detail_row(detail_row)
+            if relaxed_key not in split_plans_by_relaxed_key:
+                split_plans_by_relaxed_key[relaxed_key] = []
+            split_plans_by_relaxed_key[relaxed_key].append(plan_entry)
 
     expanded_rows: list[dict[str, Any]] = []
     split_input_rows = 0
@@ -3016,6 +3108,12 @@ def _expand_total_market_rows_with_split(
     for row in oth_rows:
         key = _build_total_market_split_input_key_from_oth_row(row)
         plan_queue = split_plans_by_key.get(key)
+        queue_source = "strict"
+
+        if not plan_queue:
+            relaxed_key = _build_total_market_split_relaxed_key_from_oth_row(row)
+            plan_queue = split_plans_by_relaxed_key.get(relaxed_key)
+            queue_source = "relaxed"
 
         if not plan_queue:
             expanded_rows.append(row)
@@ -3023,7 +3121,11 @@ def _expand_total_market_rows_with_split(
 
         plan = plan_queue.pop(0)
         if len(plan_queue) == 0:
-            split_plans_by_key.pop(key, None)
+            if queue_source == "strict":
+                split_plans_by_key.pop(key, None)
+            else:
+                relaxed_key = _build_total_market_split_relaxed_key_from_oth_row(row)
+                split_plans_by_relaxed_key.pop(relaxed_key, None)
 
         outputs = list(plan.get("outputs", []))
         if len(outputs) == 0:
@@ -3291,9 +3393,11 @@ def save_total_market_calculation_eligible_oth_snapshot(
         raise HTTPException(status_code=400, detail="No rows to save")
 
     latest_meta: dict[str, Any] = {}
+    previous_row_count: int | None = None
     try:
         latest_run, _ = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
         latest_meta = json.loads(latest_run.get("meta_json") or "{}")
+        previous_row_count = latest_run.get("row_count")
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
@@ -3333,46 +3437,133 @@ def save_total_market_calculation_eligible_oth_snapshot(
         "row_count": len(request.rows),
         "status": "success",
         "message": request.message,
+        "previous_row_count": previous_row_count,
+    }
+
+
+@router.get("/reports/total-market-calculation/calculated/latest")
+def get_latest_total_market_calculation_calculated_rows():
+    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_calculated"])
+    meta = json.loads(run.get("meta_json") or "{}")
+    return {
+        "row_count": run.get("row_count") or len(rows),
+        "rows": rows,
+        "run_id": run.get("id"),
+        "status": run.get("status"),
+        "created_at": run.get("created_at"),
+        **meta,
+    }
+
+
+@router.post("/reports/total-market-calculation/calculated/snapshots")
+def save_total_market_calculation_calculated_snapshot(
+    request: TotalMarketEligibleOthSnapshotRequest
+):
+    if len(request.rows) == 0:
+        raise HTTPException(status_code=400, detail="No rows to save")
+
+    latest_meta: dict[str, Any] = {}
+    previous_row_count: int | None = None
+    try:
+        latest_run, _ = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_calculated"])
+        latest_meta = json.loads(latest_run.get("meta_json") or "{}")
+        previous_row_count = latest_run.get("row_count")
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+
+    request_meta: dict[str, Any] = {}
+    if request.source_row_count is not None:
+        request_meta["source_row_count"] = request.source_row_count
+    if request.split_machine_lines is not None:
+        request_meta["split_machine_lines"] = request.split_machine_lines
+    if request.split_input_rows is not None:
+        request_meta["split_input_rows"] = request.split_input_rows
+    if request.split_output_rows is not None:
+        request_meta["split_output_rows"] = request.split_output_rows
+    if request.source_report_run_id is not None:
+        request_meta["source_report_run_id"] = request.source_report_run_id
+    if request.source_report_created_at is not None:
+        request_meta["source_report_created_at"] = request.source_report_created_at
+    if request.three_check_report_run_id is not None:
+        request_meta["three_check_report_run_id"] = request.three_check_report_run_id
+    if request.three_check_report_created_at is not None:
+        request_meta["three_check_report_created_at"] = request.three_check_report_created_at
+
+    final_meta = {
+        **latest_meta,
+        **request_meta,
+    }
+
+    _record_report_run(P00_RUN_KEYS["total_market_calculated"])
+    run_id = _save_p00_report_snapshot(
+        P00_RUN_KEYS["total_market_calculated"],
+        request.rows,
+        request.message,
+        meta=final_meta,
+    )
+    return {
+        "run_id": run_id,
+        "row_count": len(request.rows),
+        "status": "success",
+        "message": request.message,
+        "previous_row_count": previous_row_count,
     }
 
 
 @router.get("/reports/total-market-calculation/double-brand-check")
 def get_total_market_calculation_double_brand_check_rows():
     try:
-        source_report = get_latest_oth_deletion_flag_report()
+        run, latest_rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+        source_report = {
+            "rows": latest_rows,
+            "row_count": run.get("row_count") or len(latest_rows),
+            "run_id": run.get("id"),
+            "created_at": run.get("created_at"),
+        }
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        source_report = get_oth_deletion_flag_report(track_run=False)
+        computed = _compute_total_market_calculation_eligible_oth_result()
+        source_report = {
+            "rows": computed["rows"],
+            "row_count": computed["row_count"],
+            "run_id": None,
+            "created_at": None,
+        }
 
-    grouped_rows: dict[
-        tuple[str, str, str, str, str],
-        dict[str, Any],
-    ] = {}
+    # Check duplicates on split-applied OTH working rows only.
+    oth_working_rows = [
+        row for row in source_report["rows"]
+        if _to_case_insensitive_key(row.get("source_flag")) not in {"TMA", "SAL"}
+    ]
 
-    for row in source_report["rows"]:
+    grouped_rows: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
+
+    for row in oth_working_rows:
+        year_key = _to_case_insensitive_key(row.get("year"))
         country_key = _to_case_insensitive_key(row.get("country"))
-        machine_line_code_key = _to_case_insensitive_key(row.get("machine_line_code"))
         artificial_machine_line_key = _to_case_insensitive_key(row.get("artificial_machine_line"))
         size_class_key = _to_case_insensitive_key(row.get("size_class_flag"))
-        brand_code_key = _to_case_insensitive_key(row.get("brand_code"))
+        brand_key = _to_case_insensitive_key(row.get("brand_code")) or _to_case_insensitive_key(row.get("brand_name"))
 
-        # Skip incomplete keys to avoid false duplicates caused by missing master-data mappings.
+        # Grouping key requested by business flow:
+        # country + artificial machine line + size class + brand (kept year-safe).
         if not (
-            country_key
-            and machine_line_code_key
+            year_key
+            and country_key
             and artificial_machine_line_key
             and size_class_key
-            and brand_code_key
+            and brand_key
         ):
             continue
 
         group_key = (
+            year_key,
             country_key,
-            machine_line_code_key,
             artificial_machine_line_key,
             size_class_key,
-            brand_code_key,
+            brand_key,
         )
         if group_key not in grouped_rows:
             grouped_rows[group_key] = {
@@ -3380,8 +3571,8 @@ def get_total_market_calculation_double_brand_check_rows():
                 "source_labels_by_key": {},
             }
 
-        source_key = _to_case_insensitive_key(row.get("source"))
-        source_label = _to_text(row.get("source"))
+        source_key = _to_case_insensitive_key(row.get("source_flag")) or _to_case_insensitive_key(row.get("source"))
+        source_label = _to_text(row.get("source_flag")) or _to_text(row.get("source"))
         if source_key:
             grouped_rows[group_key]["source_labels_by_key"][source_key] = source_label or source_key
         grouped_rows[group_key]["rows"].append(row)
@@ -3410,7 +3601,6 @@ def get_total_market_calculation_double_brand_check_rows():
         key=lambda row: (
             _to_text(row.get("year")),
             _to_text(row.get("country")),
-            _to_text(row.get("machine_line_code")),
             _to_text(row.get("artificial_machine_line")),
             _to_text(row.get("size_class_flag")),
             _to_text(row.get("brand_code")),
@@ -3422,7 +3612,7 @@ def get_total_market_calculation_double_brand_check_rows():
         "row_count": len(duplicate_rows),
         "rows": duplicate_rows,
         "duplicate_group_count": duplicate_group_count,
-        "source_row_count": source_report.get("row_count", len(source_report["rows"])),
+        "source_row_count": len(oth_working_rows),
         "source_report_run_id": source_report.get("run_id"),
         "source_report_created_at": source_report.get("created_at"),
     }
