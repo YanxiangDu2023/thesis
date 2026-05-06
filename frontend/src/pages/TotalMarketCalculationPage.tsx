@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
 import {
   getTotalMarketCalculationEligibleOthRun,
@@ -59,6 +60,7 @@ type ErgPinCaseRow = OthDeletionFlagRow & {
 };
 
 function TotalMarketCalculationPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeView, setActiveView] = useState<"raw" | "doubleBrand" | "deleteDoubleBrand">("raw");
   const [showDeleteCaseButtons, setShowDeleteCaseButtons] = useState(false);
   const [selectedDeleteCase, setSelectedDeleteCase] = useState("OCN/OTN Case");
@@ -411,6 +413,23 @@ function TotalMarketCalculationPage() {
   function toKey(value: string | number | null | undefined): string {
     return String(value ?? "").trim().toUpperCase();
   }
+
+  const routeAction = toKey(searchParams.get("action"));
+
+  useEffect(() => {
+    if (!routeAction) {
+      return;
+    }
+    if (routeAction === "REPORT_CHECK_DOUBLE_BRAND") {
+      void handleReportCheckDoubleBrand();
+    } else if (routeAction === "DELETE_DOUBLE_BRAND") {
+      handleDeleteDoubleBrand();
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("action");
+    setSearchParams(next, { replace: true });
+  }, [routeAction, searchParams, setSearchParams]);
 
   function isCompactionMachineRow(row: OthDeletionFlagRow): boolean {
     const machineLineName = toKey(row.machine_line_name);

@@ -57,6 +57,15 @@ const totalMarketCalculationCard: LayerCard = {
   ],
 };
 
+const restatementCard: LayerCard = {
+  code: "RES",
+  title: "Restatement",
+  bullets: [
+    "Rebalance by brand when summed brand FID differs from total market volume.",
+    "Add missing volume to Other Reporting Brands or reduce non-VCE brands to keep totals consistent.",
+  ],
+};
+
 const tmcTimeline: TimelineStep[] = [
   {
     code: "SET",
@@ -298,6 +307,17 @@ function HomePage() {
               <h4 className="card__title">{totalMarketCalculationCard.title}</h4>
               <ul className="card__list">
                 {totalMarketCalculationCard.bullets?.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          </Link>
+          <Link to="/restatement" className="layer-card-link">
+            <article className="card layer-card">
+              <span className="layer-card__code">{restatementCard.code}</span>
+              <h4 className="card__title">{restatementCard.title}</h4>
+              <ul className="card__list">
+                {restatementCard.bullets?.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
