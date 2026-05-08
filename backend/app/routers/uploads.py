@@ -1970,6 +1970,7 @@ def _save_excavators_split_case_snapshot(
         "summary_row_count": len(summary_rows),
         "detail_row_count": len(detail_rows),
         "case_type": result.get("case_type"),
+        "dependency_signature": result.get("dependency_signature") or {},
     }
 
     conn = get_connection()
@@ -2046,6 +2047,53 @@ def _get_latest_excavators_split_case_snapshot(case_type: str) -> tuple[dict[str
         return latest_run_dict, summary_rows, detail_rows
     finally:
         conn.close()
+
+
+def _build_excavators_split_dependency_signature(
+    case_type: str,
+    oth_report: dict[str, Any],
+    three_check_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "case_type": case_type,
+        "oth_report_run_id": oth_report.get("run_id"),
+        "oth_report_created_at": oth_report.get("created_at"),
+        "oth_upload_run_id": oth_report.get("oth_upload_run_id"),
+        "three_check_run_id": three_check_report.get("run_id") if three_check_report else None,
+        "three_check_created_at": three_check_report.get("created_at") if three_check_report else None,
+        "three_check_oth_upload_run_id": three_check_report.get("oth_upload_run_id") if three_check_report else None,
+        "three_check_tma_upload_run_id": three_check_report.get("tma_upload_run_id") if three_check_report else None,
+        "three_check_volvo_upload_run_id": three_check_report.get("volvo_upload_run_id") if three_check_report else None,
+        "three_check_source_matrix_upload_run_id": three_check_report.get("source_matrix_upload_run_id") if three_check_report else None,
+        "three_check_machine_line_mapping_upload_run_id": three_check_report.get("machine_line_mapping_upload_run_id") if three_check_report else None,
+    }
+
+
+def _try_reuse_excavators_split_case_snapshot(
+    case_type: str,
+    dependency_signature: dict[str, Any],
+) -> dict[str, Any] | None:
+    try:
+        latest_run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(case_type)
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            return None
+        raise
+
+    meta = json.loads(latest_run.get("meta_json") or "{}")
+    if (meta.get("dependency_signature") or {}) != dependency_signature:
+        return None
+
+    return {
+        "case_type": case_type,
+        "summary_rows": summary_rows,
+        "detail_rows": detail_rows,
+        "summary": meta.get("summary") or {},
+        "source_row_count": meta.get("source_row_count") or len(detail_rows),
+        "oth_row_count": meta.get("oth_row_count") or 0,
+        "p10_row_count": meta.get("p10_row_count") or 0,
+        "dependency_signature": dependency_signature,
+    }
 
 
 def _get_excavators_split_case_run(run_id: int) -> dict[str, Any]:
@@ -2499,12 +2547,60 @@ def _build_excavators_split_case_report(case_type: str):
     if normalized_case_type == "CEX":
         return _build_cex_split_case_report()
 
-    oth = get_oth_deletion_flag_report()
+    try:
+        oth = get_latest_oth_deletion_flag_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        oth = get_oth_deletion_flag_report(track_run=False)
+
     summary_rows = _build_excavators_split_case_rows_from_oth(oth["rows"], normalized_case_type)
     detail_rows = []
+    three_check = None
+    dependency_signature = _build_excavators_split_dependency_signature(normalized_case_type, oth)
+
+    # Fast path: if there is no matching OTH input for this case, return immediately.
+    if normalized_case_type != "ALL" and len(summary_rows) == 0:
+        return {
+            "case_type": normalized_case_type,
+            "summary_rows": [],
+            "detail_rows": [],
+            "summary": {
+                "grouped_rows": 0,
+                "matched_rows": 0,
+                "gross_fid_total": 0.0,
+                "volvo_deduction_total": 0.0,
+                "net_fid_total": 0.0,
+            },
+            "source_row_count": 0,
+            "oth_row_count": oth["row_count"],
+            "p10_row_count": 0,
+            "dependency_signature": dependency_signature,
+        }
+
     if normalized_case_type != "ALL":
-        three_check = get_p00_three_check_report()
+        try:
+            three_check = get_latest_p00_three_check_report()
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            three_check = get_p00_three_check_report(track_run=False)
+        dependency_signature = _build_excavators_split_dependency_signature(normalized_case_type, oth, three_check)
+
+        reusable_result = _try_reuse_excavators_split_case_snapshot(
+            normalized_case_type,
+            dependency_signature,
+        )
+        if reusable_result is not None:
+            return reusable_result
         detail_rows = _build_excavators_split_detail_rows_from_three_check(three_check["rows"], normalized_case_type)
+    else:
+        reusable_result = _try_reuse_excavators_split_case_snapshot(
+            normalized_case_type,
+            dependency_signature,
+        )
+        if reusable_result is not None:
+            return reusable_result
 
     grouped_rows = len(summary_rows)
     matched_rows = sum(int(item["matched_rows"]) for item in summary_rows)
@@ -2525,7 +2621,8 @@ def _build_excavators_split_case_report(case_type: str):
         },
         "source_row_count": len(detail_rows),
         "oth_row_count": oth["row_count"],
-        "p10_row_count": get_p00_three_check_report()["row_count"] if normalized_case_type != "ALL" else 0,
+        "p10_row_count": three_check["row_count"] if normalized_case_type != "ALL" and three_check is not None else 0,
+        "dependency_signature": dependency_signature,
     }
 
 
@@ -3943,12 +4040,67 @@ def get_p10_vce_non_vce_report():
 
 
 def _build_cex_split_case_report():
-    oth = get_oth_deletion_flag_report()
-    p10 = get_p10_vce_non_vce_report()
+    try:
+        oth = get_latest_oth_deletion_flag_report()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        oth = get_oth_deletion_flag_report(track_run=False)
 
     source_size_key = "<10T"
     target_lt_6t_key = "<6T"
     target_6_10t_key = "6<10T"
+
+    cex_candidate_rows = [
+        row for row in oth["rows"]
+        if _to_case_insensitive_key(row.get("reporter_flag")) == "Y"
+        and _to_case_insensitive_key(row.get("artificial_machine_line")) == "CEX"
+        and _to_size_class_key(row.get("size_class_flag")) == source_size_key
+    ]
+
+    dependency_signature: dict[str, Any] = {
+        "case_type": "CEX",
+        "oth_report_run_id": oth.get("run_id"),
+        "oth_report_created_at": oth.get("created_at"),
+        "oth_upload_run_id": oth.get("oth_upload_run_id"),
+    }
+
+    if len(cex_candidate_rows) == 0:
+        return {
+            "case_type": "CEX",
+            "summary_rows": [],
+            "detail_rows": [],
+            "summary": {
+                "grouped_rows": 0,
+                "matched_rows": 0,
+                "gross_fid_total": 0.0,
+                "volvo_deduction_total": 0.0,
+                "net_fid_total": 0.0,
+            },
+            "source_row_count": 0,
+            "oth_row_count": oth["row_count"],
+            "p10_row_count": 0,
+            "dependency_signature": dependency_signature,
+        }
+
+    try:
+        latest_combined = get_latest_crp_d1_combined_report()
+        dependency_signature["crp_d1_combined_run_id"] = latest_combined.get("run_id")
+        dependency_signature["crp_d1_combined_created_at"] = latest_combined.get("created_at")
+        dependency_signature["crp_d1_combined_row_count"] = latest_combined.get("row_count")
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+
+    reusable_result = _try_reuse_excavators_split_case_snapshot("CEX", dependency_signature)
+    if reusable_result is not None:
+        return reusable_result
+
+    p10 = get_p10_vce_non_vce_report()
+    dependency_signature["p10_row_count"] = p10.get("row_count")
+    dependency_signature["p10_total_market_sum"] = p10.get("total_market_sum")
+    dependency_signature["p10_vce_sum"] = p10.get("vce_sum")
+    dependency_signature["p10_non_vce_sum"] = p10.get("non_vce_sum")
 
     def add_reference_value(target: dict[tuple[str, str, str], float], key_parts: tuple[str, str], size_key: str, value: float):
         target[(key_parts[0], key_parts[1], size_key)] = target.get((key_parts[0], key_parts[1], size_key), 0.0) + value
@@ -4013,14 +4165,7 @@ def _build_cex_split_case_report():
     detail_rows: list[dict[str, Any]] = []
     tma_rows_by_group: dict[str, dict[str, Any]] = {}
 
-    for row in oth["rows"]:
-        if _to_case_insensitive_key(row.get("reporter_flag")) != "Y":
-            continue
-        if _to_case_insensitive_key(row.get("artificial_machine_line")) != "CEX":
-            continue
-        if _to_size_class_key(row.get("size_class_flag")) != source_size_key:
-            continue
-
+    for row in cex_candidate_rows:
         summary_key = "|".join([
             _to_case_insensitive_key(row.get("year")),
             _to_case_insensitive_key(row.get("machine_line_name")),
@@ -4171,6 +4316,7 @@ def _build_cex_split_case_report():
         "source_row_count": len(detail_rows),
         "oth_row_count": oth["row_count"],
         "p10_row_count": p10["row_count"],
+        "dependency_signature": dependency_signature,
     }
 
 
