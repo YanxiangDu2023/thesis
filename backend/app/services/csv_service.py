@@ -1,5 +1,6 @@
 import os
 import uuid
+import io
 import pandas as pd
 import re
 import unicodedata
@@ -99,6 +100,15 @@ TMA_DATA_COLUMN_NAMES = [
     "size_class_mapping",
     "total_market_fid_sales",
 ]
+HEADER_BASED_MATRIX_TYPES = {"reporter_list", "source_matrix", "brand_mapping"}
+RAW_LAYOUT_MATRIX_TYPES = {
+    "size_class",
+    "group_country",
+    "machine_line_mapping",
+    "oth_data",
+    "volvo_sale_data",
+    "tma_data",
+}
 
 SOURCE_MATRIX_COUNTRY_GROUPING_ALIASES = [
     "Country Grouping",
@@ -271,8 +281,12 @@ def _looks_like_oth_header(first_row) -> bool:
     return len(header_matches) >= 4
 
 
-def _load_oth_dataframe(stored_path: str) -> pd.DataFrame:
-    oth_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _read_csv_content(content: bytes, header="infer") -> pd.DataFrame:
+    return pd.read_csv(io.BytesIO(content), header=header, dtype=str, keep_default_na=False)
+
+
+def _load_oth_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    oth_df = raw_df.copy()
 
     if oth_df.empty:
         return pd.DataFrame(columns=OTH_COLUMN_NAMES)
@@ -328,8 +342,8 @@ def _looks_like_size_class_header(first_row) -> bool:
     return len(header_matches) >= 5
 
 
-def _load_size_class_dataframe(stored_path: str) -> pd.DataFrame:
-    size_class_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _load_size_class_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    size_class_df = raw_df.copy()
 
     if size_class_df.empty:
         return pd.DataFrame(columns=SIZE_CLASS_COLUMN_NAMES)
@@ -362,8 +376,8 @@ def _looks_like_machine_line_mapping_header(first_row) -> bool:
     return len(header_matches) >= 1
 
 
-def _load_machine_line_mapping_dataframe(stored_path: str) -> pd.DataFrame:
-    machine_line_mapping_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _load_machine_line_mapping_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    machine_line_mapping_df = raw_df.copy()
 
     if machine_line_mapping_df.empty:
         return pd.DataFrame(columns=MACHINE_LINE_MAPPING_COLUMN_NAMES)
@@ -399,8 +413,8 @@ def _load_machine_line_mapping_dataframe(stored_path: str) -> pd.DataFrame:
     return machine_line_mapping_df
 
 
-def _load_group_country_dataframe(stored_path: str) -> pd.DataFrame:
-    group_country_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _load_group_country_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    group_country_df = raw_df.copy()
 
     if group_country_df.empty:
         return pd.DataFrame(columns=GROUP_COUNTRY_FIXED_COLUMNS)
@@ -492,8 +506,8 @@ def _looks_like_volvo_sale_header(first_row) -> bool:
     return sum(1 for flag in header_flags if flag) >= 9
 
 
-def _load_volvo_sale_dataframe(stored_path: str) -> pd.DataFrame:
-    volvo_sale_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _load_volvo_sale_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    volvo_sale_df = raw_df.copy()
 
     if volvo_sale_df.empty:
         return pd.DataFrame(columns=VOLVO_SALE_COLUMN_NAMES)
@@ -535,8 +549,8 @@ def _looks_like_tma_data_header(first_row) -> bool:
     return sum(1 for flag in header_flags if flag) >= 8
 
 
-def _load_tma_data_dataframe(stored_path: str) -> pd.DataFrame:
-    tma_df = pd.read_csv(stored_path, header=None, dtype=str, keep_default_na=False)
+def _load_tma_data_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
+    tma_df = raw_df.copy()
 
     if tma_df.empty:
         return pd.DataFrame(columns=TMA_DATA_COLUMN_NAMES)
@@ -600,28 +614,21 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
         upload_run_id = cursor.lastrowid
         conn.commit()
 
-        df = pd.read_csv(stored_path, dtype=str, keep_default_na=False)
+        df = pd.DataFrame()
+        raw_df = pd.DataFrame()
+        if matrix_type in HEADER_BASED_MATRIX_TYPES:
+            df = _read_csv_content(content)
+        elif matrix_type in RAW_LAYOUT_MATRIX_TYPES:
+            raw_df = _read_csv_content(content, header=None)
 
         row_count = 0
 
         if matrix_type == "reporter_list":
             row_count = len(df)
             reporter_column_lookup = _build_column_lookup(df.columns)
+            insert_values = []
             for idx, row in df.iterrows():
-                cursor.execute("""
-                    INSERT INTO reporter_list_rows (
-                        upload_run_id,
-                        row_index,
-                        calendar,
-                        source,
-                        source_code,
-                        machine_line,
-                        machine_code,
-                        artificial_machine_line,
-                        brand_name,
-                        brand_code
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("calendar", _get_cell_by_header_aliases(
@@ -665,27 +672,28 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                         ["Unnamed: 7", "Brand Code", "brand_code", "Brand_Code"]
                     )
                 ))
+            cursor.executemany("""
+                INSERT INTO reporter_list_rows (
+                    upload_run_id,
+                    row_index,
+                    calendar,
+                    source,
+                    source_code,
+                    machine_line,
+                    machine_code,
+                    artificial_machine_line,
+                    brand_name,
+                    brand_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "source_matrix":
             row_count = len(df)
             source_matrix_column_lookup = _build_column_lookup(df.columns)
             source_matrix_columns = list(df.columns)
+            insert_values = []
             for idx, row in df.iterrows():
-                cursor.execute("""
-                    INSERT INTO source_matrix_rows (
-                        upload_run_id,
-                        row_index,
-                        country_grouping,
-                        country_name,
-                        machine_line_code,
-                        machine_line_name,
-                        artificial_machine_line,
-                        primary_source,
-                        secondary_source,
-                        crp_source,
-                        change_indicator
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _get_cell_by_header_aliases_or_index(
@@ -752,26 +760,29 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                         source_matrix_columns,
                     ),
                 ))
+            cursor.executemany("""
+                INSERT INTO source_matrix_rows (
+                    upload_run_id,
+                    row_index,
+                    country_grouping,
+                    country_name,
+                    machine_line_code,
+                    machine_line_name,
+                    artificial_machine_line,
+                    primary_source,
+                    secondary_source,
+                    crp_source,
+                    change_indicator
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "size_class":
-            size_class_df = _load_size_class_dataframe(stored_path)
+            size_class_df = _load_size_class_dataframe(raw_df)
             row_count = len(size_class_df)
 
+            insert_values = []
             for idx, row in size_class_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO size_class_rows (
-                        upload_run_id,
-                        row_index,
-                        calendar,
-                        source,
-                        source_code,
-                        machine_line,
-                        machine_code,
-                        brand_name,
-                        brand_code,
-                        size_class
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("calendar", row.get("calendar", "")),
@@ -783,21 +794,28 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _clean_cell(row.get("brand_code", "")),
                     _normalize_uploaded_value("size_class", row.get("size_class", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO size_class_rows (
+                    upload_run_id,
+                    row_index,
+                    calendar,
+                    source,
+                    source_code,
+                    machine_line,
+                    machine_code,
+                    brand_name,
+                    brand_code,
+                    size_class
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "brand_mapping":
             row_count = len(df)
             brand_mapping_column_lookup = _build_column_lookup(df.columns)
             brand_mapping_columns = list(df.columns)
+            insert_values = []
             for idx, row in df.iterrows():
-                cursor.execute("""
-                    INSERT INTO brand_mapping_rows (
-                        upload_run_id,
-                        row_index,
-                        brand_name,
-                        brand_code,
-                        deletion_indicator
-                    ) VALUES (?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _get_cell_by_header_aliases_or_index(
@@ -822,27 +840,23 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                         brand_mapping_columns,
                     ),
                 ))
+            cursor.executemany("""
+                INSERT INTO brand_mapping_rows (
+                    upload_run_id,
+                    row_index,
+                    brand_name,
+                    brand_code,
+                    deletion_indicator
+                ) VALUES (?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "group_country":
-            group_country_df = _load_group_country_dataframe(stored_path)
+            group_country_df = _load_group_country_dataframe(raw_df)
             row_count = len(group_country_df)
 
+            insert_values = []
             for idx, row in group_country_df.iterrows():
-
-                cursor.execute("""
-                    INSERT INTO group_country_rows (
-                        upload_run_id,
-                        row_index,
-                        year,
-                        group_code,
-                        country_code,
-                        country_name,
-                        country_grouping,
-                        region,
-                        market_area,
-                        market_area_code
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("year", row.get("year", "")),
@@ -854,23 +868,28 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _clean_cell(row.get("market_area", "")),
                     _clean_cell(row.get("market_area_code", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO group_country_rows (
+                    upload_run_id,
+                    row_index,
+                    year,
+                    group_code,
+                    country_code,
+                    country_name,
+                    country_grouping,
+                    region,
+                    market_area,
+                    market_area_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "machine_line_mapping":
-            machine_line_mapping_df = _load_machine_line_mapping_dataframe(stored_path)
+            machine_line_mapping_df = _load_machine_line_mapping_dataframe(raw_df)
             row_count = len(machine_line_mapping_df)
 
+            insert_values = []
             for idx, row in machine_line_mapping_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO machine_line_mapping_rows (
-                        upload_run_id,
-                        row_index,
-                        machine_line_name,
-                        machine_line_code,
-                        size_class,
-                        artificial_machine_line,
-                        position
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _clean_cell(row.get("machine_line_name", "")),
@@ -879,25 +898,25 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _clean_cell(row.get("artificial_machine_line", "")),
                     _clean_cell(row.get("position", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO machine_line_mapping_rows (
+                    upload_run_id,
+                    row_index,
+                    machine_line_name,
+                    machine_line_code,
+                    size_class,
+                    artificial_machine_line,
+                    position
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "oth_data":
-            oth_df = _load_oth_dataframe(stored_path)
+            oth_df = _load_oth_dataframe(raw_df)
             row_count = len(oth_df)
 
+            insert_values = []
             for idx, row in oth_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO oth_data_rows (
-                        upload_run_id,
-                        row_index,
-                        year,
-                        source,
-                        brand_name,
-                        machine_line,
-                        country,
-                        size_class,
-                        quantity
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("year", row.get("year", "")),
@@ -908,31 +927,27 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _normalize_uploaded_value("size_class", row.get("size_class", "")),
                     _clean_cell(row.get("quantity", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO oth_data_rows (
+                    upload_run_id,
+                    row_index,
+                    year,
+                    source,
+                    brand_name,
+                    machine_line,
+                    country,
+                    size_class,
+                    quantity
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "volvo_sale_data":
-            volvo_sale_df = _load_volvo_sale_dataframe(stored_path)
+            volvo_sale_df = _load_volvo_sale_dataframe(raw_df)
             row_count = len(volvo_sale_df)
 
+            insert_values = []
             for idx, row in volvo_sale_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO volvo_sale_data_rows (
-                        upload_run_id,
-                        row_index,
-                        calendar,
-                        region,
-                        market,
-                        country,
-                        machine,
-                        machine_line,
-                        size_class,
-                        brand_owner_code,
-                        brand_owner,
-                        brand,
-                        brand_nationality,
-                        source,
-                        fid
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("calendar", row.get("calendar", "")),
@@ -949,29 +964,33 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _clean_cell(row.get("source", "")),
                     _clean_cell(row.get("fid", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO volvo_sale_data_rows (
+                    upload_run_id,
+                    row_index,
+                    calendar,
+                    region,
+                    market,
+                    country,
+                    machine,
+                    machine_line,
+                    size_class,
+                    brand_owner_code,
+                    brand_owner,
+                    brand,
+                    brand_nationality,
+                    source,
+                    fid
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         elif matrix_type == "tma_data":
-            tma_df = _load_tma_data_dataframe(stored_path)
+            tma_df = _load_tma_data_dataframe(raw_df)
             row_count = len(tma_df)
 
+            insert_values = []
             for idx, row in tma_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO tma_data_rows (
-                        upload_run_id,
-                        row_index,
-                        year,
-                        geographical_region,
-                        geographical_market_area,
-                        end_country,
-                        end_country_code,
-                        machine_family,
-                        machine_line,
-                        machine_line_code,
-                        size_class,
-                        size_class_mapping,
-                        total_market_fid_sales
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                insert_values.append((
                     upload_run_id,
                     idx + 1,
                     _normalize_uploaded_value("year", row.get("year", "")),
@@ -986,6 +1005,23 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     _normalize_uploaded_value("size_class_mapping", row.get("size_class_mapping", "")),
                     _clean_cell(row.get("total_market_fid_sales", ""))
                 ))
+            cursor.executemany("""
+                INSERT INTO tma_data_rows (
+                    upload_run_id,
+                    row_index,
+                    year,
+                    geographical_region,
+                    geographical_market_area,
+                    end_country,
+                    end_country_code,
+                    machine_family,
+                    machine_line,
+                    machine_line_code,
+                    size_class,
+                    size_class_mapping,
+                    total_market_fid_sales
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_values)
 
         else:
             raise HTTPException(status_code=400, detail="Unsupported matrix type.")
