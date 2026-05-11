@@ -25,6 +25,12 @@ type FilterableTableProps = {
   virtualize?: boolean;
 };
 
+type CellSelectionRange = {
+  columnKey: string;
+  startIndex: number;
+  endIndex: number;
+};
+
 const EMPTY_FILTER_VALUE = "__EMPTY_FILTER__";
 const VIRTUALIZATION_ROW_THRESHOLD = 300;
 const COMPACT_ROW_HEIGHT = 38;
@@ -82,6 +88,18 @@ function shouldHideDotZeroForP10Metrics(columnKey: string): boolean {
 
 function shouldRenderAsText(columnKey: string): boolean {
   return /(^|_)(calendar|year|code|flag|id|index|row)(_|$)/i.test(columnKey) || /^machine$/i.test(columnKey);
+}
+
+function getSummaryFractionDigits(columnKey: string, value: number): number {
+  if (columnKey === "before_after_difference") {
+    return 0;
+  }
+
+  if (shouldHideDotZeroForP10Metrics(columnKey) && isEffectivelyInteger(value)) {
+    return 0;
+  }
+
+  return 2;
 }
 
 function formatCellValue(value: string | number | null | undefined, columnKey: string): string {
@@ -219,9 +237,17 @@ function FilterableTable({
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [selectionRange, setSelectionRange] = useState<CellSelectionRange | null>(null);
+  const [selectionDragging, setSelectionDragging] = useState(false);
   const filterMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  const selectionAnchorRef = useRef<{ columnKey: string; startIndex: number } | null>(null);
+  const selectionFrameRef = useRef<number | null>(null);
+  const pendingSelectionRef = useRef<{ columnKey: string; startIndex: number; endIndex: number } | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const pendingScrollTopRef = useRef(0);
   const showRowActions = editable && typeof onDeleteRow === "function";
+  const isSelectionEnabled = !editable;
   const normalizedFilters = useMemo(() => {
     const next: Record<string, string[]> = {};
     Object.entries(filters).forEach(([key, value]) => {
@@ -234,6 +260,9 @@ function FilterableTable({
     setFilters({});
     setOpenFilterKey(null);
     setScrollTop(0);
+    setSelectionRange(null);
+    setSelectionDragging(false);
+    selectionAnchorRef.current = null;
     tableWrapperRef.current?.scrollTo({ top: 0 });
   }, [resetToken]);
 
@@ -301,6 +330,33 @@ function FilterableTable({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [openFilterKey]);
+
+  useEffect(() => {
+    if (!selectionDragging) {
+      return undefined;
+    }
+
+    function handlePointerUp() {
+      setSelectionDragging(false);
+      selectionAnchorRef.current = null;
+    }
+
+    document.addEventListener("mouseup", handlePointerUp);
+    return () => {
+      document.removeEventListener("mouseup", handlePointerUp);
+    };
+  }, [selectionDragging]);
+
+  useEffect(() => {
+    return () => {
+      if (selectionFrameRef.current !== null) {
+        cancelAnimationFrame(selectionFrameRef.current);
+      }
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (onFiltersChange) {
@@ -378,6 +434,76 @@ function FilterableTable({
       });
   }, [columns, filteredRows, rows]);
 
+  const selectionNumericProfile = useMemo(() => {
+    if (!selectionRange) {
+      return null;
+    }
+
+    const prefixSum: number[] = new Array(filteredRows.length + 1).fill(0);
+    const prefixCount: number[] = new Array(filteredRows.length + 1).fill(0);
+    for (let idx = 0; idx < filteredRows.length; idx += 1) {
+      const numericValue = toNumericValue(filteredRows[idx].row[selectionRange.columnKey]);
+      prefixSum[idx + 1] = prefixSum[idx] + (numericValue ?? 0);
+      prefixCount[idx + 1] = prefixCount[idx] + (numericValue !== null ? 1 : 0);
+    }
+
+    return {
+      columnKey: selectionRange.columnKey,
+      prefixSum,
+      prefixCount,
+    };
+  }, [filteredRows, selectionRange]);
+
+  const selectedRangeStats = useMemo(() => {
+    if (!selectionRange) {
+      return null;
+    }
+
+    const minIndex = Math.max(0, Math.min(selectionRange.startIndex, selectionRange.endIndex));
+    const maxIndex = Math.min(
+      filteredRows.length - 1,
+      Math.max(selectionRange.startIndex, selectionRange.endIndex),
+    );
+
+    if (minIndex > maxIndex || minIndex >= filteredRows.length) {
+      return null;
+    }
+
+    const column = columns.find((item) => item.key === selectionRange.columnKey);
+    if (!column) {
+      return null;
+    }
+
+    if (!selectionNumericProfile || selectionNumericProfile.columnKey !== selectionRange.columnKey) {
+      return null;
+    }
+
+    const sum = selectionNumericProfile.prefixSum[maxIndex + 1] - selectionNumericProfile.prefixSum[minIndex];
+    const numericCount =
+      selectionNumericProfile.prefixCount[maxIndex + 1] -
+      selectionNumericProfile.prefixCount[minIndex];
+    const average = numericCount > 0 ? sum / numericCount : null;
+
+    return {
+      columnKey: selectionRange.columnKey,
+      columnLabel: column.label ?? column.key,
+      rowCount: maxIndex - minIndex + 1,
+      numericCount,
+      sum,
+      average,
+    };
+  }, [columns, filteredRows.length, selectionNumericProfile, selectionRange]);
+
+  useEffect(() => {
+    if (!selectionRange) {
+      return;
+    }
+
+    if (filteredRows.length === 0 || selectionRange.startIndex >= filteredRows.length) {
+      setSelectionRange(null);
+    }
+  }, [filteredRows.length, selectionRange]);
+
   useEffect(() => {
     if (onFilteredRowsChange) {
       onFilteredRowsChange(filteredRows.map((item) => item.row));
@@ -436,13 +562,104 @@ function FilterableTable({
             />
           </tr>
         ) : null}
-        {displayedRows.map(({ row, index }) => (
+        {displayedRows.map(({ row, index }, displayedOffset) => {
+          const filteredIndex = shouldVirtualize
+            ? visibleRange.startIndex + displayedOffset
+            : displayedOffset;
+          const selectedStart = selectionRange
+            ? Math.min(selectionRange.startIndex, selectionRange.endIndex)
+            : -1;
+          const selectedEnd = selectionRange
+            ? Math.max(selectionRange.startIndex, selectionRange.endIndex)
+            : -1;
+
+          return (
           <tr
             key={`${row.id ?? index}-${index}`}
             className={getRowClassName?.(row, index)}
+            onMouseEnter={() => {
+              if (!isSelectionEnabled || !selectionDragging) {
+                return;
+              }
+
+              const anchor = selectionAnchorRef.current;
+              if (!anchor) {
+                return;
+              }
+
+              pendingSelectionRef.current = {
+                columnKey: anchor.columnKey,
+                startIndex: anchor.startIndex,
+                endIndex: filteredIndex,
+              };
+
+              if (selectionFrameRef.current !== null) {
+                return;
+              }
+
+              selectionFrameRef.current = requestAnimationFrame(() => {
+                selectionFrameRef.current = null;
+                const pending = pendingSelectionRef.current;
+                if (!pending) {
+                  return;
+                }
+                setSelectionRange((previous) => {
+                  if (
+                    previous &&
+                    previous.columnKey === pending.columnKey &&
+                    previous.startIndex === pending.startIndex &&
+                    previous.endIndex === pending.endIndex
+                  ) {
+                    return previous;
+                  }
+
+                  return pending;
+                });
+              });
+            }}
           >
-            {columns.map((column) => (
-              <td key={`${row.id ?? index}-${column.key}`} className={column.className}>
+            {columns.map((column) => {
+              const isSelectedCell =
+                Boolean(selectionRange) &&
+                selectionRange?.columnKey === column.key &&
+                filteredIndex >= selectedStart &&
+                filteredIndex <= selectedEnd;
+
+              return (
+              <td
+                key={`${row.id ?? index}-${column.key}`}
+                className={`${column.className ?? ""}${isSelectedCell ? " data-table__cell--selected" : ""}`.trim()}
+                onMouseDown={(event) => {
+                  if (!isSelectionEnabled || event.button !== 0) {
+                    return;
+                  }
+
+                  if (
+                    event.shiftKey &&
+                    selectionRange &&
+                    selectionRange.columnKey === column.key
+                  ) {
+                    setSelectionRange({
+                      columnKey: column.key,
+                      startIndex: selectionRange.startIndex,
+                      endIndex: filteredIndex,
+                    });
+                    return;
+                  }
+
+                  setSelectionRange({
+                    columnKey: column.key,
+                    startIndex: filteredIndex,
+                    endIndex: filteredIndex,
+                  });
+                  selectionAnchorRef.current = {
+                    columnKey: column.key,
+                    startIndex: filteredIndex,
+                  };
+                  setSelectionDragging(true);
+                  event.preventDefault();
+                }}
+              >
                 {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (
                   <input
                     className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
@@ -462,7 +679,7 @@ function FilterableTable({
                   formatCellValue(row[column.key], column.key)
                 )}
               </td>
-            ))}
+            )})}
             {showRowActions ? (
               <td>
                 <button
@@ -475,7 +692,7 @@ function FilterableTable({
               </td>
             ) : null}
           </tr>
-        ))}
+        )})}
         {bottomSpacerHeight > 0 ? (
           <tr className="data-table__spacer-row">
             <td
@@ -495,12 +712,17 @@ function FilterableTable({
     emptyMessage,
     filteredRows.length,
     getRowClassName,
+    isSelectionEnabled,
+    selectionDragging,
+    selectionRange,
     nonEditableColumns,
     onDeleteRow,
     onRowsChange,
     rows,
     showRowActions,
+    shouldVirtualize,
     topSpacerHeight,
+    visibleRange.startIndex,
   ]);
 
   return (
@@ -515,25 +737,61 @@ function FilterableTable({
             <strong>
               {formatNumericDisplayValue(
                 item.key === "before_after_difference" ? Math.round(item.sum) : item.sum,
-                item.key === "before_after_difference"
-                  ? 0
-                  : shouldHideDotZeroForP10Metrics(item.key) && isEffectivelyInteger(item.sum)
-                    ? 0
-                    : 2
+                getSummaryFractionDigits(item.key, item.sum),
               )}
             </strong>
           </div>
         ))}
+        {selectedRangeStats ? (
+          <div className="data-table__summary-chip data-table__summary-chip--selection">
+            Selection [{selectedRangeStats.columnLabel}]{" "}
+            <strong>Count: {selectedRangeStats.rowCount}</strong>
+            {selectedRangeStats.numericCount > 0 ? (
+              <>
+                {" "}
+                | Sum:{" "}
+                <strong>
+                  {formatNumericDisplayValue(
+                    selectedRangeStats.sum,
+                    getSummaryFractionDigits(selectedRangeStats.columnKey, selectedRangeStats.sum),
+                  )}
+                </strong>{" "}
+                | Avg:{" "}
+                <strong>
+                  {formatNumericDisplayValue(
+                    selectedRangeStats.average ?? 0,
+                    getSummaryFractionDigits(
+                      selectedRangeStats.columnKey,
+                      selectedRangeStats.average ?? 0,
+                    ),
+                  )}
+                </strong>
+              </>
+            ) : (
+              <>
+                {" "}
+                | Numeric: <strong>0</strong>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
       <div
         ref={tableWrapperRef}
-        className="table-wrapper"
+        className={`table-wrapper${selectionDragging ? " table-wrapper--selecting" : ""}`}
         style={maxHeight ? { maxHeight } : undefined}
         onScroll={(event) => {
           if (!shouldVirtualize) {
             return;
           }
-          setScrollTop(event.currentTarget.scrollTop);
+          pendingScrollTopRef.current = event.currentTarget.scrollTop;
+          if (scrollFrameRef.current !== null) {
+            return;
+          }
+          scrollFrameRef.current = requestAnimationFrame(() => {
+            scrollFrameRef.current = null;
+            setScrollTop(pendingScrollTopRef.current);
+          });
         }}
       >
         <table className={`data-table${compact ? " data-table--compact" : ""}`}>

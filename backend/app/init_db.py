@@ -123,6 +123,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS upload_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         matrix_type TEXT NOT NULL,
+        planning_year INTEGER,
         original_file_name TEXT NOT NULL,
         stored_file_name TEXT NOT NULL,
         stored_path TEXT NOT NULL,
@@ -130,6 +131,19 @@ def init_db():
         row_count INTEGER,
         status TEXT,
         message TEXT
+    )
+    """)
+    _ensure_column(cursor, "upload_runs", "planning_year", "INTEGER")
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_upload_runs_matrix_year_time
+    ON upload_runs(matrix_type, planning_year, uploaded_at DESC, id DESC)
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS planning_years (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year INTEGER NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
@@ -455,6 +469,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS p00_report_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         report_key TEXT NOT NULL,
+        planning_year INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         row_count INTEGER,
         status TEXT,
@@ -463,6 +478,7 @@ def init_db():
     )
     """)
     _ensure_column(cursor, "p00_report_runs", "meta_json", "TEXT")
+    _ensure_column(cursor, "p00_report_runs", "planning_year", "INTEGER")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS p00_report_rows (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -477,6 +493,10 @@ def init_db():
     ON p00_report_runs(report_key, created_at DESC, id DESC)
     """)
     cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_p00_report_runs_key_year_time
+    ON p00_report_runs(report_key, planning_year, created_at DESC, id DESC)
+    """)
+    cursor.execute("""
     CREATE INDEX IF NOT EXISTS idx_p00_report_rows_run_row
     ON p00_report_rows(report_run_id, row_index, id)
     """)
@@ -485,6 +505,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS excavators_split_case_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         case_type TEXT NOT NULL,
+        planning_year INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         row_count INTEGER,
         status TEXT,
@@ -493,6 +514,7 @@ def init_db():
     )
     """)
     _ensure_column(cursor, "excavators_split_case_runs", "meta_json", "TEXT")
+    _ensure_column(cursor, "excavators_split_case_runs", "planning_year", "INTEGER")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS excavators_split_case_rows (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -506,6 +528,10 @@ def init_db():
     cursor.execute("""
     CREATE INDEX IF NOT EXISTS idx_excavators_split_case_runs_type_time
     ON excavators_split_case_runs(case_type, status, created_at DESC, id DESC)
+    """)
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_excavators_split_case_runs_type_year_time
+    ON excavators_split_case_runs(case_type, planning_year, status, created_at DESC, id DESC)
     """)
     cursor.execute("""
     CREATE INDEX IF NOT EXISTS idx_excavators_split_case_rows_run_section_row

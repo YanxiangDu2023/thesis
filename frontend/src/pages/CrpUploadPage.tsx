@@ -29,8 +29,8 @@ function CrpUploadPage() {
         </div>
 
         <div className="matrix-form">
-          <UploadForm label="volvo_sale_data" title="Volvo Sale Data CSV" />
-          <UploadForm label="tma_data" title="TMA Data CSV" />
+          <UploadForm label="volvo_sale_data" title="Volvo Sale Data CSV" compact />
+          <UploadForm label="tma_data" title="TMA Data CSV" compact />
         </div>
 
         <div className="crp-columns">

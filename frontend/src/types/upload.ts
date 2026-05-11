@@ -14,6 +14,7 @@ export type SaveEditedUploadResponse = UploadCsvResponse;
 export type UploadRun = {
   id: number;
   matrix_type: string;
+  planning_year?: number | null;
   original_file_name: string;
   stored_file_name: string;
   stored_path: string;
@@ -28,6 +29,10 @@ export type UploadRow = Record<string, string | number | null>;
 export type LatestUploadResponse = {
   upload_run: UploadRun;
   rows: UploadRow[];
+};
+
+export type PlanningYearsResponse = {
+  years: number[];
 };
 
 export type UploadCompletenessItem = {
@@ -289,6 +294,7 @@ export type TotalMarketCalculationEligibleOthResponse = {
   row_count: number;
   rows: OthDeletionFlagRow[];
   source_row_count: number;
+  planning_year?: number | null;
   split_machine_lines: string[];
   split_input_rows?: number;
   split_output_rows?: number;
@@ -305,6 +311,7 @@ export type TotalMarketCalculationEligibleOthRunResponse = {
   run_id: number;
   status: string;
   message: string;
+  planning_year?: number | null;
   row_count?: number;
   created_at?: string;
   source_row_count?: number;
@@ -327,6 +334,7 @@ export type TotalMarketCalculationDoubleBrandCheckResponse = {
   rows: TotalMarketCalculationDoubleBrandCheckRow[];
   duplicate_group_count: number;
   source_row_count: number;
+  planning_year?: number | null;
   source_report_run_id?: number;
   source_report_created_at?: string;
 };
@@ -334,6 +342,7 @@ export type TotalMarketCalculationDoubleBrandCheckResponse = {
 export type SaveTotalMarketCalculationEligibleOthSnapshotRequest = {
   rows: OthDeletionFlagRow[];
   message: string;
+  planning_year?: number | null;
   source_row_count?: number;
   split_machine_lines?: string[];
   split_input_rows?: number;
@@ -349,6 +358,7 @@ export type SaveTotalMarketCalculationEligibleOthSnapshotResponse = {
   row_count: number;
   status: string;
   message: string;
+  planning_year?: number | null;
   previous_row_count?: number;
 };
 
@@ -407,6 +417,7 @@ export type ExcavatorsSplitCaseReportResponse = {
 export type ExcavatorsSplitCaseRunResponse = {
   run_id: number;
   case_type: string;
+  planning_year?: number | null;
   status: string;
   message: string;
   created_at?: string;
@@ -431,11 +442,13 @@ export type ExcavatorsSplitCaseSnapshotRequest = {
   source_row_count: number;
   oth_row_count: number;
   p10_row_count: number;
+  planning_year?: number | null;
   message: string;
 };
 
 export type ExcavatorsSplitCaseLatestResponse = ExcavatorsSplitCaseReportResponse & {
   run_id: number;
+  planning_year?: number | null;
   status: string;
   created_at: string;
   message: string;

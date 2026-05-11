@@ -1,5 +1,11 @@
-import { useMemo, useState } from "react";
-import { getLatestUploadByMatrixType, saveEditedUpload, uploadCsv } from "../../api/uploads";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createPlanningYear,
+  getLatestUploadByMatrixType,
+  getPlanningYears,
+  saveEditedUpload,
+  uploadCsv,
+} from "../../api/uploads";
 import type { UploadRow, UploadRun, UploadStatus } from "../../types/upload";
 import FilterableTable from "../table/FilterableTable";
 
@@ -217,6 +223,12 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<UploadStatus>("idle");
+  const [planningYears, setPlanningYears] = useState<number[]>([]);
+  const [yearsLoading, setYearsLoading] = useState(false);
+  const [yearsError, setYearsError] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
+  const [newYearInput, setNewYearInput] = useState("");
+  const [creatingYear, setCreatingYear] = useState(false);
 
   const [latestUpload, setLatestUpload] = useState<UploadRun | null>(null);
   const [latestRows, setLatestRows] = useState<UploadRow[]>([]);
@@ -231,6 +243,38 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   const [saveError, setSaveError] = useState("");
   const [tableFilters, setTableFilters] = useState<Record<string, string[]>>({});
   const useCompactTable = compact;
+  const selectedPlanningYear = selectedYear ? Number(selectedYear) : undefined;
+  const hasSelectedYear = selectedPlanningYear !== undefined && Number.isFinite(selectedPlanningYear);
+
+  useEffect(() => {
+    let active = true;
+    const loadYears = async () => {
+      try {
+        setYearsLoading(true);
+        setYearsError("");
+        const result = await getPlanningYears();
+        if (!active) {
+          return;
+        }
+        setPlanningYears(result.years);
+        setSelectedYear((previous) => (previous || result.years.length === 0 ? previous : String(result.years[0])));
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setYearsError(error instanceof Error ? error.message : "Failed to load years.");
+      } finally {
+        if (active) {
+          setYearsLoading(false);
+        }
+      }
+    };
+
+    void loadYears();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const latestRowsForDisplay = useMemo(() => {
     return getRowsForDisplay(label, latestRows);
@@ -270,6 +314,11 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   }, [editedRows, isEditingLatest, latestRowsForDisplay]);
 
   const handleUpload = async () => {
+    if (!hasSelectedYear || selectedPlanningYear === undefined) {
+      alert("Please select a planning year first.");
+      return;
+    }
+
     if (!file) {
       alert("Please select a CSV file first.");
       return;
@@ -279,7 +328,7 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
       setStatus("uploading");
       setMessage("Uploading...");
 
-      const result = await uploadCsv(label, file);
+      const result = await uploadCsv(label, file, selectedPlanningYear);
       setStatus("success");
       setMessage(`Upload successful. Upload ID: ${result.upload_run_id}`);
     } catch (error) {
@@ -290,6 +339,12 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   };
 
   const handleShowLatest = async () => {
+    if (!hasSelectedYear || selectedPlanningYear === undefined) {
+      setLatestError("Please select a planning year first.");
+      setShowLatestPanel(true);
+      return;
+    }
+
     try {
       setShowLatestPanel(true);
       setLatestLoading(true);
@@ -299,7 +354,7 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
       setSaveMessage("");
       setSaveError("");
 
-      const result = await getLatestUploadByMatrixType(label);
+      const result = await getLatestUploadByMatrixType(label, selectedPlanningYear);
       setLatestUpload(result.upload_run);
       setLatestRows(result.rows);
     } catch (error) {
@@ -377,12 +432,12 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
       setSaveError("");
       setSaveMessage("");
 
-      const result = await saveEditedUpload(label, editedRows, latestUpload.id);
+      const result = await saveEditedUpload(label, editedRows, latestUpload.id, selectedPlanningYear);
       setSaveMessage(`Save successful. New Upload ID: ${result.upload_run_id}`);
       setStatus("success");
       setMessage(`Edited data saved as a new upload (ID: ${result.upload_run_id}).`);
 
-      const refreshed = await getLatestUploadByMatrixType(label);
+      const refreshed = await getLatestUploadByMatrixType(label, selectedPlanningYear);
       setLatestUpload(refreshed.upload_run);
       setLatestRows(refreshed.rows);
       setIsEditingLatest(false);
@@ -396,6 +451,11 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
   };
 
   const handleDownloadLatest = async () => {
+    if (!hasSelectedYear || selectedPlanningYear === undefined) {
+      setLatestError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setDownloadLoading(true);
       setLatestError("");
@@ -404,7 +464,7 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
       let rowsForDownload = latestRows;
 
       if (!uploadForDownload || rowsForDownload.length === 0) {
-        const result = await getLatestUploadByMatrixType(label);
+        const result = await getLatestUploadByMatrixType(label, selectedPlanningYear);
         uploadForDownload = result.upload_run;
         rowsForDownload = result.rows;
         setLatestUpload(result.upload_run);
@@ -438,31 +498,103 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
     }
   };
 
+  const handleCreatePlanningYear = async () => {
+    const parsed = Number(newYearInput.trim());
+    if (!Number.isInteger(parsed) || parsed < 1900 || parsed > 2999) {
+      setYearsError("Year must be an integer between 1900 and 2999.");
+      return;
+    }
+
+    try {
+      setCreatingYear(true);
+      setYearsError("");
+      const result = await createPlanningYear(parsed);
+      const nextYears = Array.from(new Set([...planningYears, result.year])).sort((a, b) => b - a);
+      setPlanningYears(nextYears);
+      setSelectedYear(String(result.year));
+      setNewYearInput("");
+    } catch (error) {
+      setYearsError(error instanceof Error ? error.message : "Failed to create planning year.");
+    } finally {
+      setCreatingYear(false);
+    }
+  };
+
   return (
     <div className={compact ? "upload-card upload-card--compact" : "upload-card"}>
       <h3>{title}</h3>
 
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => {
-          const selectedFile = e.target.files?.[0] || null;
-          setFile(selectedFile);
-          setMessage("");
-          setStatus("idle");
-        }}
-      />
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "8px" }}>
+        <label htmlFor={`${label}-planning-year`} style={{ fontWeight: 600 }}>
+          Planning Year
+        </label>
+        <select
+          id={`${label}-planning-year`}
+          value={selectedYear}
+          onChange={(event) => {
+            setSelectedYear(event.target.value);
+            setFile(null);
+            setShowLatestPanel(false);
+            setLatestUpload(null);
+            setLatestRows([]);
+            setLatestError("");
+            setMessage("");
+            setStatus("idle");
+          }}
+          disabled={yearsLoading}
+        >
+          <option value="">Select year</option>
+          {planningYears.map((year) => (
+            <option key={year} value={String(year)}>
+              {year}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          min={1900}
+          max={2999}
+          step={1}
+          placeholder="New year"
+          value={newYearInput}
+          onChange={(event) => setNewYearInput(event.target.value)}
+          style={{ width: "110px" }}
+        />
+        <button type="button" onClick={handleCreatePlanningYear} disabled={creatingYear}>
+          {creatingYear ? "Creating..." : "Create Year"}
+        </button>
+      </div>
 
-      {file && <p>Selected file: {file.name}</p>}
+      {yearsError ? <p style={{ color: "red" }}>Error: {yearsError}</p> : null}
+      {yearsLoading ? <p style={{ color: "blue" }}>Loading years...</p> : null}
+
+      {hasSelectedYear ? (
+        <>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0] || null;
+              setFile(selectedFile);
+              setMessage("");
+              setStatus("idle");
+            }}
+          />
+
+          {file && <p>Selected file: {file.name}</p>}
+        </>
+      ) : (
+        <p style={{ color: "#6b7280" }}>Select a planning year first to enable file and actions.</p>
+      )}
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button type="button" onClick={handleUpload}>
+        <button type="button" onClick={handleUpload} disabled={!hasSelectedYear}>
           Upload
         </button>
-        <button type="button" onClick={handleShowLatest}>
+        <button type="button" onClick={handleShowLatest} disabled={!hasSelectedYear}>
           Show Latest
         </button>
-        <button type="button" onClick={handleDownloadLatest} disabled={downloadLoading}>
+        <button type="button" onClick={handleDownloadLatest} disabled={downloadLoading || !hasSelectedYear}>
           {downloadLoading ? "Downloading..." : "Download Latest"}
         </button>
       </div>
@@ -486,7 +618,7 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
           {latestUpload && (
             <>
               <p>
-                Latest upload: ID {latestUpload.id}, rows {latestUpload.row_count ?? 0}, status{" "}
+                Latest upload: ID {latestUpload.id}, year {latestUpload.planning_year ?? "-"}, rows {latestUpload.row_count ?? 0}, status{" "}
                 {latestUpload.status ?? "unknown"}
               </p>
 

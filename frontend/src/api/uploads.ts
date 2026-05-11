@@ -9,6 +9,7 @@ import type {
   LatestUploadResponse,
   OthDeletionFlagRow,
   OthDeletionFlagResponse,
+  PlanningYearsResponse,
   P00RunTimesResponse,
   P00ThreeCheckResponse,
   UploadRow,
@@ -179,14 +180,16 @@ function buildOthDeletionFlagRowsFallback(
   });
 }
 
-async function getOthDeletionFlagReportFallback(): Promise<OthDeletionFlagResponse> {
+async function getOthDeletionFlagReportFallback(
+  planningYear?: number
+): Promise<OthDeletionFlagResponse> {
   const [oth, groupCountry, machineLine, brand, sourceMatrix, reporterList] = await Promise.all([
-    getLatestUploadByMatrixType("oth_data"),
-    getLatestUploadByMatrixType("group_country"),
-    getLatestUploadByMatrixType("machine_line_mapping"),
-    getLatestUploadByMatrixType("brand_mapping"),
-    getLatestUploadByMatrixType("source_matrix"),
-    getLatestUploadByMatrixType("reporter_list"),
+    getLatestUploadByMatrixType("oth_data", planningYear),
+    getLatestUploadByMatrixType("group_country", planningYear),
+    getLatestUploadByMatrixType("machine_line_mapping", planningYear),
+    getLatestUploadByMatrixType("brand_mapping", planningYear),
+    getLatestUploadByMatrixType("source_matrix", planningYear),
+    getLatestUploadByMatrixType("reporter_list", planningYear),
   ]);
 
   const rows = buildOthDeletionFlagRowsFallback(
@@ -210,10 +213,17 @@ async function getOthDeletionFlagReportFallback(): Promise<OthDeletionFlagRespon
   };
 }
 
-export async function uploadCsv(matrixType: string, file: File): Promise<UploadCsvResponse> {
+export async function uploadCsv(
+  matrixType: string,
+  file: File,
+  planningYear?: number
+): Promise<UploadCsvResponse> {
   const formData = new FormData();
   formData.append("matrix_type", matrixType);
   formData.append("file", file);
+  if (planningYear !== undefined) {
+    formData.append("planning_year", String(planningYear));
+  }
 
   let response: Response;
   try {
@@ -238,7 +248,8 @@ export async function uploadCsv(matrixType: string, file: File): Promise<UploadC
 export async function saveEditedUpload(
   matrixType: string,
   rows: UploadRow[],
-  sourceUploadRunId?: number
+  sourceUploadRunId?: number,
+  planningYear?: number
 ): Promise<SaveEditedUploadResponse> {
   const response = await apiFetch("/uploads/save-edited", {
     method: "POST",
@@ -249,6 +260,7 @@ export async function saveEditedUpload(
       matrix_type: matrixType,
       rows,
       source_upload_run_id: sourceUploadRunId ?? null,
+      planning_year: planningYear ?? null,
     }),
   });
   const result = await response.json();
@@ -271,8 +283,12 @@ export async function getUpload(uploadRunId: number): Promise<UploadRun> {
   return result as UploadRun;
 }
 
-export async function getLatestUploadByMatrixType(matrixType: string): Promise<LatestUploadResponse> {
-  const response = await apiFetch(`/uploads/latest/${encodeURIComponent(matrixType)}`);
+export async function getLatestUploadByMatrixType(
+  matrixType: string,
+  planningYear?: number
+): Promise<LatestUploadResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/uploads/latest/${encodeURIComponent(matrixType)}${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -280,6 +296,30 @@ export async function getLatestUploadByMatrixType(matrixType: string): Promise<L
   }
 
   return result as LatestUploadResponse;
+}
+
+export async function getPlanningYears(): Promise<PlanningYearsResponse> {
+  const response = await apiFetch("/planning-years");
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch planning years");
+  }
+  return result as PlanningYearsResponse;
+}
+
+export async function createPlanningYear(year: number): Promise<{ year: number }> {
+  const response = await apiFetch("/planning-years", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ year }),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to create planning year");
+  }
+  return result as { year: number };
 }
 
 export async function getUploadCompleteness(): Promise<UploadCompletenessResponse> {
@@ -341,8 +381,19 @@ export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaRepo
   return result as LatestCrpTmaReportCleanDataResponse;
 }
 
-export async function getCrpD1CombinedReport(trackRun: boolean = false): Promise<CrpD1CombinedReportResponse> {
-  const response = await apiFetch(`/reports/crp-d1-combined${trackRun ? "?track_run=true" : ""}`);
+export async function getCrpD1CombinedReport(
+  trackRun: boolean = false,
+  planningYear?: number
+): Promise<CrpD1CombinedReportResponse> {
+  const params = new URLSearchParams();
+  if (trackRun) {
+    params.set("track_run", "true");
+  }
+  if (planningYear !== undefined) {
+    params.set("planning_year", String(planningYear));
+  }
+  const query = params.toString();
+  const response = await apiFetch(`/reports/crp-d1-combined${query ? `?${query}` : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -352,8 +403,11 @@ export async function getCrpD1CombinedReport(trackRun: boolean = false): Promise
   return result as CrpD1CombinedReportResponse;
 }
 
-export async function getLatestCrpD1CombinedReport(): Promise<CrpD1CombinedReportResponse> {
-  const response = await apiFetch("/reports/crp-d1-combined/latest");
+export async function getLatestCrpD1CombinedReport(
+  planningYear?: number
+): Promise<CrpD1CombinedReportResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/crp-d1-combined/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -363,8 +417,11 @@ export async function getLatestCrpD1CombinedReport(): Promise<CrpD1CombinedRepor
   return result as CrpD1CombinedReportResponse;
 }
 
-export async function getA10AdjustmentReport(): Promise<A10AdjustmentResponse> {
-  const response = await apiFetch("/reports/a10-adjustment");
+export async function getA10AdjustmentReport(
+  planningYear?: number
+): Promise<A10AdjustmentResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/a10-adjustment${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -374,13 +431,24 @@ export async function getA10AdjustmentReport(): Promise<A10AdjustmentResponse> {
   return result as A10AdjustmentResponse;
 }
 
-export async function getOthDeletionFlagReport(trackRun: boolean = false): Promise<OthDeletionFlagResponse> {
-  const response = await apiFetch(`/reports/oth-deletion-flag${trackRun ? "?track_run=true" : ""}`);
+export async function getOthDeletionFlagReport(
+  trackRun: boolean = false,
+  planningYear?: number
+): Promise<OthDeletionFlagResponse> {
+  const params = new URLSearchParams();
+  if (trackRun) {
+    params.set("track_run", "true");
+  }
+  if (planningYear !== undefined) {
+    params.set("planning_year", String(planningYear));
+  }
+  const query = params.toString();
+  const response = await apiFetch(`/reports/oth-deletion-flag${query ? `?${query}` : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
     if (response.status === 404) {
-      return await getOthDeletionFlagReportFallback();
+      return await getOthDeletionFlagReportFallback(planningYear);
     }
     throw new Error(result.detail || "Failed to fetch OTH Deletion Flag Report");
   }
@@ -388,8 +456,11 @@ export async function getOthDeletionFlagReport(trackRun: boolean = false): Promi
   return result as OthDeletionFlagResponse;
 }
 
-export async function getLatestOthDeletionFlagReport(): Promise<OthDeletionFlagResponse> {
-  const response = await apiFetch("/reports/oth-deletion-flag/latest");
+export async function getLatestOthDeletionFlagReport(
+  planningYear?: number
+): Promise<OthDeletionFlagResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/oth-deletion-flag/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -399,8 +470,11 @@ export async function getLatestOthDeletionFlagReport(): Promise<OthDeletionFlagR
   return result as OthDeletionFlagResponse;
 }
 
-export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
-  const response = await apiFetch("/reports/p10-vce-non-vce");
+export async function getP10VceNonVceReport(
+  planningYear?: number
+): Promise<P10VceNonVceResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/p10-vce-non-vce${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -410,8 +484,11 @@ export async function getP10VceNonVceReport(): Promise<P10VceNonVceResponse> {
   return result as P10VceNonVceResponse;
 }
 
-export async function getTotalMarketCalculationEligibleOthRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
-  const response = await apiFetch("/reports/total-market-calculation/eligible-oth");
+export async function getTotalMarketCalculationEligibleOthRows(
+  planningYear?: number
+): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/total-market-calculation/eligible-oth${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -421,8 +498,11 @@ export async function getTotalMarketCalculationEligibleOthRows(): Promise<TotalM
   return result as TotalMarketCalculationEligibleOthResponse;
 }
 
-export async function runTotalMarketCalculationEligibleOthReport(): Promise<TotalMarketCalculationEligibleOthRunResponse> {
-  const response = await apiFetch("/reports/total-market-calculation/eligible-oth/run", {
+export async function runTotalMarketCalculationEligibleOthReport(
+  planningYear?: number
+): Promise<TotalMarketCalculationEligibleOthRunResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/total-market-calculation/eligible-oth/run${query}`, {
     method: "POST",
   });
   const result = await response.json();
@@ -447,8 +527,11 @@ export async function getTotalMarketCalculationEligibleOthRun(
   return result as TotalMarketCalculationEligibleOthRunResponse;
 }
 
-export async function getLatestTotalMarketCalculationEligibleOthRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
-  const response = await apiFetch("/reports/total-market-calculation/eligible-oth/latest");
+export async function getLatestTotalMarketCalculationEligibleOthRows(
+  planningYear?: number
+): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/total-market-calculation/eligible-oth/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -458,8 +541,11 @@ export async function getLatestTotalMarketCalculationEligibleOthRows(): Promise<
   return result as TotalMarketCalculationEligibleOthResponse;
 }
 
-export async function getLatestTotalMarketCalculationCalculatedRows(): Promise<TotalMarketCalculationEligibleOthResponse> {
-  const response = await apiFetch("/reports/total-market-calculation/calculated/latest");
+export async function getLatestTotalMarketCalculationCalculatedRows(
+  planningYear?: number
+): Promise<TotalMarketCalculationEligibleOthResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/total-market-calculation/calculated/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -469,8 +555,11 @@ export async function getLatestTotalMarketCalculationCalculatedRows(): Promise<T
   return result as TotalMarketCalculationEligibleOthResponse;
 }
 
-export async function getTotalMarketCalculationDoubleBrandCheckRows(): Promise<TotalMarketCalculationDoubleBrandCheckResponse> {
-  const response = await apiFetch("/reports/total-market-calculation/double-brand-check");
+export async function getTotalMarketCalculationDoubleBrandCheckRows(
+  planningYear?: number
+): Promise<TotalMarketCalculationDoubleBrandCheckResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/total-market-calculation/double-brand-check${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -518,8 +607,19 @@ export async function saveTotalMarketCalculationCalculatedSnapshot(
   return result as SaveTotalMarketCalculationEligibleOthSnapshotResponse;
 }
 
-export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise<P00ThreeCheckResponse> {
-  const response = await apiFetch(`/reports/p00-three-check${trackRun ? "?track_run=true" : ""}`);
+export async function getP00ThreeCheckReport(
+  trackRun: boolean = false,
+  planningYear?: number
+): Promise<P00ThreeCheckResponse> {
+  const params = new URLSearchParams();
+  if (trackRun) {
+    params.set("track_run", "true");
+  }
+  if (planningYear !== undefined) {
+    params.set("planning_year", String(planningYear));
+  }
+  const query = params.toString();
+  const response = await apiFetch(`/reports/p00-three-check${query ? `?${query}` : ""}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -529,8 +629,11 @@ export async function getP00ThreeCheckReport(trackRun: boolean = false): Promise
   return result as P00ThreeCheckResponse;
 }
 
-export async function getLatestP00ThreeCheckReport(): Promise<P00ThreeCheckResponse> {
-  const response = await apiFetch("/reports/p00-three-check/latest");
+export async function getLatestP00ThreeCheckReport(
+  planningYear?: number
+): Promise<P00ThreeCheckResponse> {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/p00-three-check/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -556,9 +659,11 @@ export async function runExcavatorsSplitCexReport(): Promise<ExcavatorsSplitCase
 }
 
 export async function runExcavatorsSplitCaseReport(
-  caseType: string
+  caseType: string,
+  planningYear?: number
 ): Promise<ExcavatorsSplitCaseRunResponse> {
-  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/run`, {
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/run${query}`, {
     method: "POST",
   });
   const result = await response.json();
@@ -591,9 +696,11 @@ export async function getExcavatorsSplitCaseRun(
 }
 
 export async function getLatestExcavatorsSplitCaseReport(
-  caseType: string
+  caseType: string,
+  planningYear?: number
 ): Promise<ExcavatorsSplitCaseLatestResponse> {
-  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/latest`);
+  const query = planningYear !== undefined ? `?planning_year=${planningYear}` : "";
+  const response = await apiFetch(`/reports/excavators-split/${encodeURIComponent(caseType)}/latest${query}`);
   const result = await response.json();
 
   if (!response.ok) {

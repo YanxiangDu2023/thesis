@@ -560,7 +560,7 @@ def _load_tma_data_dataframe(stored_path: str) -> pd.DataFrame:
 
     return tma_df
 
-async def handle_csv_upload(matrix_type: str, file: UploadFile):
+async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: int | None = None):
     if not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
 
@@ -583,13 +583,15 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile):
         cursor.execute("""
             INSERT INTO upload_runs (
                 matrix_type,
+                planning_year,
                 original_file_name,
                 stored_file_name,
                 stored_path,
                 status
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?)
         """, (
             matrix_type,
+            planning_year,
             file.filename,
             unique_name,
             stored_path,

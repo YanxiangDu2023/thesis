@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FilterableTable from "../components/table/FilterableTable";
 import {
-  getLatestTotalMarketCalculationCalculatedRows,
-  saveTotalMarketCalculationCalculatedSnapshot,
+  createPlanningYear,
+  getPlanningYears,
+  getLatestTotalMarketCalculationEligibleOthRows,
+  getTotalMarketCalculationEligibleOthRows,
+  saveTotalMarketCalculationEligibleOthSnapshot,
 } from "../api/uploads";
 import type { OthDeletionFlagRow } from "../types/upload";
 
@@ -38,6 +41,7 @@ type RestatementPreviewRow = OthDeletionFlagRow & {
 type FinalRestatementResultRow = {
   country_grouping: string;
   country: string;
+  country_code: string;
   region: string;
   machine_line_code: string;
   machine_line_name: string;
@@ -139,8 +143,6 @@ function getRestatementBaseKey(row: OthDeletionFlagRow): string {
 function getFinalRestatementGroupKey(row: OthDeletionFlagRow): string {
   return [
     toKey(row.country),
-    toKey(row.machine_line_code),
-    toKey(row.machine_line_name),
     toKey(row.artificial_machine_line),
     toKey(row.size_class_flag),
   ].join("||");
@@ -235,6 +237,12 @@ function RestatementPage() {
   const [sourceReportCreatedAt, setSourceReportCreatedAt] = useState<string | undefined>(undefined);
   const [threeCheckReportRunId, setThreeCheckReportRunId] = useState<number | undefined>(undefined);
   const [threeCheckReportCreatedAt, setThreeCheckReportCreatedAt] = useState<string | undefined>(undefined);
+  const [planningYears, setPlanningYears] = useState<number[]>([]);
+  const [planningYearsLoading, setPlanningYearsLoading] = useState(false);
+  const [planningYearsError, setPlanningYearsError] = useState("");
+  const [selectedPlanningYear, setSelectedPlanningYear] = useState("");
+  const [newPlanningYearInput, setNewPlanningYearInput] = useState("");
+  const [creatingPlanningYear, setCreatingPlanningYear] = useState(false);
 
   const [activePanel, setActivePanel] = useState<"data" | "report" | "delete" | "restatement">("data");
   const [doubleBrandRows, setDoubleBrandRows] = useState<DoubleBrandCheckRow[]>([]);
@@ -277,11 +285,15 @@ function RestatementPage() {
   const [restatementMessage, setRestatementMessage] = useState("");
   const [finalRestatementRows, setFinalRestatementRows] = useState<FinalRestatementResultRow[]>([]);
   const [showFinalRestatementResult, setShowFinalRestatementResult] = useState(false);
+  const selectedPlanningYearNumber = selectedPlanningYear ? Number(selectedPlanningYear) : undefined;
+  const hasSelectedPlanningYear =
+    selectedPlanningYearNumber !== undefined && Number.isFinite(selectedPlanningYearNumber);
 
   const dataColumns = useMemo(
     () => [
       { key: "country_grouping", label: "Country Grouping" },
       { key: "country", label: "Country" },
+      { key: "country_code", label: "Country Code" },
       { key: "region", label: "Region" },
       { key: "machine_line_code", label: "Machine Line" },
       { key: "machine_line_name", label: "Machine Line Name" },
@@ -332,6 +344,7 @@ function RestatementPage() {
     () => [
       { key: "country_grouping", label: "Country Grouping" },
       { key: "country", label: "Country" },
+      { key: "country_code", label: "Country Code" },
       { key: "region", label: "Region" },
       { key: "machine_line_code", label: "Machine Line" },
       { key: "machine_line_name", label: "Machine Line Name" },
@@ -346,8 +359,47 @@ function RestatementPage() {
     []
   );
 
-  async function loadLatestRestatementInput() {
-    const result = await getLatestTotalMarketCalculationCalculatedRows();
+  useEffect(() => {
+    let active = true;
+    const loadPlanningYears = async () => {
+      try {
+        setPlanningYearsLoading(true);
+        setPlanningYearsError("");
+        const result = await getPlanningYears();
+        if (!active) {
+          return;
+        }
+        setPlanningYears(result.years);
+        setSelectedPlanningYear("");
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setPlanningYearsError(err instanceof Error ? err.message : "Failed to load planning years.");
+      } finally {
+        if (active) {
+          setPlanningYearsLoading(false);
+        }
+      }
+    };
+
+    void loadPlanningYears();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function requirePlanningYear(): number | null {
+    if (!hasSelectedPlanningYear || selectedPlanningYearNumber === undefined) {
+      setError("Please select a planning year first.");
+      setMessage("");
+      return null;
+    }
+    return selectedPlanningYearNumber;
+  }
+
+  async function loadLatestRestatementInput(planningYear: number) {
+    const result = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
     setFullRows(result.rows);
     const filtered = result.rows.filter(isOthNonVceNonZeroRow);
     setRows(filtered);
@@ -368,15 +420,35 @@ function RestatementPage() {
   }
 
   async function handleRun() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActivePanel("data");
     setLoading(true);
     setRunLoading(true);
     setError("");
-    setMessage("Loading latest Calculate Total Market result...");
+    setMessage("Running OTH Non VCE Total Market Data and loading result...");
     try {
-      const loaded = await loadLatestRestatementInput();
+      const result = await getTotalMarketCalculationEligibleOthRows(planningYear);
+      setFullRows(result.rows);
+      const filtered = result.rows.filter(isOthNonVceNonZeroRow);
+      setRows(filtered);
+      setRestatementRows([]);
+      setRestatementApplied(false);
+      setRestatementMessage("");
+      setFinalRestatementRows([]);
+      setShowFinalRestatementResult(false);
+      setSourceRowCount(result.row_count);
+      setSplitMachineLines(result.split_machine_lines);
+      setSplitInputRows(result.split_input_rows);
+      setSplitOutputRows(result.split_output_rows);
+      setSourceReportRunId(result.source_report_run_id);
+      setSourceReportCreatedAt(result.source_report_created_at);
+      setThreeCheckReportRunId(result.three_check_report_run_id);
+      setThreeCheckReportCreatedAt(result.three_check_report_created_at);
       setMessage(
-        `Loaded from latest Calculate Total Market snapshot. ${loaded.filteredCount} OTH rows (FID != 0)${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
+        `Loaded from OTH Non VCE Total Market Data run. ${filtered.length} OTH rows (FID != 0)${result.run_id ? ` (Run #${result.run_id})` : ""}.`
       );
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load OTH Non VCE Total Market Data.");
@@ -388,12 +460,16 @@ function RestatementPage() {
   }
 
   async function handleShowLatest() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActivePanel("data");
     setLoading(true);
     setError("");
     setMessage("Loading latest OTH Non VCE Total Market Data...");
     try {
-      const loaded = await loadLatestRestatementInput();
+      const loaded = await loadLatestRestatementInput(planningYear);
       setMessage(`Latest loaded. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load latest data.");
@@ -404,13 +480,17 @@ function RestatementPage() {
   }
 
   async function handleOpenRestatementPanel() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActivePanel("restatement");
     setDoubleBrandError("");
     setLoading(true);
     setError("");
     setMessage("Loading latest restatement result...");
     try {
-      const loaded = await loadLatestRestatementInput();
+      const loaded = await loadLatestRestatementInput(planningYear);
       setMessage(`Latest loaded. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`);
       setDoubleBrandMessage(
         'Restatement panel shows the final OTH result after Delete Double Brand. Click "Save" in Delete Double Brand to persist updates.'
@@ -605,7 +685,7 @@ function RestatementPage() {
 
     type GroupMeta = Pick<
       FinalRestatementResultRow,
-      "country_grouping" | "country" | "region" | "machine_line_code" | "machine_line_name" | "artificial_machine_line" | "size_class_flag"
+      "country_grouping" | "country" | "country_code" | "region" | "machine_line_code" | "machine_line_name" | "artificial_machine_line" | "size_class_flag"
     >;
     const groupMetaByKey = new Map<string, GroupMeta>();
     const restatedBrandRowsByKey = new Map<string, RestatementPreviewRow[]>();
@@ -616,6 +696,7 @@ function RestatementPage() {
         groupMetaByKey.set(groupKey, {
           country_grouping: row.country_grouping,
           country: row.country,
+          country_code: row.country_code,
           region: row.region,
           machine_line_code: row.machine_line_code,
           machine_line_name: row.machine_line_name,
@@ -798,6 +879,65 @@ function RestatementPage() {
     setOhrPinError("");
     setOhrPinEditMode(false);
     setOhrPinDirty(false);
+  }
+
+  function resetYearScopedData() {
+    setActivePanel("data");
+    setFullRows([]);
+    setRows([]);
+    setLoading(false);
+    setRunLoading(false);
+    setMessage("");
+    setError("");
+    setSourceRowCount(0);
+    setSplitMachineLines([]);
+    setSplitInputRows(undefined);
+    setSplitOutputRows(undefined);
+    setSourceReportRunId(undefined);
+    setSourceReportCreatedAt(undefined);
+    setThreeCheckReportRunId(undefined);
+    setThreeCheckReportCreatedAt(undefined);
+    setDoubleBrandRows([]);
+    setDoubleBrandGroupCount(0);
+    setDoubleBrandSourceRowCount(0);
+    setDoubleBrandMessage("");
+    setDoubleBrandError("");
+    resetDeleteStates();
+    setRestatementRows([]);
+    setRestatementApplied(false);
+    setRestatementApplying(false);
+    setRestatementMessage("");
+    setFinalRestatementRows([]);
+    setShowFinalRestatementResult(false);
+  }
+
+  function handlePlanningYearChange(value: string) {
+    setSelectedPlanningYear(value);
+    resetYearScopedData();
+  }
+
+  async function handleCreatePlanningYear() {
+    const parsed = Number(newPlanningYearInput);
+    if (!Number.isInteger(parsed) || parsed < 1900 || parsed > 2999) {
+      setPlanningYearsError("Please enter a valid year between 1900 and 2999.");
+      return;
+    }
+    try {
+      setCreatingPlanningYear(true);
+      setPlanningYearsError("");
+      const result = await createPlanningYear(parsed);
+      const nextYears = Array.from(new Set([...planningYears, result.year])).sort((a, b) => b - a);
+      setPlanningYears(nextYears);
+      setSelectedPlanningYear(String(result.year));
+      setNewPlanningYearInput("");
+      resetYearScopedData();
+      setMessage(`Planning year ${result.year} created and selected.`);
+      setError("");
+    } catch (err) {
+      setPlanningYearsError(err instanceof Error ? err.message : "Failed to create planning year.");
+    } finally {
+      setCreatingPlanningYear(false);
+    }
   }
 
   function handleDeleteDoubleBrand() {
@@ -1043,6 +1183,10 @@ function RestatementPage() {
   }
 
   async function handleSaveDeleteCaseSelection() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     type SaveTarget = {
       rows: OthDeletionFlagRow[];
       dirty: boolean;
@@ -1109,9 +1253,10 @@ function RestatementPage() {
     setSnapshotSaving(true);
     try {
       const mergedRows = mergeCaseRowsIntoBaseRows(fullRows, target.rows, target.isCaseRow);
-      const snapshot = await saveTotalMarketCalculationCalculatedSnapshot({
+      const snapshot = await saveTotalMarketCalculationEligibleOthSnapshot({
         rows: mergedRows,
         message: `${target.label} snapshot saved from Restatement`,
+        planning_year: planningYear,
         source_row_count: sourceRowCount > 0 ? sourceRowCount : mergedRows.length,
         split_machine_lines: splitMachineLines,
         split_input_rows: splitInputRows,
@@ -1121,7 +1266,7 @@ function RestatementPage() {
         three_check_report_run_id: threeCheckReportRunId,
         three_check_report_created_at: threeCheckReportCreatedAt,
       });
-      const loaded = await loadLatestRestatementInput();
+      const loaded = await loadLatestRestatementInput(planningYear);
       target.onSaved();
       setDoubleBrandMessage(
         `${target.label} saved (Run #${snapshot.run_id}). Rows: ${snapshot.previous_row_count ?? mergedRows.length} -> ${loaded.filteredCount}. Reloaded from backend calculated snapshot.`
@@ -1150,6 +1295,47 @@ function RestatementPage() {
           <p className="section-description">Split-applied OTH Non VCE rows for restatement review.</p>
         </div>
 
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "10px" }}>
+          <label htmlFor="restatement-planning-year" style={{ fontWeight: 700 }}>
+            Planning Year
+          </label>
+          <select
+            id="restatement-planning-year"
+            value={selectedPlanningYear}
+            onChange={(event) => handlePlanningYearChange(event.target.value)}
+            disabled={planningYearsLoading}
+          >
+            <option value="">Select year</option>
+            {planningYears.map((year) => (
+              <option key={year} value={String(year)}>
+                {year}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1900}
+            max={2999}
+            step={1}
+            placeholder="New year"
+            value={newPlanningYearInput}
+            onChange={(event) => setNewPlanningYearInput(event.target.value)}
+            style={{ width: "110px" }}
+          />
+          <button type="button" onClick={handleCreatePlanningYear} disabled={creatingPlanningYear}>
+            {creatingPlanningYear ? "Creating..." : "Create Year"}
+          </button>
+        </div>
+        {planningYearsLoading ? <p style={{ color: "blue", marginBottom: "10px" }}>Loading years...</p> : null}
+        {planningYearsError ? <p style={{ color: "red", marginBottom: "10px" }}>Error: {planningYearsError}</p> : null}
+        {!hasSelectedPlanningYear ? (
+          <p style={{ color: "#6b7280", marginBottom: "10px" }}>
+            Select a planning year first, then run or show latest reports.
+          </p>
+        ) : null}
+
+        {hasSelectedPlanningYear ? (
+          <>
         <div className="overview-actions" style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-start" }}>
             <div style={{ display: "inline-flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
@@ -1475,6 +1661,8 @@ function RestatementPage() {
               </div>
             )}
           </div>
+        ) : null}
+          </>
         ) : null}
       </section>
     </div>

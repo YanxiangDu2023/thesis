@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
 import {
+  createPlanningYear,
   getA10AdjustmentReport,
   getCrpD1CombinedReport,
   getExcavatorsSplitCaseRun,
@@ -10,6 +11,7 @@ import {
   getLatestOthDeletionFlagReport,
   getLatestExcavatorsSplitCaseReport,
   getLatestP00ThreeCheckReport,
+  getPlanningYears,
   getOthDeletionFlagReport,
   getP00ThreeCheckReport,
   getP10VceNonVceReport,
@@ -1232,6 +1234,15 @@ function LayerDetailPage() {
   const [savingWheelSnapshot, setSavingWheelSnapshot] = useState(false);
   const [wheelManualMessage, setWheelManualMessage] = useState("");
   const [wheelManualError, setWheelManualError] = useState("");
+  const [planningYears, setPlanningYears] = useState<number[]>([]);
+  const [planningYearsLoading, setPlanningYearsLoading] = useState(false);
+  const [planningYearsError, setPlanningYearsError] = useState("");
+  const [selectedPlanningYear, setSelectedPlanningYear] = useState("");
+  const [newPlanningYearInput, setNewPlanningYearInput] = useState("");
+  const [creatingPlanningYear, setCreatingPlanningYear] = useState(false);
+  const selectedP00PlanningYear = selectedPlanningYear ? Number(selectedPlanningYear) : undefined;
+  const hasSelectedP00PlanningYear =
+    selectedP00PlanningYear !== undefined && Number.isFinite(selectedP00PlanningYear);
 
   useEffect(() => {
     if (!runningOthDeletionFlagReport || othDeletionFlagStartedAt === null) {
@@ -1249,6 +1260,40 @@ function LayerDetailPage() {
     const intervalId = window.setInterval(tick, 1000);
     return () => window.clearInterval(intervalId);
   }, [runningOthDeletionFlagReport, othDeletionFlagStartedAt]);
+
+  useEffect(() => {
+    if (!layer || !["P00", "P10", "A10", "MLS"].includes(layer.code)) {
+      return;
+    }
+
+    let active = true;
+    const loadPlanningYears = async () => {
+      try {
+        setPlanningYearsLoading(true);
+        setPlanningYearsError("");
+        const result = await getPlanningYears();
+        if (!active) {
+          return;
+        }
+        setPlanningYears(result.years);
+        setSelectedPlanningYear("");
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setPlanningYearsError(error instanceof Error ? error.message : "Failed to load planning years.");
+      } finally {
+        if (active) {
+          setPlanningYearsLoading(false);
+        }
+      }
+    };
+
+    void loadPlanningYears();
+    return () => {
+      active = false;
+    };
+  }, [layer?.code]);
   const [autoRunHandled, setAutoRunHandled] = useState(false);
 
   const combinedReportColumns = useMemo(
@@ -2024,16 +2069,93 @@ function LayerDetailPage() {
     }
   };
 
+  const clearPlanningYearScopedPanels = () => {
+    setCombinedReportRows([]);
+    setCombinedReportMessage("");
+    setCombinedReportError("");
+    setOthDeletionFlagRows([]);
+    setOthDeletionFlagMessage("");
+    setOthDeletionFlagError("");
+    setThreeCheckRows([]);
+    setThreeCheckMessage("");
+    setThreeCheckError("");
+    setP10Rows([]);
+    setP10FilteredRows(null);
+    setP10Summary({
+      total_market_sum: 0,
+      vce_sum: 0,
+      non_vce_sum: 0,
+    });
+    setP10Message("");
+    setP10Error("");
+    setA10Rows([]);
+    setA10Message("");
+    setA10Error("");
+    setShowExcavatorsSplitCasePanel(false);
+    setExcavatorsSplitCaseRows([]);
+    setExcavatorsSplitDetailRows([]);
+    setExcavatorsSplitCaseMessage("");
+    setExcavatorsSplitCaseError("");
+    setEditingExcavatorsManual(false);
+    setExcavatorsManualRows([]);
+    setExcavatorsManualMessage("");
+    setExcavatorsManualError("");
+    setShowWheelLoadersSplitCasePanel(false);
+    setWheelLoadersSplitCaseRows([]);
+    setWheelLoadersSplitDetailRows([]);
+    setWheelLoadersSplitMessage("");
+    setWheelLoadersSplitError("");
+    setEditingWheelManual(false);
+    setWheelManualRows([]);
+    setWheelManualMessage("");
+    setWheelManualError("");
+  };
+
+  const handlePlanningYearChange = (value: string) => {
+    setSelectedPlanningYear(value);
+    clearPlanningYearScopedPanels();
+  };
+
+  const handleCreatePlanningYear = async () => {
+    const parsedYear = Number(newPlanningYearInput.trim());
+    if (!Number.isInteger(parsedYear) || parsedYear < 1900 || parsedYear > 2999) {
+      setPlanningYearsError("Year must be an integer between 1900 and 2999.");
+      return;
+    }
+
+    try {
+      setCreatingPlanningYear(true);
+      setPlanningYearsError("");
+      const result = await createPlanningYear(parsedYear);
+      const nextYears = Array.from(new Set([...planningYears, result.year])).sort((a, b) => b - a);
+      setPlanningYears(nextYears);
+      setSelectedPlanningYear(String(result.year));
+      setNewPlanningYearInput("");
+      clearPlanningYearScopedPanels();
+    } catch (error) {
+      setPlanningYearsError(error instanceof Error ? error.message : "Failed to create planning year.");
+    } finally {
+      setCreatingPlanningYear(false);
+    }
+  };
+
   const handleRunCrpD1CombinedReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setCombinedReportError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningCombinedReport(true);
       setCombinedReportError("");
       setCombinedReportMessage("");
 
-      const result = await getCrpD1CombinedReport(true);
+      const result = await getCrpD1CombinedReport(true, selectedP00PlanningYear);
       setCombinedReportRows(result.rows);
       setCombinedReportResetToken((prev) => prev + 1);
-      setCombinedReportMessage(`Run successful. Row Count: ${result.row_count}`);
+      setCombinedReportMessage(
+        `Run successful (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setCombinedReportRows([]);
@@ -2047,15 +2169,24 @@ function LayerDetailPage() {
   };
 
   const handleShowLatestCrpD1CombinedReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setCombinedReportError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningCombinedReport(true);
       setCombinedReportError("");
-      setCombinedReportMessage("Loading latest CRP D1 Combined Report...");
+      setCombinedReportMessage(
+        `Loading latest CRP D1 Combined Report for ${selectedP00PlanningYear}...`
+      );
 
-      const result = await getLatestCrpD1CombinedReport();
+      const result = await getLatestCrpD1CombinedReport(selectedP00PlanningYear);
       setCombinedReportRows(result.rows);
       setCombinedReportResetToken((prev) => prev + 1);
-      setCombinedReportMessage(`Latest loaded. Row Count: ${result.row_count}`);
+      setCombinedReportMessage(
+        `Latest loaded (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setCombinedReportRows([]);
@@ -2069,16 +2200,23 @@ function LayerDetailPage() {
   };
 
   const handleRunOthDeletionFlagReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setOthDeletionFlagError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningOthDeletionFlagReport(true);
       setOthDeletionFlagStartedAt(Date.now());
       setOthDeletionFlagError("");
       setOthDeletionFlagMessage("");
 
-      const result = await getOthDeletionFlagReport(true);
+      const result = await getOthDeletionFlagReport(true, selectedP00PlanningYear);
       setOthDeletionFlagRows(result.rows);
       setOthDeletionFlagResetToken((prev) => prev + 1);
-      setOthDeletionFlagMessage(`Run successful. Row Count: ${result.row_count}`);
+      setOthDeletionFlagMessage(
+        `Run successful (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setOthDeletionFlagRows([]);
@@ -2094,16 +2232,25 @@ function LayerDetailPage() {
   };
 
   const handleShowLatestOthDeletionFlagReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setOthDeletionFlagError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningOthDeletionFlagReport(true);
       setOthDeletionFlagStartedAt(Date.now());
       setOthDeletionFlagError("");
-      setOthDeletionFlagMessage("Loading latest OTH Deletion Flag Report...");
+      setOthDeletionFlagMessage(
+        `Loading latest OTH Deletion Flag Report for ${selectedP00PlanningYear}...`
+      );
 
-      const result = await getLatestOthDeletionFlagReport();
+      const result = await getLatestOthDeletionFlagReport(selectedP00PlanningYear);
       setOthDeletionFlagRows(result.rows);
       setOthDeletionFlagResetToken((prev) => prev + 1);
-      setOthDeletionFlagMessage(`Latest loaded. Row Count: ${result.row_count}`);
+      setOthDeletionFlagMessage(
+        `Latest loaded (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setOthDeletionFlagRows([]);
@@ -2119,17 +2266,22 @@ function LayerDetailPage() {
   };
 
   const handleRunP10Report = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setP10Error("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningP10Report(true);
       setP10Error("");
       setP10Message("");
 
-      const result = await getP10VceNonVceReport();
+      const result = await getP10VceNonVceReport(selectedP00PlanningYear);
       setP10Rows(result.rows);
       setP10FilteredRows(result.rows);
       setP10Summary(result.summary);
       setP10ResetToken((prev) => prev + 1);
-      setP10Message(`Run successful. Row Count: ${result.row_count}`);
+      setP10Message(`Run successful (${selectedP00PlanningYear}). Row Count: ${result.row_count}`);
     } catch (error) {
       console.error(error);
       setP10Rows([]);
@@ -2147,15 +2299,22 @@ function LayerDetailPage() {
   };
 
   const handleRunThreeCheckReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setThreeCheckError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningThreeCheckReport(true);
       setThreeCheckError("");
       setThreeCheckMessage("");
 
-      const result = await getP00ThreeCheckReport(true);
+      const result = await getP00ThreeCheckReport(true, selectedP00PlanningYear);
       setThreeCheckRows(result.rows);
       setThreeCheckResetToken((prev) => prev + 1);
-      setThreeCheckMessage(`Run successful. Row Count: ${result.row_count}`);
+      setThreeCheckMessage(
+        `Run successful (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setThreeCheckRows([]);
@@ -2167,15 +2326,22 @@ function LayerDetailPage() {
   };
 
   const handleShowLatestThreeCheckReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setThreeCheckError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningThreeCheckReport(true);
       setThreeCheckError("");
-      setThreeCheckMessage("Loading latest Check Report...");
+      setThreeCheckMessage(`Loading latest Check Report for ${selectedP00PlanningYear}...`);
 
-      const result = await getLatestP00ThreeCheckReport();
+      const result = await getLatestP00ThreeCheckReport(selectedP00PlanningYear);
       setThreeCheckRows(result.rows);
       setThreeCheckResetToken((prev) => prev + 1);
-      setThreeCheckMessage(`Latest loaded. Row Count: ${result.row_count}`);
+      setThreeCheckMessage(
+        `Latest loaded (${selectedP00PlanningYear}). Row Count: ${result.row_count}`
+      );
     } catch (error) {
       console.error(error);
       setThreeCheckRows([]);
@@ -2187,15 +2353,20 @@ function LayerDetailPage() {
   };
 
   const handleRunA10Report = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setA10Error("Please select a planning year first.");
+      return;
+    }
+
     try {
       setRunningA10Report(true);
       setA10Error("");
       setA10Message("");
 
-      const result = await getA10AdjustmentReport();
+      const result = await getA10AdjustmentReport(selectedP00PlanningYear);
       setA10Rows(result.rows);
       setA10ResetToken((prev) => prev + 1);
-      setA10Message(`Run successful. Row Count: ${result.row_count}`);
+      setA10Message(`Run successful (${selectedP00PlanningYear}). Row Count: ${result.row_count}`);
     } catch (error) {
       console.error(error);
       setA10Rows([]);
@@ -2215,6 +2386,10 @@ function LayerDetailPage() {
       return;
     }
 
+    if (!hasSelectedP00PlanningYear) {
+      return;
+    }
+
     const search = new URLSearchParams(location.search);
     if (search.get("auto_run") !== "p10") {
       return;
@@ -2222,7 +2397,7 @@ function LayerDetailPage() {
 
     setAutoRunHandled(true);
     void handleRunP10Report();
-  }, [autoRunHandled, layer, location.search]);
+  }, [autoRunHandled, hasSelectedP00PlanningYear, layer, location.search]);
 
   const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -2266,6 +2441,10 @@ function LayerDetailPage() {
     othRowCount: number,
     p10RowCount: number
   ) => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      throw new Error("Please select a planning year first.");
+    }
+
     await saveExcavatorsSplitCaseSnapshot({
       case_type: caseType,
       summary_rows: summaryRows,
@@ -2274,29 +2453,39 @@ function LayerDetailPage() {
       source_row_count: sourceRowCount,
       oth_row_count: othRowCount,
       p10_row_count: p10RowCount,
+      planning_year: selectedP00PlanningYear,
       message: `${caseType} split case snapshot saved successfully`,
     });
   };
 
   const handleShowLatestExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setExcavatorsSplitCaseError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setShowExcavatorsSplitCasePanel(true);
       setActiveExcavatorsSplitCase(caseType);
       setRunningExcavatorsSplitCase(true);
       setExcavatorsSplitCaseError("");
-      setExcavatorsSplitCaseMessage(`Loading latest ${caseType} split case...`);
+      setExcavatorsSplitCaseMessage(
+        `Loading latest ${caseType} split case for ${selectedP00PlanningYear}...`
+      );
       setEditingExcavatorsManual(false);
       setExcavatorsManualRows([]);
       setExcavatorsManualMessage("");
       setExcavatorsManualError("");
 
-      const latest = await getLatestExcavatorsSplitCaseReport(caseType);
+      const latest = await getLatestExcavatorsSplitCaseReport(caseType, selectedP00PlanningYear);
       const detailRowsWithResplit = normalizeExcavatorsSplitDetailRowsForDisplay(latest.detail_rows);
       setExcavatorsSplitCaseRows(latest.summary_rows);
       setExcavatorsSplitDetailRows(detailRowsWithResplit);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
       setExcavatorsSplitCaseMessage(
-        `Latest loaded. Matching grouped rows: ${latest.summary.grouped_rows ?? latest.summary_rows.length}`
+        `Latest loaded (${selectedP00PlanningYear}). Matching grouped rows: ${
+          latest.summary.grouped_rows ?? latest.summary_rows.length
+        }`
       );
     } catch (error) {
       console.error(error);
@@ -2312,6 +2501,11 @@ function LayerDetailPage() {
   };
 
   const handleRunExcavatorsSplitCase = async (caseType: ExcavatorsSplitCaseType) => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setExcavatorsSplitCaseError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setShowExcavatorsSplitCasePanel(true);
       setRunningExcavatorsSplitCase(true);
@@ -2329,9 +2523,9 @@ function LayerDetailPage() {
       setExcavatorsSplitDetailRows([]);
       setExcavatorsSplitCaseResetToken((prev) => prev + 1);
 
-      const run = await runExcavatorsSplitCaseReport(caseType);
+      const run = await runExcavatorsSplitCaseReport(caseType, selectedP00PlanningYear);
       setExcavatorsSplitCaseMessage(
-        `Run submitted. Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
+        `Run submitted (${selectedP00PlanningYear}). Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
       );
       const finishedRun = await waitForExcavatorsSplitRun(caseType, run.run_id);
       setExcavatorsSplitCaseMessage(
@@ -2351,17 +2545,24 @@ function LayerDetailPage() {
   };
 
   const handleShowLatestWheelLoadersSplitCase = async (caseType: WheelLoadersSplitCaseType) => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setWheelLoadersSplitError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setShowWheelLoadersSplitCasePanel(true);
       setRunningWheelLoadersSplitCase(true);
       setWheelLoadersSplitError("");
-      setWheelLoadersSplitMessage(`Loading latest ${caseType} split case...`);
+      setWheelLoadersSplitMessage(
+        `Loading latest ${caseType} split case for ${selectedP00PlanningYear}...`
+      );
       setActiveWheelLoadersSplitCase(caseType);
       setEditingWheelManual(false);
       setWheelManualRows([]);
       setWheelManualMessage("");
       setWheelManualError("");
-      const latest = await getLatestExcavatorsSplitCaseReport(caseType);
+      const latest = await getLatestExcavatorsSplitCaseReport(caseType, selectedP00PlanningYear);
       const detailRowsWithResplit = normalizeExcavatorsSplitDetailRowsForDisplay(latest.detail_rows);
       setWheelLoadersSplitCaseRows(latest.summary_rows);
       setWheelLoadersSplitDetailRows(detailRowsWithResplit);
@@ -2371,7 +2572,9 @@ function LayerDetailPage() {
         [caseType]: false,
       }));
       setWheelLoadersSplitMessage(
-        `Latest loaded. Matching grouped rows: ${latest.summary.grouped_rows ?? latest.summary_rows.length}`
+        `Latest loaded (${selectedP00PlanningYear}). Matching grouped rows: ${
+          latest.summary.grouped_rows ?? latest.summary_rows.length
+        }`
       );
     } catch (error) {
       console.error(error);
@@ -2387,6 +2590,11 @@ function LayerDetailPage() {
   };
 
   const handleRunWheelLoadersSplitCase = async (caseType: WheelLoadersSplitCaseType) => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setWheelLoadersSplitError("Please select a planning year first.");
+      return;
+    }
+
     try {
       setShowWheelLoadersSplitCasePanel(true);
       setRunningWheelLoadersSplitCase(true);
@@ -2404,9 +2612,9 @@ function LayerDetailPage() {
       setWheelLoadersSplitDetailRows([]);
       setWheelLoadersSplitCaseResetToken((prev) => prev + 1);
 
-      const run = await runExcavatorsSplitCaseReport(caseType);
+      const run = await runExcavatorsSplitCaseReport(caseType, selectedP00PlanningYear);
       setWheelLoadersSplitMessage(
-        `Run submitted. Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
+        `Run submitted (${selectedP00PlanningYear}). Waiting for ${caseType} Split Case run #${run.run_id} to finish...`
       );
       const finishedRun = await waitForExcavatorsSplitRun(caseType, run.run_id);
       setWheelLoadersSplitMessage(
@@ -2457,6 +2665,48 @@ function LayerDetailPage() {
 
         {layer.code === "P00" ? (
           <div className="summary-card">
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              <label htmlFor="p00-planning-year" style={{ fontWeight: 700 }}>
+                Planning Year
+              </label>
+              <select
+                id="p00-planning-year"
+                value={selectedPlanningYear}
+                onChange={(event) => handlePlanningYearChange(event.target.value)}
+                disabled={planningYearsLoading}
+              >
+                <option value="">Select year</option>
+                {planningYears.map((year) => (
+                  <option key={year} value={String(year)}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1900}
+                max={2999}
+                step={1}
+                placeholder="New year"
+                value={newPlanningYearInput}
+                onChange={(event) => setNewPlanningYearInput(event.target.value)}
+                style={{ width: "110px" }}
+              />
+              <button type="button" onClick={handleCreatePlanningYear} disabled={creatingPlanningYear}>
+                {creatingPlanningYear ? "Creating..." : "Create Year"}
+              </button>
+            </div>
+            {planningYearsLoading ? <p style={{ color: "blue", marginTop: "6px" }}>Loading years...</p> : null}
+            {planningYearsError ? (
+              <p style={{ color: "red", marginTop: "6px" }}>Error: {planningYearsError}</p>
+            ) : null}
+            {!hasSelectedP00PlanningYear ? (
+              <p style={{ color: "#6b7280", marginTop: "6px" }}>
+                Select a planning year first, then run or show latest reports.
+              </p>
+            ) : null}
+            {hasSelectedP00PlanningYear ? (
+              <>
             <div className="summary-row">
               <span className="summary-value">{layer.highlights[0]}</span>
             </div>
@@ -2465,7 +2715,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--overview"
                 onClick={handleRunCrpD1CombinedReport}
-                disabled={runningCombinedReport}
+                disabled={runningCombinedReport || !hasSelectedP00PlanningYear}
               >
                 Run CRP D1 Combined Report
               </button>
@@ -2473,7 +2723,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--tiny"
                 onClick={handleShowLatestCrpD1CombinedReport}
-                disabled={runningCombinedReport}
+                disabled={runningCombinedReport || !hasSelectedP00PlanningYear}
               >
                 Show Latest
               </button>
@@ -2572,7 +2822,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--overview"
                 onClick={handleRunOthDeletionFlagReport}
-                disabled={runningOthDeletionFlagReport}
+                disabled={runningOthDeletionFlagReport || !hasSelectedP00PlanningYear}
               >
                 Run OTH Deletion Flag Report
               </button>
@@ -2580,7 +2830,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--tiny"
                 onClick={handleShowLatestOthDeletionFlagReport}
-                disabled={runningOthDeletionFlagReport}
+                disabled={runningOthDeletionFlagReport || !hasSelectedP00PlanningYear}
               >
                 Show Latest
               </button>
@@ -2680,7 +2930,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--overview"
                 onClick={handleRunThreeCheckReport}
-                disabled={runningThreeCheckReport}
+                disabled={runningThreeCheckReport || !hasSelectedP00PlanningYear}
               >
                 Run Check Report
               </button>
@@ -2688,7 +2938,7 @@ function LayerDetailPage() {
                 type="button"
                 className="btn btn--tiny"
                 onClick={handleShowLatestThreeCheckReport}
-                disabled={runningThreeCheckReport}
+                disabled={runningThreeCheckReport || !hasSelectedP00PlanningYear}
               >
                 Show Latest
               </button>
@@ -2700,9 +2950,53 @@ function LayerDetailPage() {
                 {showThreeCheckSqlGuide ? "Hide SQL Logic" : "View SQL Logic"}
               </button>
             </div>
+              </>
+            ) : null}
           </div>
         ) : layer.code === "MLS" ? (
           <div className="summary-card">
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              <label htmlFor="mls-planning-year" style={{ fontWeight: 700 }}>
+                Planning Year
+              </label>
+              <select
+                id="mls-planning-year"
+                value={selectedPlanningYear}
+                onChange={(event) => handlePlanningYearChange(event.target.value)}
+                disabled={planningYearsLoading}
+              >
+                <option value="">Select year</option>
+                {planningYears.map((year) => (
+                  <option key={year} value={String(year)}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1900}
+                max={2999}
+                step={1}
+                placeholder="New year"
+                value={newPlanningYearInput}
+                onChange={(event) => setNewPlanningYearInput(event.target.value)}
+                style={{ width: "110px" }}
+              />
+              <button type="button" onClick={handleCreatePlanningYear} disabled={creatingPlanningYear}>
+                {creatingPlanningYear ? "Creating..." : "Create Year"}
+              </button>
+            </div>
+            {planningYearsLoading ? <p style={{ color: "blue", marginTop: "6px" }}>Loading years...</p> : null}
+            {planningYearsError ? (
+              <p style={{ color: "red", marginTop: "6px" }}>Error: {planningYearsError}</p>
+            ) : null}
+            {!hasSelectedP00PlanningYear ? (
+              <p style={{ color: "#6b7280", marginTop: "6px" }}>
+                Select a planning year first, then run or show latest reports.
+              </p>
+            ) : null}
+            {hasSelectedP00PlanningYear ? (
+              <>
             <div
               style={{
                 display: "flex",
@@ -2729,7 +3023,7 @@ function LayerDetailPage() {
                   type="button"
                   className="btn btn--overview"
                   onClick={() => handleRunExcavatorsSplitCase(caseType)}
-                  disabled={runningExcavatorsSplitCase}
+                  disabled={runningExcavatorsSplitCase || !hasSelectedP00PlanningYear}
                 >
                   {EXCAVATORS_SPLIT_CASE_DETAILS[caseType].buttonLabel}
                 </button>
@@ -2744,7 +3038,12 @@ function LayerDetailPage() {
                     onClick={() => {
                       void handleShowLatestExcavatorsSplitCase(caseType);
                     }}
-                    disabled={runningExcavatorsSplitCase || savingExcavatorsManual || savingExcavatorsSnapshot}
+                    disabled={
+                      runningExcavatorsSplitCase ||
+                      savingExcavatorsManual ||
+                      savingExcavatorsSnapshot ||
+                      !hasSelectedP00PlanningYear
+                    }
                   >
                   {`Show Latest ${caseType}`}
                 </button>
@@ -2965,7 +3264,7 @@ function LayerDetailPage() {
                   type="button"
                   className="btn btn--overview"
                   onClick={() => handleRunWheelLoadersSplitCase(caseType)}
-                  disabled={runningWheelLoadersSplitCase}
+                  disabled={runningWheelLoadersSplitCase || !hasSelectedP00PlanningYear}
                 >
                   {WHEEL_LOADERS_SPLIT_CASE_DETAILS[caseType].buttonLabel}
                 </button>
@@ -2981,7 +3280,12 @@ function LayerDetailPage() {
                     onClick={() => {
                       void handleShowLatestWheelLoadersSplitCase(caseType);
                     }}
-                    disabled={runningWheelLoadersSplitCase || savingWheelManual || savingWheelSnapshot}
+                    disabled={
+                      runningWheelLoadersSplitCase ||
+                      savingWheelManual ||
+                      savingWheelSnapshot ||
+                      !hasSelectedP00PlanningYear
+                    }
                   >
                     {caseType === "ALL"
                       ? "Show Latest ALL"
@@ -3183,18 +3487,71 @@ function LayerDetailPage() {
                 </div>
               </>
             ) : null}
+              </>
+            ) : null}
           </div>
         ) : (
           <div className="summary-card">
-            {layer.highlights.map((item) => (
-              <div key={item} className="summary-row">
-                <span className="summary-value">{item}</span>
-              </div>
-            ))}
+            {layer.code === "P10" || layer.code === "A10" ? (
+              <>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <label htmlFor={layer.code === "P10" ? "p10-planning-year" : "a10-planning-year"} style={{ fontWeight: 700 }}>
+                    Planning Year
+                  </label>
+                  <select
+                    id={layer.code === "P10" ? "p10-planning-year" : "a10-planning-year"}
+                    value={selectedPlanningYear}
+                    onChange={(event) => handlePlanningYearChange(event.target.value)}
+                    disabled={planningYearsLoading}
+                  >
+                    <option value="">Select year</option>
+                    {planningYears.map((year) => (
+                      <option key={year} value={String(year)}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1900}
+                    max={2999}
+                    step={1}
+                    placeholder="New year"
+                    value={newPlanningYearInput}
+                    onChange={(event) => setNewPlanningYearInput(event.target.value)}
+                    style={{ width: "110px" }}
+                  />
+                  <button type="button" onClick={handleCreatePlanningYear} disabled={creatingPlanningYear}>
+                    {creatingPlanningYear ? "Creating..." : "Create Year"}
+                  </button>
+                </div>
+                {planningYearsLoading ? <p style={{ color: "blue", marginTop: "6px" }}>Loading years...</p> : null}
+                {planningYearsError ? (
+                  <p style={{ color: "red", marginTop: "6px" }}>Error: {planningYearsError}</p>
+                ) : null}
+                {!hasSelectedP00PlanningYear ? (
+                  <p style={{ color: "#6b7280", marginTop: "6px" }}>
+                    Select a planning year first, then run this layer.
+                  </p>
+                ) : (
+                  layer.highlights.map((item) => (
+                    <div key={item} className="summary-row">
+                      <span className="summary-value">{item}</span>
+                    </div>
+                  ))
+                )}
+              </>
+            ) : (
+              layer.highlights.map((item) => (
+                <div key={item} className="summary-row">
+                  <span className="summary-value">{item}</span>
+                </div>
+              ))
+            )}
           </div>
         )}
 
-        {layer.code === "P10" ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear ? (
           <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
@@ -3206,7 +3563,7 @@ function LayerDetailPage() {
             </button>
           </div>
         ) : null}
-        {layer.code === "A10" ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear ? (
           <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
@@ -3218,7 +3575,7 @@ function LayerDetailPage() {
             </button>
           </div>
         ) : null}
-        {layer.code === "P10" ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear ? (
           <div className="sql-guide">
             <h4 className="sql-guide__title">Calculation Rules</h4>
             <ul className="sql-guide__list">
@@ -3228,7 +3585,7 @@ function LayerDetailPage() {
             </ul>
           </div>
         ) : null}
-        {layer.code === "A10" ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear ? (
           <div className="sql-guide">
             <h4 className="sql-guide__title">Calculation Rules</h4>
             <ul className="sql-guide__list">
@@ -3303,16 +3660,16 @@ function LayerDetailPage() {
             </div>
           </div>
         ) : null}
-        {layer.code === "P10" && runningP10Report ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear && runningP10Report ? (
           <p style={{ color: "blue" }}>Running P10 VCE / Non-VCE calculation...</p>
         ) : null}
-        {layer.code === "P10" && p10Message ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear && p10Message ? (
           <p style={{ color: "green" }}>{p10Message}</p>
         ) : null}
-        {layer.code === "P10" && p10Error ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear && p10Error ? (
           <p style={{ color: "red" }}>Error: {p10Error}</p>
         ) : null}
-        {layer.code === "P10" && p10Rows.length > 0 ? (
+        {layer.code === "P10" && hasSelectedP00PlanningYear && p10Rows.length > 0 ? (
           <>
             <div className="card-grid card-grid--three" style={{ marginTop: "16px" }}>
               <article className="card">
@@ -3387,16 +3744,16 @@ function LayerDetailPage() {
             </div>
           </>
         ) : null}
-        {layer.code === "A10" && runningA10Report ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear && runningA10Report ? (
           <p style={{ color: "blue" }}>Running A10 Adjustment Report...</p>
         ) : null}
-        {layer.code === "A10" && a10Message ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear && a10Message ? (
           <p style={{ color: "green" }}>{a10Message}</p>
         ) : null}
-        {layer.code === "A10" && a10Error ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear && a10Error ? (
           <p style={{ color: "red" }}>Error: {a10Error}</p>
         ) : null}
-        {layer.code === "A10" && a10Rows.length > 0 ? (
+        {layer.code === "A10" && hasSelectedP00PlanningYear && a10Rows.length > 0 ? (
           <div className="section summary-card" style={{ marginTop: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
               <strong>A10 Adjustment Report</strong>
@@ -3423,6 +3780,7 @@ function LayerDetailPage() {
                   ? "data-table__row--result"
                   : undefined
               }
+              virtualize
               compact
             />
           </div>

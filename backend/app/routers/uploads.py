@@ -7,7 +7,7 @@ import unicodedata
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Form, HTTPException, Query
 from pydantic import BaseModel
 from app.database import get_connection, get_table_columns
 from app.services.csv_service import handle_csv_upload
@@ -63,6 +63,7 @@ class SaveEditedUploadRequest(BaseModel):
     matrix_type: str
     rows: list[dict[str, Any]]
     source_upload_run_id: int | None = None
+    planning_year: int | None = None
 
 
 class ExcavatorsSplitCaseSnapshotRequest(BaseModel):
@@ -73,12 +74,14 @@ class ExcavatorsSplitCaseSnapshotRequest(BaseModel):
     source_row_count: int
     oth_row_count: int
     p10_row_count: int
+    planning_year: int | None = None
     message: str = "Excavators split case snapshot saved"
 
 
 class TotalMarketEligibleOthSnapshotRequest(BaseModel):
     rows: list[dict[str, Any]]
     message: str = "Total Market Calculation snapshot saved from editor"
+    planning_year: int | None = None
     source_row_count: int | None = None
     split_machine_lines: list[str] | None = None
     split_input_rows: int | None = None
@@ -87,6 +90,10 @@ class TotalMarketEligibleOthSnapshotRequest(BaseModel):
     source_report_created_at: str | None = None
     three_check_report_run_id: int | None = None
     three_check_report_created_at: str | None = None
+
+
+class PlanningYearRequest(BaseModel):
+    year: int
 
 
 def _to_text(value: Any) -> str:
@@ -153,14 +160,31 @@ def _get_table_insert_columns(cursor, table_name: str) -> list[str]:
     return [column for column in columns if column not in excluded]
 
 
-def _get_latest_success_upload_id(cursor, matrix_type: str):
-    cursor.execute("""
-        SELECT id
-        FROM upload_runs
-        WHERE matrix_type = ? AND status = 'success'
-        ORDER BY uploaded_at DESC, id DESC
-        LIMIT 1
-    """, (matrix_type,))
+def _normalize_planning_year(value: int | None) -> int | None:
+    if value is None:
+        return None
+    if value < 1900 or value > 2999:
+        raise HTTPException(status_code=400, detail="planning_year must be between 1900 and 2999")
+    return value
+
+
+def _get_latest_success_upload_id(cursor, matrix_type: str, planning_year: int | None = None):
+    if planning_year is None:
+        cursor.execute("""
+            SELECT id
+            FROM upload_runs
+            WHERE matrix_type = ? AND status = 'success'
+            ORDER BY uploaded_at DESC, id DESC
+            LIMIT 1
+        """, (matrix_type,))
+    else:
+        cursor.execute("""
+            SELECT id
+            FROM upload_runs
+            WHERE matrix_type = ? AND planning_year = ? AND status = 'success'
+            ORDER BY uploaded_at DESC, id DESC
+            LIMIT 1
+        """, (matrix_type, planning_year))
     row = cursor.fetchone()
     return row["id"] if row else None
 
@@ -203,6 +227,7 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
     conn = get_connection()
     cursor = conn.cursor()
     upload_run_id = None
+    planning_year = _normalize_planning_year(payload.planning_year)
 
     try:
         insert_columns = _get_table_insert_columns(cursor, table_name)
@@ -233,13 +258,15 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
         cursor.execute("""
             INSERT INTO upload_runs (
                 matrix_type,
+                planning_year,
                 original_file_name,
                 stored_file_name,
                 stored_path,
                 status
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?)
         """, (
             matrix_type,
+            planning_year,
             original_file_name,
             stored_file_name,
             stored_path,
@@ -307,9 +334,46 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
 @router.post("/uploads/csv")
 async def upload_csv(
     matrix_type: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    planning_year: int | None = Form(default=None),
 ):
-    return await handle_csv_upload(matrix_type, file)
+    return await handle_csv_upload(matrix_type, file, _normalize_planning_year(planning_year))
+
+
+@router.get("/planning-years")
+def get_planning_years():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        years = set()
+        cursor.execute("SELECT year FROM planning_years ORDER BY year DESC")
+        years.update(int(row["year"]) for row in cursor.fetchall() if row["year"] is not None)
+        cursor.execute("""
+            SELECT DISTINCT planning_year
+            FROM upload_runs
+            WHERE planning_year IS NOT NULL
+        """)
+        years.update(int(row["planning_year"]) for row in cursor.fetchall() if row["planning_year"] is not None)
+        return {"years": sorted(years, reverse=True)}
+    finally:
+        conn.close()
+
+
+@router.post("/planning-years")
+def create_planning_year(request: PlanningYearRequest):
+    planning_year = _normalize_planning_year(request.year)
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO planning_years (year)
+            VALUES (?)
+            ON CONFLICT(year) DO NOTHING
+        """, (planning_year,))
+        conn.commit()
+        return {"year": planning_year}
+    finally:
+        conn.close()
 
 @router.get("/uploads")
 def get_uploads():
@@ -719,16 +783,16 @@ def get_latest_crp_tma_report_clean_data():
     }
 
 
-def _get_crp_d1_combined_report_data(include_all_sal: bool):
+def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int | None = None):
     conn = get_connection()
     cursor = conn.cursor()
 
-    latest_tma_upload_run_id = _get_latest_success_upload_id(cursor, "tma_data")
-    latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
-    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
-    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
-    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
-    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
+    latest_tma_upload_run_id = _get_latest_success_upload_id(cursor, "tma_data", planning_year)
+    latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data", planning_year)
+    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country", planning_year)
+    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", planning_year)
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping", planning_year)
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list", planning_year)
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -1165,8 +1229,9 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool):
 
 
 @router.get("/reports/crp-d1-combined")
-def get_crp_d1_combined_report(track_run: bool = False):
-    result = _get_crp_d1_combined_report_data(include_all_sal=True)
+def get_crp_d1_combined_report(track_run: bool = False, planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
+    result = _get_crp_d1_combined_report_data(include_all_sal=True, planning_year=normalized_year)
     if track_run:
         _record_report_run(P00_RUN_KEYS["crp_d1_combined"])
         _save_p00_report_snapshot(
@@ -1174,6 +1239,7 @@ def get_crp_d1_combined_report(track_run: bool = False):
             result["rows"],
             "CRP D1 Combined report generated successfully",
             meta={
+                "planning_year": normalized_year,
                 "tma_upload_run_id": result["tma_upload_run_id"],
                 "volvo_upload_run_id": result["volvo_upload_run_id"],
                 "group_country_upload_run_id": result["group_country_upload_run_id"],
@@ -1181,21 +1247,23 @@ def get_crp_d1_combined_report(track_run: bool = False):
                 "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
                 "reporter_list_upload_run_id": result["reporter_list_upload_run_id"],
             },
+            planning_year=normalized_year,
         )
     return result
 
 
 @router.get("/reports/a10-adjustment")
-def get_a10_adjustment_report():
+def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
     conn = get_connection()
     cursor = conn.cursor()
 
-    latest_tma_upload_run_id = _get_latest_success_upload_id(cursor, "tma_data")
-    latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
-    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
-    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
-    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
-    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
+    latest_tma_upload_run_id = _get_latest_success_upload_id(cursor, "tma_data", normalized_year)
+    latest_volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data", normalized_year)
+    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country", normalized_year)
+    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", normalized_year)
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping", normalized_year)
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list", normalized_year)
 
     missing_types = []
     if latest_tma_upload_run_id is None:
@@ -1681,14 +1749,22 @@ def _save_p00_report_snapshot(
     rows: list[dict[str, Any]],
     message: str,
     meta: dict[str, Any] | None = None,
+    planning_year: int | None = None,
 ) -> int:
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO p00_report_runs (report_key, row_count, status, message, meta_json)
-            VALUES (?, ?, ?, ?, ?)
-        """, (report_key, len(rows), "running", message, json.dumps(meta or {}, ensure_ascii=False, default=str)))
+            INSERT INTO p00_report_runs (report_key, planning_year, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            report_key,
+            planning_year,
+            len(rows),
+            "running",
+            message,
+            json.dumps(meta or {}, ensure_ascii=False, default=str),
+        ))
         run_id = cursor.lastrowid
 
         cursor.executemany("""
@@ -1728,15 +1804,17 @@ def _create_p00_report_run(
     report_key: str,
     message: str,
     meta: dict[str, Any] | None = None,
+    planning_year: int | None = None,
 ) -> int:
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO p00_report_runs (report_key, row_count, status, message, meta_json)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO p00_report_runs (report_key, planning_year, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             report_key,
+            planning_year,
             0,
             "running",
             message,
@@ -1866,17 +1944,29 @@ def _save_p00_report_snapshot_to_existing_run(
         conn.close()
 
 
-def _get_latest_p00_report_snapshot(report_key: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _get_latest_p00_report_snapshot(
+    report_key: str,
+    planning_year: int | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            SELECT *
-            FROM p00_report_runs
-            WHERE report_key = ? AND status = 'success'
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-        """, (report_key,))
+        if planning_year is None:
+            cursor.execute("""
+                SELECT *
+                FROM p00_report_runs
+                WHERE report_key = ? AND status = 'success'
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+            """, (report_key,))
+        else:
+            cursor.execute("""
+                SELECT *
+                FROM p00_report_runs
+                WHERE report_key = ? AND planning_year = ? AND status = 'success'
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+            """, (report_key, planning_year))
         latest_run = cursor.fetchone()
         if latest_run is None:
             raise HTTPException(status_code=404, detail="No report runs found")
@@ -1894,15 +1984,20 @@ def _get_latest_p00_report_snapshot(report_key: str) -> tuple[dict[str, Any], li
         conn.close()
 
 
-def _create_excavators_split_case_run(case_type: str, message: str) -> int:
+def _create_excavators_split_case_run(
+    case_type: str,
+    message: str,
+    planning_year: int | None = None,
+) -> int:
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO excavators_split_case_runs (case_type, row_count, status, message, meta_json)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO excavators_split_case_runs (case_type, planning_year, row_count, status, message, meta_json)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             case_type,
+            planning_year,
             0,
             "running",
             message,
@@ -2014,17 +2109,29 @@ def _save_excavators_split_case_snapshot(
         conn.close()
 
 
-def _get_latest_excavators_split_case_snapshot(case_type: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+def _get_latest_excavators_split_case_snapshot(
+    case_type: str,
+    planning_year: int | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            SELECT *
-            FROM excavators_split_case_runs
-            WHERE case_type = ? AND status = 'success'
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-        """, (case_type,))
+        if planning_year is None:
+            cursor.execute("""
+                SELECT *
+                FROM excavators_split_case_runs
+                WHERE case_type = ? AND status = 'success'
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+            """, (case_type,))
+        else:
+            cursor.execute("""
+                SELECT *
+                FROM excavators_split_case_runs
+                WHERE case_type = ? AND planning_year = ? AND status = 'success'
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+            """, (case_type, planning_year))
         latest_run = cursor.fetchone()
         if latest_run is None:
             raise HTTPException(status_code=404, detail=f"No saved excavators split run found for case type: {case_type}")
@@ -2072,9 +2179,13 @@ def _build_excavators_split_dependency_signature(
 def _try_reuse_excavators_split_case_snapshot(
     case_type: str,
     dependency_signature: dict[str, Any],
+    planning_year: int | None = None,
 ) -> dict[str, Any] | None:
     try:
-        latest_run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(case_type)
+        latest_run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(
+            case_type,
+            planning_year=planning_year,
+        )
     except HTTPException as exc:
         if exc.status_code == 404:
             return None
@@ -2542,17 +2653,17 @@ def _build_excavators_split_detail_rows_from_three_check(
     return detail_rows
 
 
-def _build_excavators_split_case_report(case_type: str):
+def _build_excavators_split_case_report(case_type: str, planning_year: int | None = None):
     normalized_case_type = case_type.strip().upper()
     if normalized_case_type == "CEX":
-        return _build_cex_split_case_report()
+        return _build_cex_split_case_report(planning_year)
 
     try:
-        oth = get_latest_oth_deletion_flag_report()
+        oth = get_latest_oth_deletion_flag_report(planning_year=planning_year)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        oth = get_oth_deletion_flag_report(track_run=False)
+        oth = get_oth_deletion_flag_report(track_run=False, planning_year=planning_year)
 
     summary_rows = _build_excavators_split_case_rows_from_oth(oth["rows"], normalized_case_type)
     detail_rows = []
@@ -2580,16 +2691,17 @@ def _build_excavators_split_case_report(case_type: str):
 
     if normalized_case_type != "ALL":
         try:
-            three_check = get_latest_p00_three_check_report()
+            three_check = get_latest_p00_three_check_report(planning_year=planning_year)
         except HTTPException as exc:
             if exc.status_code != 404:
                 raise
-            three_check = get_p00_three_check_report(track_run=False)
+            three_check = get_p00_three_check_report(track_run=False, planning_year=planning_year)
         dependency_signature = _build_excavators_split_dependency_signature(normalized_case_type, oth, three_check)
 
         reusable_result = _try_reuse_excavators_split_case_snapshot(
             normalized_case_type,
             dependency_signature,
+            planning_year=planning_year,
         )
         if reusable_result is not None:
             return reusable_result
@@ -2598,6 +2710,7 @@ def _build_excavators_split_case_report(case_type: str):
         reusable_result = _try_reuse_excavators_split_case_snapshot(
             normalized_case_type,
             dependency_signature,
+            planning_year=planning_year,
         )
         if reusable_result is not None:
             return reusable_result
@@ -2629,7 +2742,10 @@ def _build_excavators_split_case_report(case_type: str):
 def _run_excavators_split_case_background(run_id: int) -> None:
     try:
         run = _get_excavators_split_case_run(run_id)
-        result = _build_excavators_split_case_report(run.get("case_type", ""))
+        result = _build_excavators_split_case_report(
+            run.get("case_type", ""),
+            run.get("planning_year"),
+        )
         if result.get("case_type") != run.get("case_type"):
             raise RuntimeError("Excavators split run type mismatch")
         _save_excavators_split_case_snapshot(
@@ -2646,8 +2762,12 @@ def _run_excavators_split_case_background(run_id: int) -> None:
 
 
 @router.get("/reports/crp-d1-combined/latest")
-def get_latest_crp_d1_combined_report():
-    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["crp_d1_combined"])
+def get_latest_crp_d1_combined_report(planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
+    run, rows = _get_latest_p00_report_snapshot(
+        P00_RUN_KEYS["crp_d1_combined"],
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "row_count": run.get("row_count") or len(rows),
@@ -2660,16 +2780,20 @@ def get_latest_crp_d1_combined_report():
 
 
 @router.get("/reports/oth-deletion-flag")
-def get_oth_deletion_flag_report(track_run: bool = False):
+def get_oth_deletion_flag_report(
+    track_run: bool = False,
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
     conn = get_connection()
     cursor = conn.cursor()
 
-    latest_oth_upload_run_id = _get_latest_success_upload_id(cursor, "oth_data")
-    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
-    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
-    latest_brand_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "brand_mapping")
-    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
-    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list")
+    latest_oth_upload_run_id = _get_latest_success_upload_id(cursor, "oth_data", normalized_year)
+    latest_group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country", normalized_year)
+    latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping", normalized_year)
+    latest_brand_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "brand_mapping", normalized_year)
+    latest_source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", normalized_year)
+    latest_reporter_list_upload_run_id = _get_latest_success_upload_id(cursor, "reporter_list", normalized_year)
 
     missing_types = []
     if latest_oth_upload_run_id is None:
@@ -2996,6 +3120,7 @@ def get_oth_deletion_flag_report(track_run: bool = False):
                 result["rows"],
                 "OTH Deletion Flag report generated successfully",
                 meta={
+                    "planning_year": normalized_year,
                     "oth_upload_run_id": result["oth_upload_run_id"],
                     "group_country_upload_run_id": result["group_country_upload_run_id"],
                     "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
@@ -3003,6 +3128,7 @@ def get_oth_deletion_flag_report(track_run: bool = False):
                     "source_matrix_upload_run_id": result["source_matrix_upload_run_id"],
                     "reporter_list_upload_run_id": result["reporter_list_upload_run_id"],
                 },
+                planning_year=normalized_year,
             )
         return result
     except Exception as e:
@@ -3012,8 +3138,12 @@ def get_oth_deletion_flag_report(track_run: bool = False):
 
 
 @router.get("/reports/oth-deletion-flag/latest")
-def get_latest_oth_deletion_flag_report():
-    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["oth_deletion_flag"])
+def get_latest_oth_deletion_flag_report(planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
+    run, rows = _get_latest_p00_report_snapshot(
+        P00_RUN_KEYS["oth_deletion_flag"],
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "row_count": run.get("row_count") or len(rows),
@@ -3287,29 +3417,34 @@ def _map_crp_combined_row_to_total_market_row(row: dict[str, Any]) -> dict[str, 
     }
 
 
-def _compute_total_market_calculation_eligible_oth_result() -> dict[str, Any]:
+def _compute_total_market_calculation_eligible_oth_result(
+    planning_year: int | None = None,
+) -> dict[str, Any]:
     split_machine_lines = {"CEX", "GEC", "GEW", "WLO"}
 
     try:
-        source_report = get_latest_oth_deletion_flag_report()
+        source_report = get_latest_oth_deletion_flag_report(planning_year=planning_year)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        source_report = get_oth_deletion_flag_report(track_run=False)
+        source_report = get_oth_deletion_flag_report(track_run=False, planning_year=planning_year)
 
     try:
-        three_check_report = get_latest_p00_three_check_report()
+        three_check_report = get_latest_p00_three_check_report(planning_year=planning_year)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        three_check_report = get_p00_three_check_report(track_run=False)
+        three_check_report = get_p00_three_check_report(track_run=False, planning_year=planning_year)
 
     try:
-        combined_report = get_latest_crp_d1_combined_report()
+        combined_report = get_latest_crp_d1_combined_report(planning_year=planning_year)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        combined_report = _get_crp_d1_combined_report_data(include_all_sal=True)
+        combined_report = _get_crp_d1_combined_report_data(
+            include_all_sal=True,
+            planning_year=planning_year,
+        )
 
     expanded_oth_rows, split_meta = _expand_total_market_rows_with_split(
         source_report["rows"],
@@ -3386,7 +3521,9 @@ def _compute_total_market_calculation_eligible_oth_result() -> dict[str, Any]:
 
 def _run_total_market_calculation_eligible_oth_background(run_id: int) -> None:
     try:
-        result = _compute_total_market_calculation_eligible_oth_result()
+        run = _get_p00_report_run(run_id)
+        planning_year = _normalize_planning_year(run.get("planning_year"))
+        result = _compute_total_market_calculation_eligible_oth_result(planning_year=planning_year)
         _record_report_run(P00_RUN_KEYS["total_market_eligible_oth"])
         _save_p00_report_snapshot_to_existing_run(
             run_id,
@@ -3411,8 +3548,11 @@ def _run_total_market_calculation_eligible_oth_background(run_id: int) -> None:
 
 
 @router.get("/reports/total-market-calculation/eligible-oth")
-def get_total_market_calculation_eligible_oth_rows():
-    result = _compute_total_market_calculation_eligible_oth_result()
+def get_total_market_calculation_eligible_oth_rows(
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
+    result = _compute_total_market_calculation_eligible_oth_result(planning_year=normalized_year)
 
     _record_report_run(P00_RUN_KEYS["total_market_eligible_oth"])
     snapshot_run_id = _save_p00_report_snapshot(
@@ -3429,18 +3569,25 @@ def get_total_market_calculation_eligible_oth_rows():
             "split_input_rows": result["split_input_rows"],
             "split_output_rows": result["split_output_rows"],
         },
+        planning_year=normalized_year,
     )
     return {
         **result,
         "run_id": snapshot_run_id,
+        "planning_year": normalized_year,
     }
 
 
 @router.post("/reports/total-market-calculation/eligible-oth/run")
-def run_total_market_calculation_eligible_oth_report(background_tasks: BackgroundTasks):
+def run_total_market_calculation_eligible_oth_report(
+    background_tasks: BackgroundTasks,
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
     run_id = _create_p00_report_run(
         P00_RUN_KEYS["total_market_eligible_oth"],
         "Running Total Market Calculation report",
+        planning_year=normalized_year,
     )
     background_tasks.add_task(_run_total_market_calculation_eligible_oth_background, run_id)
     run = _get_p00_report_run(run_id)
@@ -3449,6 +3596,7 @@ def run_total_market_calculation_eligible_oth_report(background_tasks: Backgroun
         "status": run.get("status"),
         "message": run.get("message"),
         "created_at": run.get("created_at"),
+        "planning_year": run.get("planning_year"),
     }
 
 
@@ -3464,13 +3612,20 @@ def get_total_market_calculation_eligible_oth_run(run_id: int):
         "message": run.get("message"),
         "row_count": run.get("row_count"),
         "created_at": run.get("created_at"),
+        "planning_year": run.get("planning_year"),
         **meta,
     }
 
 
 @router.get("/reports/total-market-calculation/eligible-oth/latest")
-def get_latest_total_market_calculation_eligible_oth_rows():
-    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+def get_latest_total_market_calculation_eligible_oth_rows(
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
+    run, rows = _get_latest_p00_report_snapshot(
+        P00_RUN_KEYS["total_market_eligible_oth"],
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "row_count": run.get("row_count") or len(rows),
@@ -3478,6 +3633,7 @@ def get_latest_total_market_calculation_eligible_oth_rows():
         "run_id": run.get("id"),
         "status": run.get("status"),
         "created_at": run.get("created_at"),
+        "planning_year": run.get("planning_year"),
         **meta,
     }
 
@@ -3489,10 +3645,15 @@ def save_total_market_calculation_eligible_oth_snapshot(
     if len(request.rows) == 0:
         raise HTTPException(status_code=400, detail="No rows to save")
 
+    normalized_year = _normalize_planning_year(request.planning_year)
+
     latest_meta: dict[str, Any] = {}
     previous_row_count: int | None = None
     try:
-        latest_run, _ = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+        latest_run, _ = _get_latest_p00_report_snapshot(
+            P00_RUN_KEYS["total_market_eligible_oth"],
+            planning_year=normalized_year,
+        )
         latest_meta = json.loads(latest_run.get("meta_json") or "{}")
         previous_row_count = latest_run.get("row_count")
     except HTTPException as exc:
@@ -3528,6 +3689,7 @@ def save_total_market_calculation_eligible_oth_snapshot(
         request.rows,
         request.message,
         meta=final_meta,
+        planning_year=normalized_year,
     )
     return {
         "run_id": run_id,
@@ -3535,12 +3697,19 @@ def save_total_market_calculation_eligible_oth_snapshot(
         "status": "success",
         "message": request.message,
         "previous_row_count": previous_row_count,
+        "planning_year": normalized_year,
     }
 
 
 @router.get("/reports/total-market-calculation/calculated/latest")
-def get_latest_total_market_calculation_calculated_rows():
-    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_calculated"])
+def get_latest_total_market_calculation_calculated_rows(
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
+    run, rows = _get_latest_p00_report_snapshot(
+        P00_RUN_KEYS["total_market_calculated"],
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "row_count": run.get("row_count") or len(rows),
@@ -3548,6 +3717,7 @@ def get_latest_total_market_calculation_calculated_rows():
         "run_id": run.get("id"),
         "status": run.get("status"),
         "created_at": run.get("created_at"),
+        "planning_year": run.get("planning_year"),
         **meta,
     }
 
@@ -3559,10 +3729,15 @@ def save_total_market_calculation_calculated_snapshot(
     if len(request.rows) == 0:
         raise HTTPException(status_code=400, detail="No rows to save")
 
+    normalized_year = _normalize_planning_year(request.planning_year)
+
     latest_meta: dict[str, Any] = {}
     previous_row_count: int | None = None
     try:
-        latest_run, _ = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_calculated"])
+        latest_run, _ = _get_latest_p00_report_snapshot(
+            P00_RUN_KEYS["total_market_calculated"],
+            planning_year=normalized_year,
+        )
         latest_meta = json.loads(latest_run.get("meta_json") or "{}")
         previous_row_count = latest_run.get("row_count")
     except HTTPException as exc:
@@ -3598,6 +3773,7 @@ def save_total_market_calculation_calculated_snapshot(
         request.rows,
         request.message,
         meta=final_meta,
+        planning_year=normalized_year,
     )
     return {
         "run_id": run_id,
@@ -3605,28 +3781,37 @@ def save_total_market_calculation_calculated_snapshot(
         "status": "success",
         "message": request.message,
         "previous_row_count": previous_row_count,
+        "planning_year": normalized_year,
     }
 
 
 @router.get("/reports/total-market-calculation/double-brand-check")
-def get_total_market_calculation_double_brand_check_rows():
+def get_total_market_calculation_double_brand_check_rows(
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
     try:
-        run, latest_rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["total_market_eligible_oth"])
+        run, latest_rows = _get_latest_p00_report_snapshot(
+            P00_RUN_KEYS["total_market_eligible_oth"],
+            planning_year=normalized_year,
+        )
         source_report = {
             "rows": latest_rows,
             "row_count": run.get("row_count") or len(latest_rows),
             "run_id": run.get("id"),
             "created_at": run.get("created_at"),
+            "planning_year": run.get("planning_year"),
         }
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        computed = _compute_total_market_calculation_eligible_oth_result()
+        computed = _compute_total_market_calculation_eligible_oth_result(planning_year=normalized_year)
         source_report = {
             "rows": computed["rows"],
             "row_count": computed["row_count"],
             "run_id": None,
             "created_at": None,
+            "planning_year": normalized_year,
         }
 
     # Check duplicates on split-applied OTH working rows only.
@@ -3712,19 +3897,28 @@ def get_total_market_calculation_double_brand_check_rows():
         "source_row_count": len(oth_working_rows),
         "source_report_run_id": source_report.get("run_id"),
         "source_report_created_at": source_report.get("created_at"),
+        "planning_year": source_report.get("planning_year"),
     }
 
 
 @router.get("/reports/p00-three-check")
-def get_p00_three_check_report(track_run: bool = False):
-    combined = _get_crp_d1_combined_report_data(include_all_sal=True)
-    oth = get_oth_deletion_flag_report()
+def get_p00_three_check_report(
+    track_run: bool = False,
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
+    combined = _get_crp_d1_combined_report_data(include_all_sal=True, planning_year=normalized_year)
+    oth = get_oth_deletion_flag_report(track_run=False, planning_year=normalized_year)
 
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-        latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "machine_line_mapping")
+        latest_machine_line_mapping_upload_run_id = _get_latest_success_upload_id(
+            cursor,
+            "machine_line_mapping",
+            normalized_year,
+        )
         if latest_machine_line_mapping_upload_run_id is None:
             raise HTTPException(status_code=400, detail="Missing latest successful upload for: machine_line_mapping")
 
@@ -3886,6 +4080,7 @@ def get_p00_three_check_report(track_run: bool = False):
                 result["rows"],
                 "P00 3 Check report generated successfully",
                 meta={
+                    "planning_year": normalized_year,
                     "tma_upload_run_id": result["tma_upload_run_id"],
                     "volvo_upload_run_id": result["volvo_upload_run_id"],
                     "group_country_upload_run_id": result["group_country_upload_run_id"],
@@ -3893,6 +4088,7 @@ def get_p00_three_check_report(track_run: bool = False):
                     "machine_line_mapping_upload_run_id": result["machine_line_mapping_upload_run_id"],
                     "oth_upload_run_id": result["oth_upload_run_id"],
                 },
+                planning_year=normalized_year,
             )
         return result
     finally:
@@ -3900,8 +4096,12 @@ def get_p00_three_check_report(track_run: bool = False):
 
 
 @router.get("/reports/p00-three-check/latest")
-def get_latest_p00_three_check_report():
-    run, rows = _get_latest_p00_report_snapshot(P00_RUN_KEYS["three_check"])
+def get_latest_p00_three_check_report(planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
+    run, rows = _get_latest_p00_report_snapshot(
+        P00_RUN_KEYS["three_check"],
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "row_count": run.get("row_count") or len(rows),
@@ -3928,8 +4128,9 @@ def get_p00_run_times():
 
 
 @router.get("/reports/p10-vce-non-vce")
-def get_p10_vce_non_vce_report():
-    combined = _get_crp_d1_combined_report_data(include_all_sal=False)
+def get_p10_vce_non_vce_report(planning_year: int | None = Query(default=None)):
+    normalized_year = _normalize_planning_year(planning_year)
+    combined = _get_crp_d1_combined_report_data(include_all_sal=False, planning_year=normalized_year)
     combined_rows = combined["rows"]
 
     grouped = {}
@@ -4039,13 +4240,13 @@ def get_p10_vce_non_vce_report():
     }
 
 
-def _build_cex_split_case_report():
+def _build_cex_split_case_report(planning_year: int | None = None):
     try:
-        oth = get_latest_oth_deletion_flag_report()
+        oth = get_latest_oth_deletion_flag_report(planning_year=planning_year)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
-        oth = get_oth_deletion_flag_report(track_run=False)
+        oth = get_oth_deletion_flag_report(track_run=False, planning_year=planning_year)
 
     source_size_key = "<10T"
     target_lt_6t_key = "<6T"
@@ -4084,7 +4285,7 @@ def _build_cex_split_case_report():
         }
 
     try:
-        latest_combined = get_latest_crp_d1_combined_report()
+        latest_combined = get_latest_crp_d1_combined_report(planning_year=planning_year)
         dependency_signature["crp_d1_combined_run_id"] = latest_combined.get("run_id")
         dependency_signature["crp_d1_combined_created_at"] = latest_combined.get("created_at")
         dependency_signature["crp_d1_combined_row_count"] = latest_combined.get("row_count")
@@ -4092,11 +4293,15 @@ def _build_cex_split_case_report():
         if exc.status_code != 404:
             raise
 
-    reusable_result = _try_reuse_excavators_split_case_snapshot("CEX", dependency_signature)
+    reusable_result = _try_reuse_excavators_split_case_snapshot(
+        "CEX",
+        dependency_signature,
+        planning_year=planning_year,
+    )
     if reusable_result is not None:
         return reusable_result
 
-    p10 = get_p10_vce_non_vce_report()
+    p10 = get_p10_vce_non_vce_report(planning_year=planning_year)
     dependency_signature["p10_row_count"] = p10.get("row_count")
     dependency_signature["p10_total_market_sum"] = p10.get("total_market_sum")
     dependency_signature["p10_vce_sum"] = p10.get("vce_sum")
@@ -4325,8 +4530,9 @@ def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequ
     case_type = request.case_type.strip().upper()
     if case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
         raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+    normalized_year = _normalize_planning_year(request.planning_year)
 
-    run_id = _create_excavators_split_case_run(case_type, request.message)
+    run_id = _create_excavators_split_case_run(case_type, request.message, planning_year=normalized_year)
     result = {
         "case_type": case_type,
         "summary_rows": request.summary_rows,
@@ -4344,6 +4550,7 @@ def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequ
     return {
         "run_id": run_id,
         "case_type": case_type,
+        "planning_year": normalized_year,
         "status": "success",
         "message": request.message,
         "row_count": len(request.summary_rows) + len(request.detail_rows),
@@ -4351,12 +4558,19 @@ def save_excavators_split_case_snapshot(request: ExcavatorsSplitCaseSnapshotRequ
 
 
 @router.get("/reports/excavators-split/{case_type}/latest")
-def get_latest_excavators_split_case_report(case_type: str):
+def get_latest_excavators_split_case_report(
+    case_type: str,
+    planning_year: int | None = Query(default=None),
+):
     normalized_case_type = case_type.strip().upper()
     if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
         raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+    normalized_year = _normalize_planning_year(planning_year)
 
-    run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(normalized_case_type)
+    run, summary_rows, detail_rows = _get_latest_excavators_split_case_snapshot(
+        normalized_case_type,
+        planning_year=normalized_year,
+    )
     meta = json.loads(run.get("meta_json") or "{}")
     return {
         "case_type": normalized_case_type,
@@ -4367,6 +4581,7 @@ def get_latest_excavators_split_case_report(case_type: str):
         "oth_row_count": meta.get("oth_row_count"),
         "p10_row_count": meta.get("p10_row_count"),
         "run_id": run["id"],
+        "planning_year": run.get("planning_year"),
         "status": run["status"],
         "created_at": run["created_at"],
         "message": run["message"],
@@ -4375,19 +4590,26 @@ def get_latest_excavators_split_case_report(case_type: str):
 
 
 @router.post("/reports/excavators-split/{case_type}/run")
-def run_excavators_split_case_report(case_type: str, background_tasks: BackgroundTasks):
+def run_excavators_split_case_report(
+    case_type: str,
+    background_tasks: BackgroundTasks,
+    planning_year: int | None = Query(default=None),
+):
     normalized_case_type = case_type.strip().upper()
     if normalized_case_type not in {"ALL", "CEX", "GEC", "GEW", "WLO_GT10", "WLO_LT10", "WLO_LT12"}:
         raise HTTPException(status_code=400, detail="Unsupported excavators split case type")
+    normalized_year = _normalize_planning_year(planning_year)
 
     run_id = _create_excavators_split_case_run(
         normalized_case_type,
         f"Excavators Split {normalized_case_type} run started",
+        planning_year=normalized_year,
     )
     background_tasks.add_task(_run_excavators_split_case_background, run_id)
     return {
         "run_id": run_id,
         "case_type": normalized_case_type,
+        "planning_year": normalized_year,
         "status": "running",
         "message": f"Excavators Split {normalized_case_type} run started",
     }
@@ -4407,6 +4629,7 @@ def get_excavators_split_case_run(case_type: str, run_id: int):
     return {
         "run_id": run["id"],
         "case_type": run["case_type"],
+        "planning_year": run.get("planning_year"),
         "status": run["status"],
         "message": run["message"],
         "created_at": run["created_at"],
@@ -4416,15 +4639,21 @@ def get_excavators_split_case_run(case_type: str, run_id: int):
 
 
 @router.post("/reports/excavators-split-cex/run")
-def run_excavators_split_cex_report(background_tasks: BackgroundTasks):
+def run_excavators_split_cex_report(
+    background_tasks: BackgroundTasks,
+    planning_year: int | None = Query(default=None),
+):
+    normalized_year = _normalize_planning_year(planning_year)
     run_id = _create_excavators_split_case_run(
         "CEX",
         "Excavators Split CEX run started",
+        planning_year=normalized_year,
     )
     background_tasks.add_task(_run_excavators_split_case_background, run_id)
     return {
         "run_id": run_id,
         "case_type": "CEX",
+        "planning_year": normalized_year,
         "status": "running",
         "message": "Excavators Split CEX run started",
     }
@@ -4437,6 +4666,7 @@ def get_excavators_split_cex_run(run_id: int):
     return {
         "run_id": run["id"],
         "case_type": run["case_type"],
+        "planning_year": run.get("planning_year"),
         "status": run["status"],
         "message": run["message"],
         "created_at": run["created_at"],
@@ -4447,24 +4677,37 @@ def get_excavators_split_cex_run(run_id: int):
 
 @router.get("/reports/excavators-split-cex")
 @router.get("/reports/excavators-split-cex/latest")
-def get_latest_excavators_split_cex_report():
-    return get_latest_excavators_split_case_report("CEX")
+def get_latest_excavators_split_cex_report(planning_year: int | None = Query(default=None)):
+    return get_latest_excavators_split_case_report("CEX", planning_year=planning_year)
 
 @router.get("/uploads/latest/{matrix_type}")
-def get_latest_upload_by_matrix_type(matrix_type: str):
+def get_latest_upload_by_matrix_type(
+    matrix_type: str,
+    planning_year: int | None = Query(default=None),
+):
     table_name = MATRIX_TYPE_TO_TABLE.get(matrix_type)
     if table_name is None:
         raise HTTPException(status_code=400, detail="Unsupported matrix type")
+    normalized_year = _normalize_planning_year(planning_year)
 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT *
-        FROM upload_runs
-        WHERE matrix_type = ?
-        ORDER BY uploaded_at DESC, id DESC
-        LIMIT 1
-    """, (matrix_type,))
+    if normalized_year is None:
+        cursor.execute("""
+            SELECT *
+            FROM upload_runs
+            WHERE matrix_type = ?
+            ORDER BY uploaded_at DESC, id DESC
+            LIMIT 1
+        """, (matrix_type,))
+    else:
+        cursor.execute("""
+            SELECT *
+            FROM upload_runs
+            WHERE matrix_type = ? AND planning_year = ?
+            ORDER BY uploaded_at DESC, id DESC
+            LIMIT 1
+        """, (matrix_type, normalized_year))
     latest_upload = cursor.fetchone()
 
     if latest_upload is None:

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import FilterableTable from "../components/table/FilterableTable";
 import {
+  createPlanningYear,
+  getPlanningYears,
   getTotalMarketCalculationEligibleOthRows,
   getLatestTotalMarketCalculationEligibleOthRows,
   getLatestTotalMarketCalculationCalculatedRows,
@@ -166,6 +168,12 @@ function TotalMarketCalculationPage() {
   const [doubleBrandRows, setDoubleBrandRows] = useState<TotalMarketCalculationDoubleBrandCheckRow[]>([]);
   const [doubleBrandGroupCount, setDoubleBrandGroupCount] = useState(0);
   const [doubleBrandSourceRowCount, setDoubleBrandSourceRowCount] = useState(0);
+  const [planningYears, setPlanningYears] = useState<number[]>([]);
+  const [planningYearsLoading, setPlanningYearsLoading] = useState(false);
+  const [planningYearsError, setPlanningYearsError] = useState("");
+  const [selectedPlanningYear, setSelectedPlanningYear] = useState("");
+  const [newPlanningYearInput, setNewPlanningYearInput] = useState("");
+  const [creatingPlanningYear, setCreatingPlanningYear] = useState(false);
   const deleteCaseButtons = useMemo(
     () => [
       "OCN/OTN Case",
@@ -416,6 +424,114 @@ function TotalMarketCalculationPage() {
   }
 
   const routeAction = toKey(searchParams.get("action"));
+  const selectedPlanningYearNumber = selectedPlanningYear ? Number(selectedPlanningYear) : undefined;
+  const hasSelectedPlanningYear =
+    selectedPlanningYearNumber !== undefined && Number.isFinite(selectedPlanningYearNumber);
+
+  useEffect(() => {
+    let active = true;
+    const loadPlanningYears = async () => {
+      try {
+        setPlanningYearsLoading(true);
+        setPlanningYearsError("");
+        const result = await getPlanningYears();
+        if (!active) {
+          return;
+        }
+        setPlanningYears(result.years);
+        setSelectedPlanningYear("");
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        setPlanningYearsError(err instanceof Error ? err.message : "Failed to load planning years.");
+      } finally {
+        if (active) {
+          setPlanningYearsLoading(false);
+        }
+      }
+    };
+
+    void loadPlanningYears();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function resetYearScopedData() {
+    setActiveView("raw");
+    setShowDeleteCaseButtons(false);
+    setRows([]);
+    setWorkflowRows([]);
+    setSourceRowCount(0);
+    setSplitMachineLines([]);
+    setSplitInputRows(undefined);
+    setSplitOutputRows(undefined);
+    setSourceReportRunId(undefined);
+    setSourceReportCreatedAt(undefined);
+    setThreeCheckReportRunId(undefined);
+    setThreeCheckReportCreatedAt(undefined);
+    setMessage("");
+    setError("");
+    setDoubleBrandRows([]);
+    setDoubleBrandGroupCount(0);
+    setDoubleBrandSourceRowCount(0);
+    setDoubleBrandMessage("");
+    setDoubleBrandError("");
+    setCompactionRequested(false);
+    setCompactionRows([]);
+    setCompactionSavedRows([]);
+    setCompactionSourceRowCount(0);
+    setCompactionMessage("");
+    setCompactionError("");
+    setCompactionEditMode(false);
+    setCompactionDirty(false);
+    setYbrPinRequested(false);
+    setOcnOtnRequested(false);
+    setCmaOhrRequested(false);
+    setCnxRequested(false);
+    setOhrPinRequested(false);
+    resetRimPinCaseState();
+    resetErgPinCaseState();
+  }
+
+  function handlePlanningYearChange(value: string) {
+    setSelectedPlanningYear(value);
+    resetYearScopedData();
+  }
+
+  async function handleCreatePlanningYear() {
+    const parsed = Number(newPlanningYearInput);
+    if (!Number.isInteger(parsed) || parsed < 1900 || parsed > 2999) {
+      setPlanningYearsError("Please enter a valid year between 1900 and 2999.");
+      return;
+    }
+    try {
+      setCreatingPlanningYear(true);
+      setPlanningYearsError("");
+      const result = await createPlanningYear(parsed);
+      const nextYears = Array.from(new Set([...planningYears, result.year])).sort((a, b) => b - a);
+      setPlanningYears(nextYears);
+      setSelectedPlanningYear(String(result.year));
+      setNewPlanningYearInput("");
+      resetYearScopedData();
+      setMessage(`Planning year ${result.year} created and selected.`);
+      setError("");
+    } catch (err) {
+      setPlanningYearsError(err instanceof Error ? err.message : "Failed to create planning year.");
+    } finally {
+      setCreatingPlanningYear(false);
+    }
+  }
+
+  function requirePlanningYear(): number | null {
+    if (!hasSelectedPlanningYear || selectedPlanningYearNumber === undefined) {
+      setError("Please select a planning year first.");
+      setMessage("");
+      return null;
+    }
+    return selectedPlanningYearNumber;
+  }
 
   useEffect(() => {
     if (!routeAction) {
@@ -587,10 +703,14 @@ function TotalMarketCalculationPage() {
   }
 
   async function ensureWorkflowRowsLoaded(): Promise<OthDeletionFlagRow[]> {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return [];
+    }
     if (workflowRows.length > 0) {
       return workflowRows;
     }
-    const latest = await getLatestTotalMarketCalculationEligibleOthRows();
+    const latest = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
     applyLoadedWorkflowRows(latest);
     return latest.rows.map((row) => ({
       ...row,
@@ -609,10 +729,15 @@ function TotalMarketCalculationPage() {
     previousRowCount?: number;
     latestRowCount: number;
   }> {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      throw new Error("Please select a planning year first.");
+    }
     const mergedRows = mergeCaseRowsIntoBaseRows(baseRows, editedRows, isCaseRow);
     const snapshot = await saveTotalMarketCalculationEligibleOthSnapshot({
       rows: mergedRows,
       message,
+      planning_year: planningYear,
       source_row_count: sourceRowCount > 0 ? sourceRowCount : baseRows.length,
       split_machine_lines: splitMachineLines,
       split_input_rows: splitInputRows,
@@ -622,7 +747,7 @@ function TotalMarketCalculationPage() {
       three_check_report_run_id: threeCheckReportRunId,
       three_check_report_created_at: threeCheckReportCreatedAt,
     });
-    const latest = await getLatestTotalMarketCalculationEligibleOthRows();
+    const latest = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
     applyLoadedWorkflowRows(latest);
     applyLoadedRawRows(latest);
     return {
@@ -711,6 +836,10 @@ function TotalMarketCalculationPage() {
   }
 
   async function handleCalculateTotalMarket() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
     setLoading(true);
@@ -726,6 +855,7 @@ function TotalMarketCalculationPage() {
       const snapshot = await saveTotalMarketCalculationCalculatedSnapshot({
         rows: currentRows,
         message: "Calculated Total Market output saved from current working table",
+        planning_year: planningYear,
         source_row_count: sourceRowCount > 0 ? sourceRowCount : currentRows.length,
         split_machine_lines: splitMachineLines,
         split_input_rows: splitInputRows,
@@ -735,7 +865,7 @@ function TotalMarketCalculationPage() {
         three_check_report_run_id: threeCheckReportRunId,
         three_check_report_created_at: threeCheckReportCreatedAt,
       });
-      const latestCalculated = await getLatestTotalMarketCalculationCalculatedRows();
+      const latestCalculated = await getLatestTotalMarketCalculationCalculatedRows(planningYear);
       applyLoadedRawRows(latestCalculated);
       setMessage(
         `Calculated result saved and reloaded from backend. Rows: ${snapshot.previous_row_count ?? currentRows.length} -> ${latestCalculated.row_count} (Run #${snapshot.run_id}).`
@@ -753,6 +883,10 @@ function TotalMarketCalculationPage() {
   }
 
   async function handleShowLatestRaw() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
     setRawLatestLoading(true);
@@ -760,7 +894,7 @@ function TotalMarketCalculationPage() {
     setMessage("Loading latest raw rows...");
 
     try {
-      const result = await getLatestTotalMarketCalculationEligibleOthRows();
+      const result = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
       applyLoadedRawRows(result);
       setMessage(
         `Latest loaded. Row Count: ${result.row_count}${result.run_id ? ` (Run #${result.run_id})` : ""}.`
@@ -778,6 +912,10 @@ function TotalMarketCalculationPage() {
   }
 
   async function handleRunRawTotalMarketRows() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
     setRawLatestLoading(true);
@@ -785,7 +923,7 @@ function TotalMarketCalculationPage() {
     setMessage("Running raw Total Market Calculation rows...");
 
     try {
-      const result = await getTotalMarketCalculationEligibleOthRows();
+      const result = await getTotalMarketCalculationEligibleOthRows(planningYear);
       applyLoadedRawRows(result);
       setWorkflowRows(
         result.rows.map((row) => ({
@@ -809,6 +947,10 @@ function TotalMarketCalculationPage() {
   }
 
   async function handleShowLatestCalculated() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActiveView("raw");
     setShowDeleteCaseButtons(false);
     setCalculatedLatestLoading(true);
@@ -816,7 +958,7 @@ function TotalMarketCalculationPage() {
     setMessage("Loading latest calculated rows...");
 
     try {
-      const result = await getLatestTotalMarketCalculationCalculatedRows();
+      const result = await getLatestTotalMarketCalculationCalculatedRows(planningYear);
       applyLoadedRawRows(result);
       setMessage(
         `Latest calculated result loaded. Row Count: ${result.row_count}${result.run_id ? ` (Run #${result.run_id})` : ""}.`
@@ -834,6 +976,10 @@ function TotalMarketCalculationPage() {
   }
 
   async function handleReportCheckDoubleBrand() {
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
     setActiveView("doubleBrand");
     setShowDeleteCaseButtons(false);
     setDoubleBrandLoading(true);
@@ -841,7 +987,7 @@ function TotalMarketCalculationPage() {
     setDoubleBrandMessage("Checking OTH duplicate groups across different sources...");
 
     try {
-      const result = await getTotalMarketCalculationDoubleBrandCheckRows();
+      const result = await getTotalMarketCalculationDoubleBrandCheckRows(planningYear);
       setDoubleBrandRows(result.rows.map((row) => ({ ...row, source_flag: "OTH" })));
       setDoubleBrandGroupCount(result.duplicate_group_count);
       setDoubleBrandSourceRowCount(result.source_row_count);
@@ -2669,6 +2815,47 @@ function TotalMarketCalculationPage() {
           </p>
         </div>
 
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "10px" }}>
+          <label htmlFor="tmc-planning-year" style={{ fontWeight: 700 }}>
+            Planning Year
+          </label>
+          <select
+            id="tmc-planning-year"
+            value={selectedPlanningYear}
+            onChange={(event) => handlePlanningYearChange(event.target.value)}
+            disabled={planningYearsLoading}
+          >
+            <option value="">Select year</option>
+            {planningYears.map((year) => (
+              <option key={year} value={String(year)}>
+                {year}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1900}
+            max={2999}
+            step={1}
+            placeholder="New year"
+            value={newPlanningYearInput}
+            onChange={(event) => setNewPlanningYearInput(event.target.value)}
+            style={{ width: "110px" }}
+          />
+          <button type="button" onClick={handleCreatePlanningYear} disabled={creatingPlanningYear}>
+            {creatingPlanningYear ? "Creating..." : "Create Year"}
+          </button>
+        </div>
+        {planningYearsLoading ? <p style={{ color: "blue", marginBottom: "10px" }}>Loading years...</p> : null}
+        {planningYearsError ? <p style={{ color: "red", marginBottom: "10px" }}>Error: {planningYearsError}</p> : null}
+        {!hasSelectedPlanningYear ? (
+          <p style={{ color: "#6b7280", marginBottom: "10px" }}>
+            Select a planning year first, then run or show latest reports.
+          </p>
+        ) : null}
+
+        {hasSelectedPlanningYear ? (
+          <>
         <div className="overview-actions" style={{ marginBottom: "20px" }}>
           <div className="overview-actions__buttons tmc-actions-grid">
             <button
@@ -2775,6 +2962,7 @@ function TotalMarketCalculationPage() {
                 rows={rows}
                 maxHeight="520px"
                 compact
+                virtualize
                 emptyMessage="No eligible OTH reporter rows found yet."
               />
             </div>
@@ -2816,6 +3004,7 @@ function TotalMarketCalculationPage() {
                 rows={doubleBrandRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 emptyMessage="No cross-source duplicate OTH rows found for the same country + artificial machine line + size class + brand."
               />
             </div>
@@ -2883,6 +3072,7 @@ function TotalMarketCalculationPage() {
                 rows={compactionRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={compactionEditMode}
                 onRowsChange={handleCompactionRowsChange}
                 onDeleteRow={handleCompactionDeleteRow}
@@ -2947,6 +3137,7 @@ function TotalMarketCalculationPage() {
                 rows={ybrPinRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={ybrPinEditMode}
                 onRowsChange={handleYbrPinRowsChange}
                 nonEditableColumns={[
@@ -3026,6 +3217,7 @@ function TotalMarketCalculationPage() {
                 rows={ocnOtnRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={ocnOtnEditMode}
                 onRowsChange={handleOcnOtnRowsChange}
                 nonEditableColumns={[
@@ -3105,6 +3297,7 @@ function TotalMarketCalculationPage() {
                 rows={ohrPinRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={ohrPinEditMode}
                 onRowsChange={handleOhrPinRowsChange}
                 nonEditableColumns={[
@@ -3184,6 +3377,7 @@ function TotalMarketCalculationPage() {
                 rows={rimPinRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={rimPinEditMode}
                 onRowsChange={handleRimPinRowsChange}
                 nonEditableColumns={[
@@ -3263,6 +3457,7 @@ function TotalMarketCalculationPage() {
                 rows={ergPinRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={ergPinEditMode}
                 onRowsChange={handleErgPinRowsChange}
                 nonEditableColumns={[
@@ -3342,6 +3537,7 @@ function TotalMarketCalculationPage() {
                 rows={cmaOhrRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={cmaOhrEditMode}
                 onRowsChange={handleCmaOhrRowsChange}
                 nonEditableColumns={[
@@ -3421,6 +3617,7 @@ function TotalMarketCalculationPage() {
                 rows={cnxRows}
                 maxHeight="520px"
                 compact
+                virtualize
                 editable={cnxEditMode}
                 onRowsChange={handleCnxRowsChange}
                 nonEditableColumns={[
@@ -3443,6 +3640,8 @@ function TotalMarketCalculationPage() {
                 emptyMessage="No CNX rows found."
               />
             </div>
+          </>
+        ) : null}
           </>
         ) : null}
       </section>
