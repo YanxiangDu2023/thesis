@@ -4,6 +4,7 @@ import {
   createPlanningYear,
   getPlanningYears,
   getLatestTotalMarketCalculationEligibleOthRows,
+  getLatestTotalMarketCalculationCalculatedRows,
   getTotalMarketCalculationEligibleOthRows,
   saveTotalMarketCalculationEligibleOthSnapshot,
 } from "../api/uploads";
@@ -398,8 +399,39 @@ function RestatementPage() {
     return selectedPlanningYearNumber;
   }
 
-  async function loadLatestRestatementInput(planningYear: number) {
-    const result = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
+  async function loadLatestRestatementInput(
+    planningYear: number,
+    options?: { preferCalculated?: boolean; allowComputeFallback?: boolean }
+  ) {
+    const preferCalculated = options?.preferCalculated ?? false;
+    const allowComputeFallback = options?.allowComputeFallback ?? false;
+
+    let result;
+    let sourceLabel = "OTH Non VCE Total Market Data";
+
+    if (preferCalculated) {
+      try {
+        result = await getLatestTotalMarketCalculationCalculatedRows(planningYear);
+        sourceLabel = "Calculate Total Market snapshot";
+      } catch (calculatedError) {
+        if (!allowComputeFallback) {
+          throw calculatedError;
+        }
+      }
+    }
+
+    if (!result) {
+      try {
+        result = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
+      } catch (latestError) {
+        if (!allowComputeFallback) {
+          throw latestError;
+        }
+        result = await getTotalMarketCalculationEligibleOthRows(planningYear);
+        sourceLabel = "newly generated OTH Non VCE run";
+      }
+    }
+
     setFullRows(result.rows);
     const filtered = result.rows.filter(isOthNonVceNonZeroRow);
     setRows(filtered);
@@ -416,7 +448,7 @@ function RestatementPage() {
     setSourceReportCreatedAt(result.source_report_created_at);
     setThreeCheckReportRunId(result.three_check_report_run_id);
     setThreeCheckReportCreatedAt(result.three_check_report_created_at);
-    return { filteredCount: filtered.length, runId: result.run_id };
+    return { filteredCount: filtered.length, runId: result.run_id, sourceLabel };
   }
 
   async function handleRun() {
@@ -428,27 +460,15 @@ function RestatementPage() {
     setLoading(true);
     setRunLoading(true);
     setError("");
-    setMessage("Running OTH Non VCE Total Market Data and loading result...");
+    setMessage("Loading latest saved OTH Non VCE result...");
     try {
-      const result = await getTotalMarketCalculationEligibleOthRows(planningYear);
-      setFullRows(result.rows);
-      const filtered = result.rows.filter(isOthNonVceNonZeroRow);
-      setRows(filtered);
-      setRestatementRows([]);
-      setRestatementApplied(false);
-      setRestatementMessage("");
-      setFinalRestatementRows([]);
-      setShowFinalRestatementResult(false);
-      setSourceRowCount(result.row_count);
-      setSplitMachineLines(result.split_machine_lines);
-      setSplitInputRows(result.split_input_rows);
-      setSplitOutputRows(result.split_output_rows);
-      setSourceReportRunId(result.source_report_run_id);
-      setSourceReportCreatedAt(result.source_report_created_at);
-      setThreeCheckReportRunId(result.three_check_report_run_id);
-      setThreeCheckReportCreatedAt(result.three_check_report_created_at);
+      const loaded = await loadLatestRestatementInput(planningYear, {
+        // Restatement should prioritize already saved post-delete output.
+        preferCalculated: true,
+        allowComputeFallback: true,
+      });
       setMessage(
-        `Loaded from OTH Non VCE Total Market Data run. ${filtered.length} OTH rows (FID != 0)${result.run_id ? ` (Run #${result.run_id})` : ""}.`
+        `Loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} OTH rows (FID != 0)${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
       );
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load OTH Non VCE Total Market Data.");
@@ -469,8 +489,10 @@ function RestatementPage() {
     setError("");
     setMessage("Loading latest OTH Non VCE Total Market Data...");
     try {
-      const loaded = await loadLatestRestatementInput(planningYear);
-      setMessage(`Latest loaded. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`);
+      const loaded = await loadLatestRestatementInput(planningYear, { preferCalculated: true });
+      setMessage(
+        `Latest loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
+      );
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load latest data.");
       setMessage("");
@@ -490,8 +512,10 @@ function RestatementPage() {
     setError("");
     setMessage("Loading latest restatement result...");
     try {
-      const loaded = await loadLatestRestatementInput(planningYear);
-      setMessage(`Latest loaded. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`);
+      const loaded = await loadLatestRestatementInput(planningYear, { preferCalculated: true });
+      setMessage(
+        `Latest loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
+      );
       setDoubleBrandMessage(
         'Restatement panel shows the final OTH result after Delete Double Brand. Click "Save" in Delete Double Brand to persist updates.'
       );
