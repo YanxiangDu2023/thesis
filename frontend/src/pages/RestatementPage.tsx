@@ -3,10 +3,8 @@ import FilterableTable from "../components/table/FilterableTable";
 import {
   createPlanningYear,
   getPlanningYears,
-  getLatestTotalMarketCalculationEligibleOthRows,
   getLatestTotalMarketCalculationCalculatedRows,
-  getTotalMarketCalculationEligibleOthRows,
-  saveTotalMarketCalculationEligibleOthSnapshot,
+  saveTotalMarketCalculationCalculatedSnapshot,
 } from "../api/uploads";
 import type { OthDeletionFlagRow } from "../types/upload";
 
@@ -399,37 +397,14 @@ function RestatementPage() {
     return selectedPlanningYearNumber;
   }
 
-  async function loadLatestRestatementInput(
-    planningYear: number,
-    options?: { preferCalculated?: boolean; allowComputeFallback?: boolean }
-  ) {
-    const preferCalculated = options?.preferCalculated ?? false;
-    const allowComputeFallback = options?.allowComputeFallback ?? false;
-
+  async function loadLatestRestatementInput(planningYear: number) {
     let result;
-    let sourceLabel = "OTH Non VCE Total Market Data";
-
-    if (preferCalculated) {
-      try {
-        result = await getLatestTotalMarketCalculationCalculatedRows(planningYear);
-        sourceLabel = "Calculate Total Market snapshot";
-      } catch (calculatedError) {
-        if (!allowComputeFallback) {
-          throw calculatedError;
-        }
-      }
-    }
-
-    if (!result) {
-      try {
-        result = await getLatestTotalMarketCalculationEligibleOthRows(planningYear);
-      } catch (latestError) {
-        if (!allowComputeFallback) {
-          throw latestError;
-        }
-        result = await getTotalMarketCalculationEligibleOthRows(planningYear);
-        sourceLabel = "newly generated OTH Non VCE run";
-      }
+    try {
+      result = await getLatestTotalMarketCalculationCalculatedRows(planningYear);
+    } catch {
+      throw new Error(
+        "No Calculate Total Market snapshot found for this year. Please finish Delete Double Brand in Total Market Calculation, click Calculate Total Market, then return to Restatement."
+      );
     }
 
     setFullRows(result.rows);
@@ -448,7 +423,7 @@ function RestatementPage() {
     setSourceReportCreatedAt(result.source_report_created_at);
     setThreeCheckReportRunId(result.three_check_report_run_id);
     setThreeCheckReportCreatedAt(result.three_check_report_created_at);
-    return { filteredCount: filtered.length, runId: result.run_id, sourceLabel };
+    return { filteredCount: filtered.length, runId: result.run_id, sourceLabel: "Calculate Total Market snapshot" };
   }
 
   async function handleRun() {
@@ -460,13 +435,9 @@ function RestatementPage() {
     setLoading(true);
     setRunLoading(true);
     setError("");
-    setMessage("Loading latest saved OTH Non VCE result...");
+    setMessage("Loading latest Calculate Total Market snapshot...");
     try {
-      const loaded = await loadLatestRestatementInput(planningYear, {
-        // Restatement should prioritize already saved post-delete output.
-        preferCalculated: true,
-        allowComputeFallback: true,
-      });
+      const loaded = await loadLatestRestatementInput(planningYear);
       setMessage(
         `Loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} OTH rows (FID != 0)${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
       );
@@ -487,9 +458,9 @@ function RestatementPage() {
     setActivePanel("data");
     setLoading(true);
     setError("");
-    setMessage("Loading latest OTH Non VCE Total Market Data...");
+    setMessage("Loading latest Calculate Total Market snapshot...");
     try {
-      const loaded = await loadLatestRestatementInput(planningYear, { preferCalculated: true });
+      const loaded = await loadLatestRestatementInput(planningYear);
       setMessage(
         `Latest loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
       );
@@ -512,7 +483,7 @@ function RestatementPage() {
     setError("");
     setMessage("Loading latest restatement result...");
     try {
-      const loaded = await loadLatestRestatementInput(planningYear, { preferCalculated: true });
+      const loaded = await loadLatestRestatementInput(planningYear);
       setMessage(
         `Latest loaded from ${loaded.sourceLabel}. ${loaded.filteredCount} rows${loaded.runId ? ` (Run #${loaded.runId})` : ""}.`
       );
@@ -1277,7 +1248,7 @@ function RestatementPage() {
     setSnapshotSaving(true);
     try {
       const mergedRows = mergeCaseRowsIntoBaseRows(fullRows, target.rows, target.isCaseRow);
-      const snapshot = await saveTotalMarketCalculationEligibleOthSnapshot({
+      const snapshot = await saveTotalMarketCalculationCalculatedSnapshot({
         rows: mergedRows,
         message: `${target.label} snapshot saved from Restatement`,
         planning_year: planningYear,
