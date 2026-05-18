@@ -107,6 +107,17 @@ def _to_case_insensitive_key(value: Any) -> str:
     return _to_text(value).upper()
 
 
+def _volvo_sale_brand_name_from_code(brand_code: Any) -> str:
+    brand_code_key = _to_case_insensitive_key(brand_code)
+    if brand_code_key == "ABG":
+        return "Rokbak"
+    if brand_code_key == "SDLG":
+        return "SDLG"
+    if brand_code_key in {"VCE", "VOL", "VOLVO"}:
+        return "VOLVO CE"
+    return _to_text(brand_code)
+
+
 def _normalize_saved_value(column: str, value: Any) -> str:
     if column in INTEGER_LIKE_COLUMNS:
         text = _to_text(value)
@@ -846,7 +857,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
             ),
             gc_by_name AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_name_key,
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(year)) AS year_key,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
@@ -868,7 +879,9 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     SUM(
                         CAST(REPLACE(NULLIF(TRIM(t.total_market_fid_sales), ''), ',', '') AS REAL)
                     ) AS fid,
-                    'TMA' AS source
+                    'TMA' AS source,
+                    '#' AS brand_code,
+                    'TOTAL MARKET' AS brand_name
                 FROM tma_data_rows t
                 WHERE t.upload_run_id = ?
                 GROUP BY
@@ -892,7 +905,17 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     SUM(
                         CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL)
                     ) AS fid,
-                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source
+                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'ABG'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VCE'
+                    END AS brand_code,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'Rokbak'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VOLVO CE'
+                    END AS brand_name
                 FROM volvo_sale_data_rows v
                 WHERE v.upload_run_id = ?
                 GROUP BY
@@ -902,7 +925,17 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     TRIM(v.machine),
                     TRIM(v.machine_line),
                     TRIM(v.size_class),
-                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL')
+                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL'),
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'ABG'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VCE'
+                    END,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'Rokbak'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VOLVO CE'
+                    END
             ),
             all_agg AS (
                 SELECT * FROM tma_agg
@@ -911,7 +944,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
             ),
             source_matrix_country_artificial_lines AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_name_key,
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     MAX(
                         CASE
@@ -924,7 +957,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                   AND TRIM(COALESCE(country_name, '')) <> ''
                   AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
                 GROUP BY
-                    UPPER(TRIM(country_name)),
+                    REPLACE(UPPER(TRIM(country_name)), ' ', ''),
                     UPPER(TRIM(artificial_machine_line))
             ),
             reporter_list_artificial_brand AS (
@@ -965,10 +998,8 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     a.machine_line_code AS machine_line_code,
                     a.machine_line_name AS machine_line_name,
                     a.size_class AS size_class,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
-                        ELSE '#'
-                    END AS brand_code,
+                    a.brand_code AS brand_code,
+                    a.brand_name AS brand_name,
                     '#' AS pri_sec,
                     a.source AS source,
                     a.fid AS fid
@@ -977,7 +1008,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                   ON UPPER(TRIM(a.end_country_code)) = g_code.country_code_key
                  AND UPPER(TRIM(a.year)) = g_code.year_key
                 LEFT JOIN gc_by_name g_name
-                  ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
+                  ON REPLACE(UPPER(TRIM(a.country_raw)), ' ', '') = g_name.country_name_key
                  AND UPPER(TRIM(a.year)) = g_name.year_key
             ),
             machine_line_mapping_matches AS (
@@ -1032,11 +1063,10 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     frb.size_class AS size_class,
                     COALESCE(mlmm.artificial_machine_line, '') AS artificial_machine_line,
                     frb.brand_code AS brand_code,
+                    frb.brand_name AS brand_name,
                     CASE
                         WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
-                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
-                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'Y'
                         ELSE ''
                     END AS reporter_flag,
                     frb.pri_sec AS pri_sec,
@@ -1055,7 +1085,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                   ON frb.base_row_id = mlmm.base_row_id
                  AND mlmm.match_rank = 1
                 LEFT JOIN source_matrix_country_artificial_lines sm_artificial
-                  ON UPPER(TRIM(COALESCE(frb.country, ''))) = sm_artificial.country_name_key
+                  ON REPLACE(UPPER(TRIM(COALESCE(frb.country, ''))), ' ', '') = sm_artificial.country_name_key
                  AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = sm_artificial.artificial_machine_line_key
                 LEFT JOIN reporter_list_artificial_brand rl_artificial
                   ON UPPER(TRIM(COALESCE(sm_artificial.crp_source, ''))) = rl_artificial.source_code_key
@@ -1083,6 +1113,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     END AS size_class,
                     artificial_machine_line,
                     brand_code,
+                    brand_name,
                     reporter_flag,
                     pri_sec,
                     source,
@@ -1108,6 +1139,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     END,
                     artificial_machine_line,
                     brand_code,
+                    brand_name,
                     reporter_flag,
                     pri_sec,
                     source,
@@ -1166,6 +1198,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 fr.size_class AS size_class,
                 fr.artificial_machine_line AS artificial_machine_line,
                 fr.brand_code AS brand_code,
+                fr.brand_name AS brand_name,
                 fr.reporter_flag AS reporter_flag,
                 fr.pri_sec AS pri_sec,
                 fr.source AS source,
@@ -1302,7 +1335,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
             ),
             gc_by_name AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_name_key,
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(year)) AS year_key,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
@@ -1324,7 +1357,9 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     SUM(
                         CAST(REPLACE(NULLIF(TRIM(t.total_market_fid_sales), ''), ',', '') AS REAL)
                     ) AS fid,
-                    'TMA' AS source
+                    'TMA' AS source,
+                    '#' AS brand_code,
+                    'TOTAL MARKET' AS brand_name
                 FROM tma_data_rows t
                 WHERE t.upload_run_id = ?
                 GROUP BY
@@ -1348,7 +1383,17 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     SUM(
                         CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL)
                     ) AS fid,
-                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source
+                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'ABG'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VCE'
+                    END AS brand_code,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'Rokbak'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VOLVO CE'
+                    END AS brand_name
                 FROM volvo_sale_data_rows v
                 WHERE v.upload_run_id = ?
                 GROUP BY
@@ -1358,7 +1403,17 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     TRIM(v.machine),
                     TRIM(v.machine_line),
                     TRIM(v.size_class),
-                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL')
+                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL'),
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'ABG'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VCE'
+                    END,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'ROKBAK' THEN 'Rokbak'
+                        WHEN UPPER(TRIM(COALESCE(v.brand, ''))) = 'SDLG' THEN 'SDLG'
+                        ELSE 'VOLVO CE'
+                    END
             ),
             all_agg AS (
                 SELECT * FROM tma_agg
@@ -1367,7 +1422,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
             ),
             source_matrix_country_artificial_lines AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_name_key,
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     MAX(
                         CASE
@@ -1380,7 +1435,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                   AND TRIM(COALESCE(country_name, '')) <> ''
                   AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
                 GROUP BY
-                    UPPER(TRIM(country_name)),
+                    REPLACE(UPPER(TRIM(country_name)), ' ', ''),
                     UPPER(TRIM(artificial_machine_line))
             ),
             reporter_list_artificial_brand AS (
@@ -1421,10 +1476,8 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     a.machine_line_code AS machine_line_code,
                     a.machine_line_name AS machine_line_name,
                     a.size_class AS size_class,
-                    CASE
-                        WHEN UPPER(TRIM(a.source)) = 'SAL' THEN 'VCE'
-                        ELSE '#'
-                    END AS brand_code,
+                    a.brand_code AS brand_code,
+                    a.brand_name AS brand_name,
                     '#' AS pri_sec,
                     a.source AS source,
                     a.fid AS raw_fid
@@ -1433,7 +1486,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                   ON UPPER(TRIM(a.end_country_code)) = g_code.country_code_key
                  AND UPPER(TRIM(a.year)) = g_code.year_key
                 LEFT JOIN gc_by_name g_name
-                  ON UPPER(TRIM(a.country_raw)) = g_name.country_name_key
+                  ON REPLACE(UPPER(TRIM(a.country_raw)), ' ', '') = g_name.country_name_key
                  AND UPPER(TRIM(a.year)) = g_name.year_key
             ),
             machine_line_mapping_matches AS (
@@ -1495,17 +1548,14 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                         ELSE frb.size_class
                     END AS size_class,
                     frb.brand_code AS brand_code,
+                    frb.brand_name AS brand_name,
                     CASE
                         WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
-                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
-                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'Y'
                         ELSE ''
                     END AS reporter_flag,
                     CASE
-                        WHEN UPPER(TRIM(frb.source)) = 'SAL'
-                             AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
-                             AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+                        WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'Y'
                         ELSE '#'
                     END AS vce_flag,
                     frb.pri_sec AS pri_sec,
@@ -1524,7 +1574,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                   ON frb.base_row_id = mlmm.base_row_id
                  AND mlmm.match_rank = 1
                 LEFT JOIN source_matrix_country_artificial_lines sm_artificial
-                  ON UPPER(TRIM(COALESCE(frb.country, ''))) = sm_artificial.country_name_key
+                  ON REPLACE(UPPER(TRIM(COALESCE(frb.country, ''))), ' ', '') = sm_artificial.country_name_key
                  AND UPPER(TRIM(COALESCE(mlmm.artificial_machine_line, ''))) = sm_artificial.artificial_machine_line_key
                 LEFT JOIN reporter_list_artificial_brand rl_artificial
                   ON UPPER(TRIM(COALESCE(sm_artificial.crp_source, ''))) = rl_artificial.source_code_key
@@ -1549,6 +1599,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     artificial_machine_line,
                     size_class,
                     brand_code,
+                    brand_name,
                     reporter_flag,
                     vce_flag,
                     pri_sec,
@@ -1567,6 +1618,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     artificial_machine_line,
                     size_class,
                     brand_code,
+                    brand_name,
                     reporter_flag,
                     vce_flag,
                     pri_sec,
@@ -1622,6 +1674,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     fr.artificial_machine_line AS artificial_machine_line,
                     fr.size_class AS size_class,
                     fr.brand_code AS brand_code,
+                    fr.brand_name AS brand_name,
                     fr.reporter_flag AS reporter_flag,
                     fr.vce_flag AS vce_flag,
                     fr.source AS source,
@@ -1671,6 +1724,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     rs.artificial_machine_line AS artificial_machine_line,
                     rs.size_class AS size_class,
                     'Result' AS brand_code,
+                    'Result' AS brand_name,
                     '' AS reporter_flag,
                     '' AS vce_flag,
                     '' AS source,
@@ -1696,6 +1750,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 artificial_machine_line,
                 size_class,
                 brand_code,
+                brand_name,
                 reporter_flag,
                 vce_flag,
                 source,
@@ -2162,6 +2217,7 @@ def _build_excavators_split_dependency_signature(
     three_check_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
+        "logic_version": 2,
         "case_type": case_type,
         "oth_report_run_id": oth_report.get("run_id"),
         "oth_report_created_at": oth_report.get("created_at"),
@@ -2370,7 +2426,6 @@ def _build_excavators_split_case_rows_from_oth(
       current["gross_fid"] += fid
       if _to_case_insensitive_key(row.get("brand_name")) == "VOLVO":
           current["volvo_deduction"] += fid
-          current["net_fid"] -= fid
       else:
           current["net_fid"] += fid
 
@@ -2820,7 +2875,7 @@ def get_oth_deletion_flag_report(
         cursor.execute("""
             WITH source_matrix_base AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_name_key,
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(artificial_machine_line)) AS artificial_machine_line_key,
                     UPPER(TRIM(primary_source)) AS primary_source_key,
                     UPPER(TRIM(secondary_source)) AS secondary_source_key
@@ -3058,7 +3113,7 @@ def get_oth_deletion_flag_report(
                              AND UPPER(TRIM(COALESCE(rl.brand_code, ''))) = UPPER(TRIM(COALESCE(fr.brand_code, '')))
                              AND rl.upload_run_id = ?
                             WHERE sm.upload_run_id = ?
-                              AND UPPER(TRIM(COALESCE(sm.country_name, ''))) = UPPER(TRIM(COALESCE(fr.country, '')))
+                              AND REPLACE(UPPER(TRIM(COALESCE(sm.country_name, ''))), ' ', '') = REPLACE(UPPER(TRIM(COALESCE(fr.country, ''))), ' ', '')
                               AND UPPER(TRIM(COALESCE(sm.artificial_machine_line, ''))) = UPPER(TRIM(COALESCE(fr.artificial_machine_line, '')))
                               AND TRIM(COALESCE(sm.crp_source, '')) <> ''
                         ) THEN 'Y'
@@ -3066,10 +3121,10 @@ def get_oth_deletion_flag_report(
                     END AS reporter_flag
                 FROM final_rows fr
                 LEFT JOIN source_matrix_keys smk
-                    ON UPPER(TRIM(COALESCE(fr.country, ''))) = smk.country_name_key
+                    ON REPLACE(UPPER(TRIM(COALESCE(fr.country, ''))), ' ', '') = smk.country_name_key
                    AND UPPER(TRIM(COALESCE(fr.artificial_machine_line, ''))) = smk.artificial_machine_line_key
                 LEFT JOIN source_matrix_source_flags_dedup smsf
-                    ON UPPER(TRIM(COALESCE(fr.country, ''))) = smsf.country_name_key
+                    ON REPLACE(UPPER(TRIM(COALESCE(fr.country, ''))), ' ', '') = smsf.country_name_key
                    AND UPPER(TRIM(COALESCE(fr.artificial_machine_line, ''))) = smsf.artificial_machine_line_key
                    AND UPPER(TRIM(COALESCE(fr.source, ''))) = smsf.source_key
             )
@@ -3388,7 +3443,7 @@ def _map_crp_combined_row_to_total_market_row(row: dict[str, Any]) -> dict[str, 
     if source_key == "SAL" and not brand_code:
         brand_code = "VCE"
     if source_key == "SAL":
-        brand_name = "VOLVO CE"
+        brand_name = _to_text(row.get("brand_name")) or _volvo_sale_brand_name_from_code(brand_code)
     elif source_key == "TMA":
         brand_name = "TOTAL MARKET"
     else:
@@ -4006,7 +4061,11 @@ def get_p00_three_check_report(
                 "machine_line_name": _to_text(row.get("machine_line_name")),
                 "machine_line_code": _to_text(row.get("machine_line_code")),
                 "artificial_machine_line": _to_text(row.get("artificial_machine_line")),
-                "brand_name": "TMA" if source == "TMA" else "VOLVO CE",
+                "brand_name": (
+                    "TMA"
+                    if source == "TMA"
+                    else _to_text(row.get("brand_name")) or _volvo_sale_brand_name_from_code(row.get("brand_code"))
+                ),
                 "brand_code": _to_text(row.get("brand_code")),
                 "size_class": _to_text(row.get("size_class")),
                 "source": source,
@@ -4260,6 +4319,7 @@ def _build_cex_split_case_report(planning_year: int | None = None):
     ]
 
     dependency_signature: dict[str, Any] = {
+        "logic_version": 2,
         "case_type": "CEX",
         "oth_report_run_id": oth.get("run_id"),
         "oth_report_created_at": oth.get("created_at"),

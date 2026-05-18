@@ -152,6 +152,68 @@ function formatNumberDisplay(value: number, fractionDigits = 2): string {
   });
 }
 
+function toDownloadText(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value);
+}
+
+function escapeExcelHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function downloadRowsAsExcel(
+  fileName: string,
+  sheetTitle: string,
+  columns: Array<{ key: string; label?: string }>,
+  rows: Array<Record<string, string | number | null>>,
+): void {
+  const headerHtml = columns
+    .map((column) => `<th>${escapeExcelHtml(column.label ?? column.key)}</th>`)
+    .join("");
+  const bodyHtml = rows
+    .map(
+      (row) =>
+        `<tr>${columns
+          .map((column) => `<td>${escapeExcelHtml(toDownloadText(row[column.key]))}</td>`)
+          .join("")}</tr>`,
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="ProgId" content="Excel.Sheet" />
+    <meta name="Generator" content="Microsoft Excel 15" />
+    <title>${escapeExcelHtml(sheetTitle)}</title>
+  </head>
+  <body>
+    <table>
+      <thead><tr>${headerHtml}</tr></thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>
+  </body>
+</html>`;
+
+  const blob = new Blob(["\uFEFF", html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 function normalizeSizeClassForResplit(value: string | number | null | undefined): string {
   const key = toMatchKey(value);
   if (key === "MINI") {
@@ -513,7 +575,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
     highlights: [
       "TMA (Total Market) comes from TMA source records.",
       "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
-      "VCE includes Volvo/SAL rows where CRP Source + Artificial machine line + brand_code matches Reporter List, excluding Motor Graders.",
+      "VCE includes valid Volvo/SAL rows. Volvo Sale Data rows are reporters, including Volvo CE, Rokbak (ABG), and SDLG.",
       "Non-VCE = max(TMA - VCE, 0).",
     ],
   },
@@ -783,9 +845,9 @@ const CRP_D1_RULE_BULLETS = [
   "Deletion flag is only evaluated for SAL records.",
   "Deletion flag = Y when Source = SAL and Machine Line Code = 390.",
   "Deletion flag = Y when Source = SAL and Country + Artificial machine line is not found in latest Source Matrix.",
-  "Reporter Flag = # for TMA records; for SAL records it is Y only when Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, otherwise it stays blank.",
+  "Reporter Flag = # for TMA records; for SAL records it is Y because Volvo Sale Data rows are reporters.",
   "All SAL rows are displayed in P00; SAL rows with empty CRP Source are not filtered out from this report.",
-  "Brand Code = VCE for SAL records, Brand Code = # for TMA records.",
+  "Brand Code = VCE, ABG, or SDLG for SAL records, Brand Code = # for TMA records.",
   "Artificial machine line is matched from Machine Line Mapping by machine line + size class + position.",
   "For SAL rows, Size Class is normalized to the TMA bucket when needed; currently this is used for Compact Excavators (CEX), where Mini maps to <6T and Midi maps to 6<10T.",
   "SAL can include machine lines that do not exist in TMA, so VCE FID can be lower than the total SAL value.",
@@ -949,16 +1011,16 @@ END AS "Deletion flag"`,
   },
   {
     title: "Reporter + Brand Rules",
-    explain: "Brand depends on source type. Reporter Flag is # for TMA, Y only for SAL rows whose Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, and blank for the remaining SAL rows.",
+    explain: "Brand depends on source type. Reporter Flag is # for TMA and Y for all SAL rows from Volvo Sale Data.",
     sql: `CASE
+  WHEN UPPER(TRIM(frb.source)) = 'SAL' AND frb.brand_name = 'Rokbak' THEN 'ABG'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL' AND frb.brand_name = 'SDLG' THEN 'SDLG'
   WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'VCE'
   ELSE '#'
 END AS "Brand Code",
 CASE
   WHEN UPPER(TRIM(frb.source)) = 'TMA' THEN '#'
-  WHEN UPPER(TRIM(frb.source)) = 'SAL'
-       AND TRIM(COALESCE(sm_artificial.crp_source, '')) <> ''
-       AND rl_artificial.source_code_key IS NOT NULL THEN 'Y'
+  WHEN UPPER(TRIM(frb.source)) = 'SAL' THEN 'Y'
   ELSE ''
 END AS "Reporter Flag"`,
   },
@@ -982,7 +1044,7 @@ LEFT JOIN gc_by_name g_name
 const P10_RULE_BULLETS = [
   "Total Market (TMA): sum of rows where Source = TMA.",
   "Rows with Volvo Deletion Flag = Y are excluded from the P10 report output.",
-  "VCE: sum of Volvo/SAL rows where Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List, excluding Motor Graders.",
+  "VCE: sum of valid Volvo/SAL reporter rows, including Volvo CE, Rokbak (ABG), and SDLG, excluding Motor Graders.",
   "Non-VCE: max(TMA - VCE, 0).",
 ];
 
@@ -991,7 +1053,7 @@ const A10_RULE_BULLETS = [
   "A10 shows one SAL detail row, one TMA detail row, and one derived Result row for each matched Year + Country Group + Country + Region + Machine Line + Size Class combination.",
   "This output includes all Volvo rows with Reporter Flag = Y, together with the matched TMA result for the same group when TMA exists.",
   "For SAL rows, Size Class is normalized when needed: Mini maps to <6T and Midi maps to 6<10T. TMA Size Class stays unchanged.",
-  "Only Volvo/SAL rows whose Source Matrix CRP Source plus Artificial machine line plus brand_code matches Reporter List can contribute to VCE-related values.",
+  "Volvo/SAL rows are reporters and can contribute to VCE-related values when they are not deleted.",
   "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
   "Result FID = sum of valid Volvo/SAL rows for the group.",
   "Result TM FID = sum of TMA rows for the same group.",
@@ -1157,6 +1219,7 @@ function LayerDetailPage() {
   const [combinedReportError, setCombinedReportError] = useState("");
   const [combinedReportRows, setCombinedReportRows] = useState<CrpD1CombinedReportRow[]>([]);
   const [combinedReportResetToken, setCombinedReportResetToken] = useState(0);
+  const [downloadingCombinedReport, setDownloadingCombinedReport] = useState(false);
   const [runningOthDeletionFlagReport, setRunningOthDeletionFlagReport] = useState(false);
   const [othDeletionFlagStartedAt, setOthDeletionFlagStartedAt] = useState<number | null>(null);
   const [othDeletionFlagElapsedSeconds, setOthDeletionFlagElapsedSeconds] = useState(0);
@@ -1164,11 +1227,13 @@ function LayerDetailPage() {
   const [othDeletionFlagError, setOthDeletionFlagError] = useState("");
   const [othDeletionFlagRows, setOthDeletionFlagRows] = useState<OthDeletionFlagRow[]>([]);
   const [othDeletionFlagResetToken, setOthDeletionFlagResetToken] = useState(0);
+  const [downloadingOthDeletionFlagReport, setDownloadingOthDeletionFlagReport] = useState(false);
   const [runningThreeCheckReport, setRunningThreeCheckReport] = useState(false);
   const [threeCheckMessage, setThreeCheckMessage] = useState("");
   const [threeCheckError, setThreeCheckError] = useState("");
   const [threeCheckRows, setThreeCheckRows] = useState<P00ThreeCheckRow[]>([]);
   const [threeCheckResetToken, setThreeCheckResetToken] = useState(0);
+  const [downloadingThreeCheckReport, setDownloadingThreeCheckReport] = useState(false);
   const [runningP10Report, setRunningP10Report] = useState(false);
   const [p10Message, setP10Message] = useState("");
   const [p10Error, setP10Error] = useState("");
@@ -1307,6 +1372,7 @@ function LayerDetailPage() {
       { key: "machine_line_name", label: "Machine Line name" },
       { key: "size_class", label: "Size Class" },
       { key: "artificial_machine_line", label: "Artificial machine line" },
+      { key: "brand_name", label: "Brand Name" },
       { key: "brand_code", label: "Brand Code" },
       { key: "reporter_flag", label: "Reporter Flag" },
       { key: "pri_sec", label: "Pri/Sec" },
@@ -2352,6 +2418,129 @@ function LayerDetailPage() {
     }
   };
 
+  const handleDownloadCombinedReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setCombinedReportError("Please select a planning year first.");
+      return;
+    }
+
+    try {
+      setDownloadingCombinedReport(true);
+      setCombinedReportError("");
+
+      let rowsForDownload = combinedReportRows;
+      if (rowsForDownload.length === 0) {
+        const latest = await getLatestCrpD1CombinedReport(selectedP00PlanningYear);
+        rowsForDownload = latest.rows;
+        setCombinedReportRows(latest.rows);
+        setCombinedReportResetToken((prev) => prev + 1);
+        setCombinedReportMessage(
+          `Latest loaded (${selectedP00PlanningYear}). Row Count: ${latest.row_count}`,
+        );
+      }
+
+      if (rowsForDownload.length === 0) {
+        throw new Error("No CRP D1 Combined Report rows available to download.");
+      }
+
+      downloadRowsAsExcel(
+        `crp_d1_combined_report_${selectedP00PlanningYear}.xls`,
+        "CRP D1 Combined Report",
+        combinedReportColumns,
+        rowsForDownload,
+      );
+    } catch (error) {
+      console.error(error);
+      setCombinedReportError(
+        error instanceof Error ? error.message : "Failed to download CRP D1 Combined Report.",
+      );
+    } finally {
+      setDownloadingCombinedReport(false);
+    }
+  };
+
+  const handleDownloadOthDeletionFlagReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setOthDeletionFlagError("Please select a planning year first.");
+      return;
+    }
+
+    try {
+      setDownloadingOthDeletionFlagReport(true);
+      setOthDeletionFlagError("");
+
+      let rowsForDownload = othDeletionFlagRows;
+      if (rowsForDownload.length === 0) {
+        const latest = await getLatestOthDeletionFlagReport(selectedP00PlanningYear);
+        rowsForDownload = latest.rows;
+        setOthDeletionFlagRows(latest.rows);
+        setOthDeletionFlagResetToken((prev) => prev + 1);
+        setOthDeletionFlagMessage(
+          `Latest loaded (${selectedP00PlanningYear}). Row Count: ${latest.row_count}`,
+        );
+      }
+
+      if (rowsForDownload.length === 0) {
+        throw new Error("No OTH Deletion Flag Report rows available to download.");
+      }
+
+      downloadRowsAsExcel(
+        `oth_deletion_flag_report_${selectedP00PlanningYear}.xls`,
+        "OTH Deletion Flag Report",
+        othDeletionFlagColumns,
+        rowsForDownload,
+      );
+    } catch (error) {
+      console.error(error);
+      setOthDeletionFlagError(
+        error instanceof Error ? error.message : "Failed to download OTH Deletion Flag Report.",
+      );
+    } finally {
+      setDownloadingOthDeletionFlagReport(false);
+    }
+  };
+
+  const handleDownloadThreeCheckReport = async () => {
+    if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
+      setThreeCheckError("Please select a planning year first.");
+      return;
+    }
+
+    try {
+      setDownloadingThreeCheckReport(true);
+      setThreeCheckError("");
+
+      let rowsForDownload = threeCheckRows;
+      if (rowsForDownload.length === 0) {
+        const latest = await getLatestP00ThreeCheckReport(selectedP00PlanningYear);
+        rowsForDownload = latest.rows;
+        setThreeCheckRows(latest.rows);
+        setThreeCheckResetToken((prev) => prev + 1);
+        setThreeCheckMessage(
+          `Latest loaded (${selectedP00PlanningYear}). Row Count: ${latest.row_count}`,
+        );
+      }
+
+      if (rowsForDownload.length === 0) {
+        throw new Error("No Check Report rows available to download.");
+      }
+
+      downloadRowsAsExcel(
+        `check_report_${selectedP00PlanningYear}.xls`,
+        "Check Report",
+        threeCheckColumns,
+        rowsForDownload,
+      );
+    } catch (error) {
+      console.error(error);
+      setThreeCheckError(
+        error instanceof Error ? error.message : "Failed to download Check Report.",
+      );
+    } finally {
+      setDownloadingThreeCheckReport(false);
+    }
+  };
+
   const handleRunA10Report = async () => {
     if (!hasSelectedP00PlanningYear || selectedP00PlanningYear === undefined) {
       setA10Error("Please select a planning year first.");
@@ -2730,6 +2919,14 @@ function LayerDetailPage() {
               <button
                 type="button"
                 className="btn btn--tiny"
+                onClick={handleDownloadCombinedReport}
+                disabled={runningCombinedReport || downloadingCombinedReport || !hasSelectedP00PlanningYear}
+              >
+                {downloadingCombinedReport ? "Downloading..." : "Download Excel"}
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
                 onClick={() => setShowSqlGuide((prev) => !prev)}
               >
                 {showSqlGuide ? "Hide SQL Logic" : "View SQL Logic"}
@@ -2833,6 +3030,18 @@ function LayerDetailPage() {
                 disabled={runningOthDeletionFlagReport || !hasSelectedP00PlanningYear}
               >
                 Show Latest
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={handleDownloadOthDeletionFlagReport}
+                disabled={
+                  runningOthDeletionFlagReport ||
+                  downloadingOthDeletionFlagReport ||
+                  !hasSelectedP00PlanningYear
+                }
+              >
+                {downloadingOthDeletionFlagReport ? "Downloading..." : "Download Excel"}
               </button>
               <button
                 type="button"
@@ -2941,6 +3150,14 @@ function LayerDetailPage() {
                 disabled={runningThreeCheckReport || !hasSelectedP00PlanningYear}
               >
                 Show Latest
+              </button>
+              <button
+                type="button"
+                className="btn btn--tiny"
+                onClick={handleDownloadThreeCheckReport}
+                disabled={runningThreeCheckReport || downloadingThreeCheckReport || !hasSelectedP00PlanningYear}
+              >
+                {downloadingThreeCheckReport ? "Downloading..." : "Download Excel"}
               </button>
               <button
                 type="button"

@@ -137,6 +137,7 @@ export type CrpD1CombinedReportRow = {
   machine_line_name: string;
   size_class: string;
   artificial_machine_line: string;
+  brand_name: string;
   brand_code: string;
   reporter_flag: string;
   pri_sec: string;
@@ -168,6 +169,7 @@ export type A10AdjustmentRow = {
   machine_line_name: string;
   artificial_machine_line: string;
   size_class: string;
+  brand_name: string;
   brand_code: string;
   reporter_flag: string;
   vce_flag: string;
