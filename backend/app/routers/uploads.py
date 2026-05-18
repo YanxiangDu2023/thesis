@@ -837,8 +837,12 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
             filtered_rows AS (
                 SELECT *
                 FROM final_rows
-                WHERE UPPER(TRIM(source)) <> 'SAL'
-                   OR TRIM(COALESCE(reporter_flag, '')) <> ''
+                WHERE (
+                        UPPER(TRIM(source)) <> 'SAL'
+                     OR TRIM(COALESCE(reporter_flag, '')) <> ''
+                )
+                  AND TRIM(COALESCE(machine_line_code, '')) <> '390'
+                  AND UPPER(TRIM(COALESCE(artificial_machine_line, ''))) <> 'COMPACTION MACHINES'
             ),
         """
 

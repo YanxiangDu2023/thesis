@@ -587,6 +587,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
       "Shows original SAL rows, original TMA rows, and one derived Result row for each matched group.",
       "Uses the same country and machine-line matching basis as the current P00/P10 preparation logic.",
       "Supports review of VCE, TM FID, and TM Non VCE before later split logic is introduced.",
+      "Rows with Machine Line Code = 390, or Artificial machine line = Compaction Machines, are excluded from A10 display.",
     ],
   },
   A20: {
@@ -1054,6 +1055,7 @@ const A10_RULE_BULLETS = [
   "This output includes all Volvo rows with Reporter Flag = Y, together with the matched TMA result for the same group when TMA exists.",
   "For SAL rows, Size Class is normalized when needed: Mini maps to <6T and Midi maps to 6<10T. TMA Size Class stays unchanged.",
   "Volvo/SAL rows are reporters and can contribute to VCE-related values when they are not deleted.",
+  "Rows with Machine Line Code = 390, or Artificial machine line = Compaction Machines, are excluded from A10 display.",
   "SAL rows with Volvo Deletion Flag = Y do not contribute to the Result FID.",
   "Result FID = sum of valid Volvo/SAL rows for the group.",
   "Result TM FID = sum of TMA rows for the same group.",
