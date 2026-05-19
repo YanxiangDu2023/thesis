@@ -22,12 +22,6 @@ function MatrixForm() {
       />
 
       <UploadForm
-        label="brand_mapping"
-        title="Brand Mapping CSV"
-        compact
-      />
-
-      <UploadForm
         label="group_country"
         title="Group Country CSV"
         compact

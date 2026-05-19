@@ -6,13 +6,14 @@ import {
   saveEditedUpload,
   uploadCsv,
 } from "../../api/uploads";
-import type { UploadRow, UploadRun, UploadStatus } from "../../types/upload";
+import type { UploadCsvResponse, UploadRow, UploadRun, UploadStatus } from "../../types/upload";
 import FilterableTable from "../table/FilterableTable";
 
 type UploadFormProps = {
   label: string;
   title: string;
   compact?: boolean;
+  onUploadSuccess?: (result: UploadCsvResponse, planningYear: number) => void | Promise<void>;
 };
 
 const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
@@ -152,6 +153,58 @@ const INTEGER_LIKE_DOWNLOAD_COLUMNS = new Set([
   "machine_code",
   "machine_line_code",
 ]);
+const SOURCE_MATRIX_CRP_SOURCE_OPTIONS = [
+  "ABQ",
+  "BRM",
+  "CEE",
+  "CLF",
+  "CMA",
+  "CMM",
+  "CMS",
+  "CMT",
+  "CNX",
+  "DES",
+  "EAU",
+  "ELM",
+  "ERG",
+  "FIL",
+  "FRA",
+  "GBA",
+  "HIS",
+  "HVE",
+  "HVN",
+  "IEA",
+  "IMD",
+  "INA",
+  "INN",
+  "ISL",
+  "ITA",
+  "KRA",
+  "KRF",
+  "MAC",
+  "MEC",
+  "MOL",
+  "NZE",
+  "OHC",
+  "OHI",
+  "OHR",
+  "ORR",
+  "PIN",
+  "RBR",
+  "RCL",
+  "RIM",
+  "RLO",
+  "SAL",
+  "TBC",
+  "TMA",
+  "TMG",
+  "UAD",
+  "VDM",
+  "VMK",
+  "VMR",
+  "YBR",
+  "YNA",
+];
 
 function getRowsForDisplay(label: string, rows: UploadRow[]): UploadRow[] {
   if (label !== "oth_data") {
@@ -219,7 +272,7 @@ function buildCsvContent(label: string, columns: string[], rows: UploadRow[]): s
   return [header, ...dataLines].join("\r\n");
 }
 
-function UploadForm({ label, title, compact = false }: UploadFormProps) {
+function UploadForm({ label, title, compact = false, onUploadSuccess }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -305,6 +358,24 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
     }
     return new Set(latestColumns.slice(0, 3));
   }, [latestColumns, useMatrixSubmissionStyle]);
+  const customFilterOptions = useMemo(() => {
+    if (label !== "source_matrix") {
+      return undefined;
+    }
+
+    return {
+      crp_source: SOURCE_MATRIX_CRP_SOURCE_OPTIONS,
+    };
+  }, [label]);
+  const editableOptions = useMemo(() => {
+    if (label !== "source_matrix") {
+      return undefined;
+    }
+
+    return {
+      crp_source: SOURCE_MATRIX_CRP_SOURCE_OPTIONS,
+    };
+  }, [label]);
 
   const editableRowsForDisplay = useMemo(() => {
     if (isEditingLatest) {
@@ -331,6 +402,7 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
       const result = await uploadCsv(label, file, selectedPlanningYear);
       setStatus("success");
       setMessage(`Upload successful. Upload ID: ${result.upload_run_id}`);
+      await onUploadSuccess?.(result, selectedPlanningYear);
     } catch (error) {
       console.error(error);
       setStatus("error");
@@ -679,6 +751,9 @@ function UploadForm({ label, title, compact = false }: UploadFormProps) {
                   onFiltersChange={setTableFilters}
                   nonEditableColumns={NON_EDITABLE_COLUMNS_BY_MATRIX_TYPE[label] ?? []}
                   compact={useCompactTable}
+                  allowFiltersWhenEditable={label === "source_matrix"}
+                  filterOptionsOverride={customFilterOptions}
+                  editableOptions={editableOptions}
                 />
               )}
             </>

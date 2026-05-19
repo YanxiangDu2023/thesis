@@ -11,6 +11,17 @@ export type UploadCsvResponse = {
 
 export type SaveEditedUploadResponse = UploadCsvResponse;
 
+export type SyncBrandMappingFromOthResponse = {
+  message: string;
+  upload_run_id: number | null;
+  row_count: number;
+  added_count: number;
+  added_brand_names: string[];
+  matrix_type: "brand_mapping";
+  original_file_name?: string;
+  status: "success";
+};
+
 export type UploadRun = {
   id: number;
   matrix_type: string;

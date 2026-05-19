@@ -66,6 +66,15 @@ const restatementCard: LayerCard = {
   ],
 };
 
+const tmcValidationReportCard: LayerCard = {
+  code: "VAL",
+  title: "TMC Validation Report",
+  bullets: [
+    "Review calculated total market output against source-driven validation checks.",
+    "Prepare a dedicated validation view before final business sign-off and downstream use.",
+  ],
+};
+
 const tmcTimeline: TimelineStep[] = [
   {
     code: "SET",
@@ -325,6 +334,31 @@ function HomePage() {
           </Link>
         </div>
 
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <p className="section-tag">Validation Layer</p>
+          <h3 className="section-title">TMC Validation Report</h3>
+          <p className="section-description">
+            Validate calculated total market output through a dedicated review layer before
+            final sign-off and downstream use.
+          </p>
+        </div>
+
+        <div className="card-grid card-grid--three">
+          <Link to="/tmc-validation-report" className="layer-card-link">
+            <article className="card layer-card">
+              <span className="layer-card__code">{tmcValidationReportCard.code}</span>
+              <h4 className="card__title">{tmcValidationReportCard.title}</h4>
+              <ul className="card__list">
+                {tmcValidationReportCard.bullets?.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          </Link>
+        </div>
       </section>
     </div>
   );

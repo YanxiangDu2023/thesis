@@ -66,6 +66,10 @@ class SaveEditedUploadRequest(BaseModel):
     planning_year: int | None = None
 
 
+class SyncBrandMappingFromOthRequest(BaseModel):
+    planning_year: int | None = None
+
+
 class ExcavatorsSplitCaseSnapshotRequest(BaseModel):
     case_type: str
     summary_rows: list[dict[str, Any]]
@@ -318,6 +322,185 @@ def save_edited_upload(payload: SaveEditedUploadRequest):
             "upload_run_id": upload_run_id,
             "row_count": row_count,
             "matrix_type": matrix_type,
+            "original_file_name": original_file_name,
+            "status": "success",
+        }
+    except HTTPException as e:
+        if upload_run_id is not None:
+            cursor.execute("""
+                UPDATE upload_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, ("failed", str(e.detail), upload_run_id))
+            conn.commit()
+        raise e
+    except Exception as e:
+        if upload_run_id is not None:
+            cursor.execute("""
+                UPDATE upload_runs
+                SET status = ?, message = ?
+                WHERE id = ?
+            """, ("failed", str(e), upload_run_id))
+            conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/uploads/brand-mapping/sync-from-oth")
+def sync_brand_mapping_from_oth(payload: SyncBrandMappingFromOthRequest):
+    planning_year = _normalize_planning_year(payload.planning_year)
+    conn = get_connection()
+    cursor = conn.cursor()
+    upload_run_id = None
+
+    try:
+        latest_oth_upload_run_id = _get_latest_success_upload_id(cursor, "oth_data", planning_year)
+        if latest_oth_upload_run_id is None:
+            raise HTTPException(status_code=404, detail="No successful OTH Data upload found for this planning year.")
+
+        latest_brand_mapping_upload_run_id = _get_latest_success_upload_id(cursor, "brand_mapping", planning_year)
+
+        cursor.execute("""
+            SELECT DISTINCT TRIM(brand_name) AS brand_name
+            FROM oth_data_rows
+            WHERE upload_run_id = ?
+              AND brand_name IS NOT NULL
+              AND TRIM(brand_name) != ''
+            ORDER BY UPPER(TRIM(brand_name)) ASC
+        """, (latest_oth_upload_run_id,))
+        oth_brand_names = [row["brand_name"] for row in cursor.fetchall()]
+
+        existing_rows: list[dict[str, Any]] = []
+        existing_brand_keys: set[str] = set()
+        if latest_brand_mapping_upload_run_id is not None:
+            cursor.execute("""
+                SELECT
+                    brand_name,
+                    brand_code,
+                    deletion_indicator
+                FROM brand_mapping_rows
+                WHERE upload_run_id = ?
+                ORDER BY row_index ASC, id ASC
+            """, (latest_brand_mapping_upload_run_id,))
+            existing_rows = [dict(row) for row in cursor.fetchall()]
+            existing_brand_keys = {
+                str(row.get("brand_name") or "").strip().upper()
+                for row in existing_rows
+                if str(row.get("brand_name") or "").strip()
+            }
+
+        new_brand_names = []
+        seen_new_brand_keys: set[str] = set()
+        for brand_name in oth_brand_names:
+            brand_key = brand_name.strip().upper()
+            if brand_key in existing_brand_keys or brand_key in seen_new_brand_keys:
+                continue
+            seen_new_brand_keys.add(brand_key)
+            new_brand_names.append(brand_name)
+
+        if len(new_brand_names) == 0:
+            return {
+                "message": "Brand Mapping already covers all OTH brand names.",
+                "upload_run_id": latest_brand_mapping_upload_run_id,
+                "row_count": len(existing_rows),
+                "added_count": 0,
+                "added_brand_names": [],
+                "matrix_type": "brand_mapping",
+                "status": "success",
+            }
+
+        merged_rows = [
+            {
+                "brand_name": row.get("brand_name") or "",
+                "brand_code": row.get("brand_code") or "",
+                "deletion_indicator": row.get("deletion_indicator") or "",
+            }
+            for row in existing_rows
+        ]
+        merged_rows.extend(
+            {
+                "brand_name": brand_name,
+                "brand_code": "",
+                "deletion_indicator": "",
+            }
+            for brand_name in new_brand_names
+        )
+
+        target_dir = os.path.join(get_upload_root_dir(), "brand_mapping")
+        os.makedirs(target_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        source_suffix = f"_from_{latest_brand_mapping_upload_run_id}" if latest_brand_mapping_upload_run_id else ""
+        original_file_name = f"brand_mapping_synced_from_oth{source_suffix}.csv"
+        stored_file_name = f"{timestamp}_{uuid.uuid4().hex}_{original_file_name}"
+        stored_path = os.path.join(target_dir, stored_file_name)
+        insert_columns = ["brand_name", "brand_code", "deletion_indicator"]
+
+        with open(stored_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(insert_columns)
+            for row in merged_rows:
+                writer.writerow([row[column] for column in insert_columns])
+
+        cursor.execute("""
+            INSERT INTO upload_runs (
+                matrix_type,
+                planning_year,
+                original_file_name,
+                stored_file_name,
+                stored_path,
+                status
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            "brand_mapping",
+            planning_year,
+            original_file_name,
+            stored_file_name,
+            stored_path,
+            "processing",
+        ))
+        upload_run_id = cursor.lastrowid
+
+        cursor.executemany("""
+            INSERT INTO brand_mapping_rows (
+                upload_run_id,
+                row_index,
+                brand_name,
+                brand_code,
+                deletion_indicator
+            ) VALUES (?, ?, ?, ?, ?)
+        """, [
+            (
+                upload_run_id,
+                idx,
+                row["brand_name"],
+                row["brand_code"],
+                row["deletion_indicator"],
+            )
+            for idx, row in enumerate(merged_rows, start=1)
+        ])
+
+        row_count = len(merged_rows)
+        cursor.execute("""
+            UPDATE upload_runs
+            SET row_count = ?, status = ?, message = ?
+            WHERE id = ?
+        """, (
+            row_count,
+            "success",
+            f"Synced from OTH upload {latest_oth_upload_run_id}; added {len(new_brand_names)} brand(s)",
+            upload_run_id,
+        ))
+        conn.commit()
+
+        return {
+            "message": "Brand Mapping synced from OTH.",
+            "upload_run_id": upload_run_id,
+            "row_count": row_count,
+            "added_count": len(new_brand_names),
+            "added_brand_names": new_brand_names,
+            "matrix_type": "brand_mapping",
             "original_file_name": original_file_name,
             "status": "success",
         }

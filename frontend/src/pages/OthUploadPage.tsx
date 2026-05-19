@@ -5,6 +5,7 @@ import {
   getLatestControlReportCleanData,
   getUploadCompleteness,
   runControlReportCleanData,
+  syncBrandMappingFromOth,
 } from "../api/uploads";
 import type {
   ControlReportCleanRow,
@@ -35,6 +36,8 @@ function OthUploadPage() {
   const [controlReportRun, setControlReportRun] = useState<ControlReportCleanRun | null>(null);
   const [controlReportRows, setControlReportRows] = useState<ControlReportCleanRow[]>([]);
   const [showControlReportPanel, setShowControlReportPanel] = useState(false);
+  const [brandSyncMessage, setBrandSyncMessage] = useState("");
+  const [brandSyncError, setBrandSyncError] = useState("");
 
   const orderedItems = useMemo(() => result?.items ?? [], [result]);
 
@@ -83,6 +86,34 @@ function OthUploadPage() {
       setError(checkError instanceof Error ? checkError.message : "Failed to check uploads.");
     } finally {
       setChecking(false);
+    }
+  };
+
+  const handleSyncBrandMappingFromOth = async (_uploadResult: unknown, planningYear: number) => {
+    try {
+      setBrandSyncMessage("Checking Brand Mapping for new OTH brands...");
+      setBrandSyncError("");
+      const syncResult = await syncBrandMappingFromOth(planningYear);
+
+      if (syncResult.added_count === 0) {
+        setBrandSyncMessage("Brand Mapping already covers all OTH brand names.");
+        return;
+      }
+
+      const preview = syncResult.added_brand_names.slice(0, 8).join(", ");
+      const suffix =
+        syncResult.added_brand_names.length > 8
+          ? `, +${syncResult.added_brand_names.length - 8} more`
+          : "";
+      setBrandSyncMessage(
+        `Brand Mapping synced. Added ${syncResult.added_count} new brand(s): ${preview}${suffix}. New Upload ID: ${syncResult.upload_run_id}.`
+      );
+    } catch (syncError) {
+      console.error(syncError);
+      setBrandSyncError(
+        syncError instanceof Error ? syncError.message : "Failed to sync Brand Mapping from OTH."
+      );
+      setBrandSyncMessage("");
     }
   };
 
@@ -203,8 +234,16 @@ function OthUploadPage() {
       <p>Upload the CSV file required for OTH data configuration.</p>
 
       <div className="matrix-form">
-        <UploadForm label="oth_data" title="OTH Data CSV" compact />
+        <UploadForm
+          label="oth_data"
+          title="OTH Data CSV"
+          compact
+          onUploadSuccess={handleSyncBrandMappingFromOth}
+        />
+        <UploadForm label="brand_mapping" title="Brand Mapping CSV" compact />
       </div>
+      {brandSyncMessage ? <p style={{ color: "green" }}>{brandSyncMessage}</p> : null}
+      {brandSyncError ? <p style={{ color: "red" }}>Error: {brandSyncError}</p> : null}
 
       <div style={{ marginTop: "16px" }}>
         <button type="button" onClick={handleCheckCompleteness}>

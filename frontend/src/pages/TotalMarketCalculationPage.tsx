@@ -3645,6 +3645,7 @@ function TotalMarketCalculationPage() {
           </>
         ) : null}
       </section>
+
     </div>
   );
 }

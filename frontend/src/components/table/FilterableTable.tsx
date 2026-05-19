@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type FilterableColumn = {
   key: string;
@@ -23,6 +23,9 @@ type FilterableTableProps = {
   compact?: boolean;
   getRowClassName?: (row: Record<string, string | number | null>, index: number) => string | undefined;
   virtualize?: boolean;
+  allowFiltersWhenEditable?: boolean;
+  filterOptionsOverride?: Record<string, string[]>;
+  editableOptions?: Record<string, string[]>;
 };
 
 type CellSelectionRange = {
@@ -151,6 +154,15 @@ function formatCellValue(value: string | number | null | undefined, columnKey: s
   return String(value);
 }
 
+function formatClipboardCell(value: string): string {
+  const needsQuotes = /[\t\r\n"]/.test(value);
+  if (!needsQuotes) {
+    return value;
+  }
+
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 function shouldSummarizeColumn(
   column: FilterableColumn,
   rows: Array<Record<string, string | number | null>>,
@@ -232,6 +244,9 @@ function FilterableTable({
   compact = false,
   getRowClassName,
   virtualize = false,
+  allowFiltersWhenEditable = false,
+  filterOptionsOverride,
+  editableOptions,
 }: FilterableTableProps) {
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
@@ -239,6 +254,7 @@ function FilterableTable({
   const [viewportHeight, setViewportHeight] = useState(0);
   const [selectionRange, setSelectionRange] = useState<CellSelectionRange | null>(null);
   const [selectionDragging, setSelectionDragging] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
   const filterMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
   const selectionAnchorRef = useRef<{ columnKey: string; startIndex: number } | null>(null);
@@ -267,13 +283,13 @@ function FilterableTable({
   }, [resetToken]);
 
   useEffect(() => {
-    if (!editable) {
+    if (!editable || allowFiltersWhenEditable) {
       return;
     }
     // Editing with active filters can make rows disappear while typing.
     setFilters({});
     setOpenFilterKey(null);
-  }, [editable]);
+  }, [allowFiltersWhenEditable, editable]);
 
   useEffect(() => {
     const wrapper = tableWrapperRef.current;
@@ -368,6 +384,39 @@ function FilterableTable({
     const options: Record<string, string[]> = {};
 
     columns.forEach((column) => {
+      const predefinedOptions = filterOptionsOverride?.[column.key];
+      if (predefinedOptions && predefinedOptions.length > 0) {
+        const uniqueValues = new Map<string, string>();
+        predefinedOptions.forEach((value) => {
+          const displayValue = toCellText(value);
+          uniqueValues.set(toFilterMatchKey(displayValue), displayValue);
+        });
+
+        rows.forEach((row) => {
+          const displayValue = toCellText(row[column.key]);
+          if (!displayValue) {
+            return;
+          }
+          const matchKey = toFilterMatchKey(displayValue);
+          if (!uniqueValues.has(matchKey)) {
+            uniqueValues.set(matchKey, displayValue);
+          }
+        });
+
+        (filters[column.key] ?? []).forEach((selectedValue) => {
+          const displayValue = selectedValue === EMPTY_FILTER_VALUE ? "" : selectedValue;
+          const matchKey = toFilterMatchKey(displayValue);
+          if (!uniqueValues.has(matchKey)) {
+            uniqueValues.set(matchKey, displayValue);
+          }
+        });
+
+        const nextValues = Array.from(uniqueValues.values()).sort((a, b) => a.localeCompare(b));
+        const hasEmptyValue = rows.some((row) => toCellText(row[column.key]) === "");
+        options[column.key] = hasEmptyValue ? ["", ...nextValues.filter((value) => value !== "")] : nextValues;
+        return;
+      }
+
       if (openFilterKey && column.key !== openFilterKey) {
         const selectedOptions = new Map<string, string>();
         (filters[column.key] ?? []).forEach((value) => {
@@ -407,7 +456,7 @@ function FilterableTable({
     });
 
     return options;
-  }, [columns, filters, openFilterKey, rows]);
+  }, [columns, filterOptionsOverride, filters, openFilterKey, rows]);
 
   const filteredRows = useMemo(() => {
     return rows
@@ -494,6 +543,34 @@ function FilterableTable({
     };
   }, [columns, filteredRows.length, selectionNumericProfile, selectionRange]);
 
+  const selectedClipboardText = useMemo(() => {
+    if (!selectionRange) {
+      return "";
+    }
+
+    const minIndex = Math.max(0, Math.min(selectionRange.startIndex, selectionRange.endIndex));
+    const maxIndex = Math.min(
+      filteredRows.length - 1,
+      Math.max(selectionRange.startIndex, selectionRange.endIndex),
+    );
+
+    if (minIndex > maxIndex || minIndex >= filteredRows.length) {
+      return "";
+    }
+
+    return filteredRows
+      .slice(minIndex, maxIndex + 1)
+      .map(({ row }) => formatClipboardCell(formatCellValue(row[selectionRange.columnKey], selectionRange.columnKey)))
+      .join("\r\n");
+  }, [filteredRows, selectionRange]);
+
+  const markCopied = useCallback(() => {
+    setCopyMessage("Copied");
+    window.setTimeout(() => {
+      setCopyMessage("");
+    }, 1200);
+  }, []);
+
   useEffect(() => {
     if (!selectionRange) {
       return;
@@ -503,6 +580,28 @@ function FilterableTable({
       setSelectionRange(null);
     }
   }, [filteredRows.length, selectionRange]);
+
+  useEffect(() => {
+    if (!selectedClipboardText) {
+      return undefined;
+    }
+
+    function handleDocumentCopy(event: ClipboardEvent) {
+      const wrapper = tableWrapperRef.current;
+      if (!wrapper || !wrapper.contains(document.activeElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.clipboardData?.setData("text/plain", selectedClipboardText);
+      markCopied();
+    }
+
+    document.addEventListener("copy", handleDocumentCopy);
+    return () => {
+      document.removeEventListener("copy", handleDocumentCopy);
+    };
+  }, [markCopied, selectedClipboardText]);
 
   useEffect(() => {
     if (onFilteredRowsChange) {
@@ -652,6 +751,7 @@ function FilterableTable({
                     startIndex: filteredIndex,
                     endIndex: filteredIndex,
                   });
+                  tableWrapperRef.current?.focus();
                   selectionAnchorRef.current = {
                     columnKey: column.key,
                     startIndex: filteredIndex,
@@ -661,20 +761,46 @@ function FilterableTable({
                 }}
               >
                 {editable && onRowsChange && !nonEditableColumns.includes(column.key) ? (
-                  <input
-                    className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
-                    type="text"
-                    value={toCellText(row[column.key])}
-                    onChange={(e) => {
-                      const nextRows = [...rows];
-                      nextRows[index] = {
-                        ...nextRows[index],
-                        [column.key]: e.target.value,
-                      };
-                      onRowsChange(nextRows);
-                    }}
-                    style={{ width: "100%" }}
-                  />
+                  editableOptions?.[column.key]?.length ? (
+                    <select
+                      className={
+                        compact
+                          ? "data-table__cell-select data-table__cell-select--compact"
+                          : "data-table__cell-select"
+                      }
+                      value={toCellText(row[column.key])}
+                      onChange={(e) => {
+                        const nextRows = [...rows];
+                        nextRows[index] = {
+                          ...nextRows[index],
+                          [column.key]: e.target.value,
+                        };
+                        onRowsChange(nextRows);
+                      }}
+                    >
+                      <option value="">Select...</option>
+                      {editableOptions[column.key].map((option) => (
+                        <option key={`${column.key}-${option}`} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className={compact ? "data-table__cell-input data-table__cell-input--compact" : "data-table__cell-input"}
+                      type="text"
+                      value={toCellText(row[column.key])}
+                      onChange={(e) => {
+                        const nextRows = [...rows];
+                        nextRows[index] = {
+                          ...nextRows[index],
+                          [column.key]: e.target.value,
+                        };
+                        onRowsChange(nextRows);
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  )
                 ) : (
                   formatCellValue(row[column.key], column.key)
                 )}
@@ -773,12 +899,19 @@ function FilterableTable({
                 | Numeric: <strong>0</strong>
               </>
             )}
+            {copyMessage ? (
+              <>
+                {" "}
+                | <strong>{copyMessage}</strong>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
       <div
         ref={tableWrapperRef}
         className={`table-wrapper${selectionDragging ? " table-wrapper--selecting" : ""}`}
+        tabIndex={0}
         style={maxHeight ? { maxHeight } : undefined}
         onScroll={(event) => {
           if (!shouldVirtualize) {
@@ -806,7 +939,7 @@ function FilterableTable({
             </tr>
             <tr>
               {columns.map((column) => {
-                const isFilterable = !editable && column.filterable !== false;
+                const isFilterable = (!editable || allowFiltersWhenEditable) && column.filterable !== false;
                 if (!isFilterable) {
                   return <th key={`${column.key}-filter`} className={column.className} />;
                 }

@@ -20,6 +20,7 @@ import LayerDetailPage from "./pages/LayerDetailPage";
 import AuthPage from "./pages/AuthPage";
 import TotalMarketCalculationPage from "./pages/TotalMarketCalculationPage";
 import RestatementPage from "./pages/RestatementPage";
+import TmcValidationReportPage from "./pages/TmcValidationReportPage";
 
 function readBoolEnv(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) {
@@ -187,6 +188,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/total-market-calculation" element={<TotalMarketCalculationPage />} />
             <Route path="/restatement" element={<RestatementPage />} />
+            <Route path="/tmc-validation-report" element={<TmcValidationReportPage />} />
             <Route path="/matrix" element={<MatrixSubmissionPage />} />
             <Route path="/pipeline" element={<PipelineViewerPage />} />
             <Route path="/upload/oth" element={<OthUploadPage />} />

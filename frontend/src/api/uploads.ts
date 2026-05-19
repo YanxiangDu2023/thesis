@@ -22,6 +22,7 @@ import type {
   RunCrpTmaReportCleanDataResponse,
   RunControlReportCleanDataResponse,
   SaveEditedUploadResponse,
+  SyncBrandMappingFromOthResponse,
   UploadCompletenessResponse,
   UploadCsvResponse,
   UploadRun,
@@ -270,6 +271,27 @@ export async function saveEditedUpload(
   }
 
   return result as SaveEditedUploadResponse;
+}
+
+export async function syncBrandMappingFromOth(
+  planningYear?: number
+): Promise<SyncBrandMappingFromOthResponse> {
+  const response = await apiFetch("/uploads/brand-mapping/sync-from-oth", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      planning_year: planningYear ?? null,
+    }),
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to sync Brand Mapping from OTH.");
+  }
+
+  return result as SyncBrandMappingFromOthResponse;
 }
 
 export async function getUpload(uploadRunId: number): Promise<UploadRun> {
