@@ -105,6 +105,7 @@ export type LatestControlReportCleanDataResponse = {
 export type CrpTmaReportRun = {
   id: number;
   tma_upload_run_id: number;
+  source_matrix_upload_run_id?: number | null;
   created_at: string;
   row_count: number | null;
   status: string | null;
@@ -136,6 +137,46 @@ export type RunCrpTmaReportCleanDataResponse = {
 export type LatestCrpTmaReportCleanDataResponse = {
   run: CrpTmaReportRun;
   rows: CrpTmaReportRow[];
+};
+
+export type CrpSalReportRun = {
+  id: number;
+  volvo_upload_run_id: number;
+  source_matrix_upload_run_id?: number | null;
+  created_at: string;
+  row_count: number | null;
+  status: string | null;
+  message: string | null;
+};
+
+export type CrpSalReportRow = {
+  id: number;
+  report_run_id: number;
+  row_index: number;
+  calendar: string;
+  region: string;
+  market: string;
+  country: string;
+  machine: string;
+  machine_line: string;
+  size_class: string;
+  brand_owner_code: string;
+  brand_owner: string;
+  brand: string;
+  brand_nationality: string;
+  source: string;
+  fid: number | null;
+};
+
+export type RunCrpSalReportCleanDataResponse = {
+  message: string;
+  report_run_id: number;
+  row_count: number;
+};
+
+export type LatestCrpSalReportCleanDataResponse = {
+  run: CrpSalReportRun;
+  rows: CrpSalReportRow[];
 };
 
 export type CrpD1CombinedReportRow = {

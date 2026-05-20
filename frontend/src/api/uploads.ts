@@ -4,6 +4,7 @@ import type {
   ExcavatorsSplitCaseLatestResponse,
   ExcavatorsSplitCaseRunResponse,
   ExcavatorsSplitCaseSnapshotRequest,
+  LatestCrpSalReportCleanDataResponse,
   LatestCrpTmaReportCleanDataResponse,
   LatestControlReportCleanDataResponse,
   LatestUploadResponse,
@@ -20,6 +21,7 @@ import type {
   TotalMarketCalculationEligibleOthResponse,
   TotalMarketCalculationEligibleOthRunResponse,
   RunCrpTmaReportCleanDataResponse,
+  RunCrpSalReportCleanDataResponse,
   RunControlReportCleanDataResponse,
   SaveEditedUploadResponse,
   SyncBrandMappingFromOthResponse,
@@ -401,6 +403,30 @@ export async function getLatestCrpTmaReportCleanData(): Promise<LatestCrpTmaRepo
   }
 
   return result as LatestCrpTmaReportCleanDataResponse;
+}
+
+export async function runCrpSalReportCleanData(): Promise<RunCrpSalReportCleanDataResponse> {
+  const response = await apiFetch("/reports/crp-sal-clean-data/run", {
+    method: "POST",
+  });
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to run Control Volvo SAL");
+  }
+
+  return result as RunCrpSalReportCleanDataResponse;
+}
+
+export async function getLatestCrpSalReportCleanData(): Promise<LatestCrpSalReportCleanDataResponse> {
+  const response = await apiFetch("/reports/crp-sal-clean-data/latest");
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.detail || "Failed to fetch latest Control Volvo SAL");
+  }
+
+  return result as LatestCrpSalReportCleanDataResponse;
 }
 
 export async function getCrpD1CombinedReport(

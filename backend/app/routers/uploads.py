@@ -827,16 +827,31 @@ def run_crp_tma_report_clean_data():
             detail="Missing latest successful upload for: tma_data"
         )
 
+    cursor.execute("SELECT planning_year FROM upload_runs WHERE id = ?", (tma_upload_run_id,))
+    tma_upload = cursor.fetchone()
+    planning_year = tma_upload["planning_year"] if tma_upload else None
+    source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", planning_year)
+    if source_matrix_upload_run_id is None and planning_year is not None:
+        source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
+    if source_matrix_upload_run_id is None:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail="Missing latest successful upload for: source_matrix"
+        )
+
     cursor.execute("""
         INSERT INTO crp_tma_report_runs (
             tma_upload_run_id,
+            source_matrix_upload_run_id,
             status,
             message
-        ) VALUES (?, ?, ?)
+        ) VALUES (?, ?, ?, ?)
     """, (
         tma_upload_run_id,
+        source_matrix_upload_run_id,
         "running",
-        "CRP TMA report run started"
+        "Control TMA report run started"
     ))
     report_run_id = cursor.lastrowid
     conn.commit()
@@ -861,6 +876,13 @@ def run_crp_tma_report_clean_data():
                 'TMA' AS source
             FROM tma_data_rows t
             WHERE t.upload_run_id = ?
+              AND EXISTS (
+                SELECT 1
+                FROM source_matrix_rows sm
+                WHERE sm.upload_run_id = ?
+                  AND UPPER(TRIM(sm.country_name)) = UPPER(TRIM(t.end_country))
+                  AND UPPER(TRIM(sm.machine_line_name)) = UPPER(TRIM(t.machine_line))
+              )
             GROUP BY
                 t.year,
                 t.geographical_region,
@@ -879,7 +901,7 @@ def run_crp_tma_report_clean_data():
                 t.machine_line,
                 t.machine_line_code,
                 t.size_class_mapping
-        """, (tma_upload_run_id,))
+        """, (tma_upload_run_id, source_matrix_upload_run_id))
         rows = cursor.fetchall()
 
         for index, row in enumerate(rows, start=1):
@@ -920,13 +942,13 @@ def run_crp_tma_report_clean_data():
         """, (
             len(rows),
             "success",
-            "CRP TMA report generated successfully",
+            "Control TMA report generated successfully",
             report_run_id
         ))
         conn.commit()
 
         return {
-            "message": "CRP TMA report generated successfully",
+            "message": "Control TMA report generated successfully",
             "report_run_id": report_run_id,
             "row_count": len(rows)
         }
@@ -965,6 +987,186 @@ def get_latest_crp_tma_report_clean_data():
     cursor.execute("""
         SELECT *
         FROM crp_tma_report_rows
+        WHERE report_run_id = ?
+        ORDER BY row_index ASC, id ASC
+    """, (latest_run_dict["id"],))
+    rows = [_serialize_row(dict(row)) for row in cursor.fetchall()]
+    conn.close()
+
+    return {
+        "run": latest_run_dict,
+        "rows": rows
+    }
+
+
+@router.post("/reports/crp-sal-clean-data/run")
+def run_crp_sal_report_clean_data():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    volvo_upload_run_id = _get_latest_success_upload_id(cursor, "volvo_sale_data")
+    if volvo_upload_run_id is None:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail="Missing latest successful upload for: volvo_sale_data"
+        )
+
+    cursor.execute("SELECT planning_year FROM upload_runs WHERE id = ?", (volvo_upload_run_id,))
+    volvo_upload = cursor.fetchone()
+    planning_year = volvo_upload["planning_year"] if volvo_upload else None
+    source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", planning_year)
+    if source_matrix_upload_run_id is None and planning_year is not None:
+        source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
+    if source_matrix_upload_run_id is None:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail="Missing latest successful upload for: source_matrix"
+        )
+
+    cursor.execute("""
+        INSERT INTO crp_sal_report_runs (
+            volvo_upload_run_id,
+            source_matrix_upload_run_id,
+            status,
+            message
+        ) VALUES (?, ?, ?, ?)
+    """, (
+        volvo_upload_run_id,
+        source_matrix_upload_run_id,
+        "running",
+        "Control Volvo SAL report run started"
+    ))
+    report_run_id = cursor.lastrowid
+    conn.commit()
+
+    try:
+        cursor.execute("""
+            SELECT
+                v.calendar,
+                v.region,
+                v.market,
+                v.country,
+                v.machine,
+                v.machine_line,
+                v.size_class,
+                v.brand_owner_code,
+                v.brand_owner,
+                v.brand,
+                v.brand_nationality,
+                COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
+                CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL) AS fid
+            FROM volvo_sale_data_rows v
+            WHERE v.upload_run_id = ?
+              AND EXISTS (
+                SELECT 1
+                FROM source_matrix_rows sm
+                WHERE sm.upload_run_id = ?
+                  AND UPPER(TRIM(sm.country_name)) = UPPER(TRIM(v.country))
+                  AND UPPER(TRIM(sm.machine_line_name)) = UPPER(TRIM(v.machine_line))
+              )
+            ORDER BY
+                v.calendar,
+                v.region,
+                v.market,
+                v.country,
+                v.machine,
+                v.machine_line,
+                v.size_class,
+                v.row_index
+        """, (volvo_upload_run_id, source_matrix_upload_run_id))
+        rows = cursor.fetchall()
+
+        for index, row in enumerate(rows, start=1):
+            cursor.execute("""
+                INSERT INTO crp_sal_report_rows (
+                    report_run_id,
+                    row_index,
+                    calendar,
+                    region,
+                    market,
+                    country,
+                    machine,
+                    machine_line,
+                    size_class,
+                    brand_owner_code,
+                    brand_owner,
+                    brand,
+                    brand_nationality,
+                    source,
+                    fid
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                report_run_id,
+                index,
+                row["calendar"],
+                row["region"],
+                row["market"],
+                row["country"],
+                row["machine"],
+                row["machine_line"],
+                row["size_class"],
+                row["brand_owner_code"],
+                row["brand_owner"],
+                row["brand"],
+                row["brand_nationality"],
+                row["source"],
+                row["fid"],
+            ))
+
+        cursor.execute("""
+            UPDATE crp_sal_report_runs
+            SET row_count = ?, status = ?, message = ?
+            WHERE id = ?
+        """, (
+            len(rows),
+            "success",
+            "Control Volvo SAL report generated successfully",
+            report_run_id
+        ))
+        conn.commit()
+
+        return {
+            "message": "Control Volvo SAL report generated successfully",
+            "report_run_id": report_run_id,
+            "row_count": len(rows)
+        }
+    except Exception as e:
+        cursor.execute("""
+            UPDATE crp_sal_report_runs
+            SET status = ?, message = ?
+            WHERE id = ?
+        """, (
+            "failed",
+            str(e),
+            report_run_id
+        ))
+        conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/reports/crp-sal-clean-data/latest")
+def get_latest_crp_sal_report_clean_data():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT *
+        FROM crp_sal_report_runs
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    """)
+    latest_run = cursor.fetchone()
+    if latest_run is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="No Control Volvo SAL report runs found")
+
+    latest_run_dict = dict(latest_run)
+    cursor.execute("""
+        SELECT *
+        FROM crp_sal_report_rows
         WHERE report_run_id = ?
         ORDER BY row_index ASC, id ASC
     """, (latest_run_dict["id"],))
