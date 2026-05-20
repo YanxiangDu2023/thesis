@@ -50,6 +50,7 @@ function CrpUploadPage() {
       "country",
       "machine_line",
       "machine_line_code",
+      "artificial_machine_line",
       "size_class_mapping",
       "fid_sum",
       "source",
@@ -64,6 +65,7 @@ function CrpUploadPage() {
       "country",
       "machine",
       "machine_line",
+      "artificial_machine_line",
       "size_class",
       "brand_owner_code",
       "brand_owner",
@@ -89,6 +91,10 @@ function CrpUploadPage() {
       setControlTmaError("");
       setControlTmaMessage("");
       const runResult = await runCrpTmaReportCleanData();
+      const latestResult = await getLatestCrpTmaReportCleanData();
+      setControlTmaRun(latestResult.run);
+      setControlTmaRows(latestResult.rows);
+      setShowControlTmaPanel(true);
       setControlTmaMessage(
         `Run successful. Run ID: ${runResult.report_run_id}, Row Count: ${runResult.row_count}`
       );
@@ -168,6 +174,10 @@ function CrpUploadPage() {
       setControlSalError("");
       setControlSalMessage("");
       const runResult = await runCrpSalReportCleanData();
+      const latestResult = await getLatestCrpSalReportCleanData();
+      setControlSalRun(latestResult.run);
+      setControlSalRows(latestResult.rows);
+      setShowControlSalPanel(true);
       setControlSalMessage(
         `Run successful. Run ID: ${runResult.report_run_id}, Row Count: ${runResult.row_count}`
       );

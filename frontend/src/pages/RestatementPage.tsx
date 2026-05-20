@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import FilterableTable from "../components/table/FilterableTable";
 import {
   createPlanningYear,
+  getLatestCrpSalReportCleanData,
+  getLatestCrpTmaReportCleanData,
   getPlanningYears,
   getLatestTotalMarketCalculationCalculatedRows,
   saveTotalMarketCalculationCalculatedSnapshot,
 } from "../api/uploads";
-import type { OthDeletionFlagRow } from "../types/upload";
+import type { CrpSalReportRow, CrpTmaReportRow, OthDeletionFlagRow } from "../types/upload";
 
 type DoubleBrandCheckRow = OthDeletionFlagRow & {
   source_flag: string;
@@ -73,6 +75,58 @@ function toDisplayText(value: string | number | null | undefined, fallback = "")
   return text.length > 0 ? text : fallback;
 }
 
+function escapeExcelHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function downloadRowsAsExcel(
+  fileName: string,
+  sheetTitle: string,
+  columns: Array<{ key: string; label?: string }>,
+  rows: Array<Record<string, string | number | null>>
+): void {
+  const headerHtml = columns.map((column) => `<th>${escapeExcelHtml(column.label ?? column.key)}</th>`).join("");
+  const bodyHtml = rows
+    .map(
+      (row) =>
+        `<tr>${columns
+          .map((column) => `<td>${escapeExcelHtml(toDisplayText(row[column.key]))}</td>`)
+          .join("")}</tr>`
+    )
+    .join("");
+  const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="ProgId" content="Excel.Sheet" />
+    <meta name="Generator" content="Microsoft Excel 15" />
+    <title>${escapeExcelHtml(sheetTitle)}</title>
+  </head>
+  <body>
+    <table>
+      <thead><tr>${headerHtml}</tr></thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>
+  </body>
+</html>`;
+
+  const blob = new Blob(["\uFEFF", html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 function isOthNonVceRow(row: OthDeletionFlagRow): boolean {
   const sourceKey = toKey(row.source);
   if (sourceKey === "SAL" || sourceKey === "TMA") {
@@ -132,10 +186,19 @@ function getRestatementGroupKey(row: OthDeletionFlagRow): string {
   ].join("||");
 }
 
-function getRestatementBaseKey(row: OthDeletionFlagRow): string {
+function getControlTmaGroupKey(row: CrpTmaReportRow): string {
   return [
     toKey(row.country),
     toKey(row.artificial_machine_line),
+    toKey(row.size_class_mapping),
+  ].join("||");
+}
+
+function getControlSalGroupKey(row: CrpSalReportRow): string {
+  return [
+    toKey(row.country),
+    toKey(row.artificial_machine_line),
+    toKey(row.size_class),
   ].join("||");
 }
 
@@ -281,6 +344,7 @@ function RestatementPage() {
   const [restatementRows, setRestatementRows] = useState<RestatementPreviewRow[]>([]);
   const [restatementApplied, setRestatementApplied] = useState(false);
   const [restatementApplying, setRestatementApplying] = useState(false);
+  const [downloadingFinalRestatement, setDownloadingFinalRestatement] = useState(false);
   const [restatementMessage, setRestatementMessage] = useState("");
   const [finalRestatementRows, setFinalRestatementRows] = useState<FinalRestatementResultRow[]>([]);
   const [showFinalRestatementResult, setShowFinalRestatementResult] = useState(false);
@@ -506,70 +570,99 @@ function RestatementPage() {
     setRestatementApplying(true);
     setRestatementMessage("");
     try {
-      const tmaByGroup = new Map<string, number>();
-      const vceSalByGroup = new Map<string, number>();
-      const othByGroup = new Map<string, number>();
-      const tmaByBase = new Map<string, number>();
-      const vceSalByBase = new Map<string, number>();
-      const othByBase = new Map<string, number>();
+      const [controlTmaResult, controlSalResult] = await Promise.all([
+        getLatestCrpTmaReportCleanData(),
+        getLatestCrpSalReportCleanData(),
+      ]);
 
-      for (const row of fullRows) {
-        const groupKey = getRestatementGroupKey(row);
-        const baseKey = getRestatementBaseKey(row);
-        const source = toKey(row.source);
-        const fid = toNumber(row.fid);
-        if (source === "TMA") {
-          tmaByGroup.set(groupKey, (tmaByGroup.get(groupKey) ?? 0) + fid);
-          tmaByBase.set(baseKey, (tmaByBase.get(baseKey) ?? 0) + fid);
-          continue;
+      const controlTmaByGroup = new Map<string, number>();
+      const controlSalByGroup = new Map<string, number>();
+      const othByGroup = new Map<string, number>();
+      const groupTemplates = new Map<string, OthDeletionFlagRow>();
+
+      for (const row of controlTmaResult.rows) {
+        const groupKey = getControlTmaGroupKey(row);
+        controlTmaByGroup.set(groupKey, (controlTmaByGroup.get(groupKey) ?? 0) + toNumber(row.fid_sum));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, {
+            year: row.year,
+            source: "OTH",
+            country_code: row.end_country_code,
+            country: row.country,
+            country_grouping: "",
+            region: row.geographical_region,
+            market_area: row.geographical_market_area,
+            machine_line_name: row.machine_line,
+            machine_line_code: row.machine_line_code,
+            artificial_machine_line: row.artificial_machine_line,
+            brand_name: "Other Reporting Brands",
+            brand_code: "Other Reporting Brands",
+            size_class_flag: row.size_class_mapping,
+            fid: 0,
+            ms_percent: "",
+            deletion_flag: "",
+            pri_sec: "",
+            reporter_flag: "Y",
+            source_flag: "OTH",
+          });
         }
-        const isVceSal =
-          source === "SAL" &&
-          (toKey(row.brand_code) === "VCE" ||
-            toKey(row.brand_name).includes("VOLVO"));
-        if (isVceSal) {
-          vceSalByGroup.set(groupKey, (vceSalByGroup.get(groupKey) ?? 0) + fid);
-          vceSalByBase.set(baseKey, (vceSalByBase.get(baseKey) ?? 0) + fid);
+      }
+
+      for (const row of controlSalResult.rows) {
+        const groupKey = getControlSalGroupKey(row);
+        controlSalByGroup.set(groupKey, (controlSalByGroup.get(groupKey) ?? 0) + toNumber(row.fid));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, {
+            year: row.calendar,
+            source: "OTH",
+            country_code: "",
+            country: row.country,
+            country_grouping: "",
+            region: row.region,
+            market_area: row.market,
+            machine_line_name: row.machine_line,
+            machine_line_code: row.machine,
+            artificial_machine_line: row.artificial_machine_line,
+            brand_name: "Other Reporting Brands",
+            brand_code: "Other Reporting Brands",
+            size_class_flag: row.size_class,
+            fid: 0,
+            ms_percent: "",
+            deletion_flag: "",
+            pri_sec: "",
+            reporter_flag: "Y",
+            source_flag: "OTH",
+          });
         }
       }
 
       for (const row of rows) {
         const groupKey = getRestatementGroupKey(row);
-        const baseKey = getRestatementBaseKey(row);
         othByGroup.set(groupKey, (othByGroup.get(groupKey) ?? 0) + toNumber(row.fid));
-        othByBase.set(baseKey, (othByBase.get(baseKey) ?? 0) + toNumber(row.fid));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, row);
+        }
       }
 
-      let fallbackGroupCount = 0;
-      const fallbackUsedKeys = new Set<string>();
+      const allGroupKeys = new Set<string>([
+        ...Array.from(controlTmaByGroup.keys()),
+        ...Array.from(controlSalByGroup.keys()),
+        ...Array.from(othByGroup.keys()),
+      ]);
       const groupMeta = new Map<
         string,
         {
-          baseKey: string;
-          useFallback: boolean;
           targetNonVce: number;
           othSum: number;
         }
       >();
 
-      for (const row of rows) {
-        const groupKey = getRestatementGroupKey(row);
-        if (groupMeta.has(groupKey)) {
-          continue;
-        }
-        const baseKey = getRestatementBaseKey(row);
-        const hasFullTma = tmaByGroup.has(groupKey);
-        const hasFullSal = vceSalByGroup.has(groupKey);
-        const useFallback = !hasFullTma && !hasFullSal;
-        if (useFallback && !fallbackUsedKeys.has(groupKey)) {
-          fallbackUsedKeys.add(groupKey);
-          fallbackGroupCount += 1;
-        }
-        const tma = useFallback ? (tmaByBase.get(baseKey) ?? 0) : (tmaByGroup.get(groupKey) ?? 0);
-        const vceSal = useFallback ? (vceSalByBase.get(baseKey) ?? 0) : (vceSalByGroup.get(groupKey) ?? 0);
-        const targetNonVce = Math.max(tma - vceSal, 0);
-        const othSum = useFallback ? (othByBase.get(baseKey) ?? 0) : (othByGroup.get(groupKey) ?? 0);
-        groupMeta.set(groupKey, { baseKey, useFallback, targetNonVce, othSum });
+      for (const groupKey of allGroupKeys) {
+        const tma = controlTmaByGroup.get(groupKey) ?? 0;
+        const vceSal = controlSalByGroup.get(groupKey) ?? 0;
+        const targetNonVce = tma - vceSal;
+        const othSum = othByGroup.get(groupKey) ?? 0;
+        groupMeta.set(groupKey, { targetNonVce, othSum });
       }
 
       const nextRows: RestatementPreviewRow[] = rows.map((row) => {
@@ -580,8 +673,7 @@ function RestatementPage() {
         const othSum = meta?.othSum ?? 0;
 
         let after = before;
-        // Case 1: shrink non-VCE OTH proportionally when above target.
-        if (othSum > 0 && othSum > targetNonVce) {
+        if (othSum > 0) {
           after = (before / othSum) * targetNonVce;
         }
 
@@ -605,27 +697,27 @@ function RestatementPage() {
       let adjustedGroupCount = 0;
       let toppedUpGroupCount = 0;
       let createdUrsRowCount = 0;
+      let createdNoDenominatorRowCount = 0;
       const topUpRowsByGroup = new Map<string, RestatementPreviewRow[]>();
 
       for (const [groupKey, meta] of groupMeta.entries()) {
         const othSum = meta.othSum;
         const targetNonVce = meta.targetNonVce;
-        if (othSum > targetNonVce) {
+        if (othSum > 0.0001 && Math.abs(othSum - targetNonVce) > 0.0001) {
           adjustedGroupCount += 1;
           continue;
         }
-        if (targetNonVce - othSum <= 0.0001) {
+        if (othSum > 0.0001 || Math.abs(targetNonVce) <= 0.0001) {
           continue;
         }
         toppedUpGroupCount += 1;
-        const gap = targetNonVce - othSum;
+        const gap = targetNonVce;
         const groupIndexes = rowsByGroup.get(groupKey) ?? [];
 
-        const template = groupIndexes.length > 0 ? nextRows[groupIndexes[0]] : undefined;
+        const template = groupIndexes.length > 0 ? nextRows[groupIndexes[0]] : groupTemplates.get(groupKey);
         if (!template) {
           continue;
         }
-        // Always add a dedicated top-up row for shortage groups, as requested.
         const newRow: RestatementPreviewRow = {
           ...template,
           brand_name: "Other Reporting Brands",
@@ -641,6 +733,9 @@ function RestatementPage() {
         }
         topUpRowsByGroup.get(groupKey)?.push(newRow);
         createdUrsRowCount += 1;
+        if (othSum <= 0.0001) {
+          createdNoDenominatorRowCount += 1;
+        }
       }
 
       const lastIndexByGroup = new Map<string, number>();
@@ -659,20 +754,28 @@ function RestatementPage() {
           }
         }
       });
+      for (const [groupKey, topUps] of topUpRowsByGroup.entries()) {
+        if (lastIndexByGroup.has(groupKey)) {
+          continue;
+        }
+        orderedNextRows.push(...topUps);
+      }
 
       setRestatementRows(orderedNextRows);
       setRestatementApplied(true);
       setFinalRestatementRows([]);
       setShowFinalRestatementResult(false);
       setRestatementMessage(
-        `Restatement rule applied. Adjusted groups: ${adjustedGroupCount}. Top-up groups: ${toppedUpGroupCount}. Added URS rows: ${createdUrsRowCount}. Fallback groups (country + artificial machine line): ${fallbackGroupCount}.`
+        `Restatement rule applied from Control TMA #${controlTmaResult.run.id} and Control Volvo SAL #${controlSalResult.run.id}. Adjusted groups: ${adjustedGroupCount}. Top-up groups: ${toppedUpGroupCount}. Added Other Reporting Brands rows: ${createdUrsRowCount}. No-denominator groups: ${createdNoDenominatorRowCount}.`
       );
+    } catch (err) {
+      setRestatementMessage(err instanceof Error ? err.message : "Failed to apply restatement rule.");
     } finally {
       setRestatementApplying(false);
     }
   }
 
-  function handleShowFinalRestatementResult() {
+  async function handleShowFinalRestatementResult() {
     if (!restatementApplied || restatementRows.length === 0) {
       setRestatementMessage('Please click "Apply Restatement Rule" first.');
       return;
@@ -684,6 +787,8 @@ function RestatementPage() {
     >;
     const groupMetaByKey = new Map<string, GroupMeta>();
     const restatedBrandRowsByKey = new Map<string, RestatementPreviewRow[]>();
+    const tmaByKey = new Map<string, number>();
+    const salRowsByKey = new Map<string, FinalRestatementResultRow[]>();
 
     const ensureGroupMeta = (row: OthDeletionFlagRow) => {
       const groupKey = getFinalRestatementGroupKey(row);
@@ -702,15 +807,39 @@ function RestatementPage() {
       return groupKey;
     };
 
-    for (const row of fullRows) {
-      const sourceKey = toKey(row.source);
-      const isVceSal =
-        sourceKey === "SAL" &&
-        (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
-      if (sourceKey === "TMA" || isVceSal) {
-        ensureGroupMeta(row);
+    const ensureControlTmaMeta = (row: CrpTmaReportRow) => {
+      const groupKey = getControlTmaGroupKey(row);
+      if (!groupMetaByKey.has(groupKey)) {
+        groupMetaByKey.set(groupKey, {
+          country_grouping: "",
+          country: row.country,
+          country_code: row.end_country_code,
+          region: row.geographical_region,
+          machine_line_code: row.machine_line_code,
+          machine_line_name: row.machine_line,
+          artificial_machine_line: row.artificial_machine_line,
+          size_class_flag: row.size_class_mapping,
+        });
       }
-    }
+      return groupKey;
+    };
+
+    const ensureControlSalMeta = (row: CrpSalReportRow) => {
+      const groupKey = getControlSalGroupKey(row);
+      if (!groupMetaByKey.has(groupKey)) {
+        groupMetaByKey.set(groupKey, {
+          country_grouping: "",
+          country: row.country,
+          country_code: "",
+          region: row.region,
+          machine_line_code: row.machine,
+          machine_line_name: row.machine_line,
+          artificial_machine_line: row.artificial_machine_line,
+          size_class_flag: row.size_class,
+        });
+      }
+      return groupKey;
+    };
 
     for (const row of restatementRows) {
       const groupKey = ensureGroupMeta(row);
@@ -720,24 +849,38 @@ function RestatementPage() {
       restatedBrandRowsByKey.get(groupKey)?.push(row);
     }
 
-    const tmaByKey = new Map<string, number>();
-    const salByKey = new Map<string, number>();
-    for (const row of fullRows) {
-      const groupKey = getFinalRestatementGroupKey(row);
-      if (!groupMetaByKey.has(groupKey)) {
-        continue;
+    try {
+      const [controlTmaResult, controlSalResult] = await Promise.all([
+        getLatestCrpTmaReportCleanData(),
+        getLatestCrpSalReportCleanData(),
+      ]);
+
+      for (const row of controlTmaResult.rows) {
+        const groupKey = ensureControlTmaMeta(row);
+        tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid_sum));
       }
-      const sourceKey = toKey(row.source);
-      if (sourceKey === "TMA") {
-        tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid));
-        continue;
+
+      for (const row of controlSalResult.rows) {
+        const groupKey = ensureControlSalMeta(row);
+        const meta = groupMetaByKey.get(groupKey);
+        if (!meta) {
+          continue;
+        }
+        if (!salRowsByKey.has(groupKey)) {
+          salRowsByKey.set(groupKey, []);
+        }
+        salRowsByKey.get(groupKey)?.push({
+          ...meta,
+          row_type: "SAL",
+          source: toDisplayText(row.source, "SAL"),
+          brand_code: toDisplayText(row.brand_owner_code, "VCE"),
+          brand_name: toDisplayText(row.brand_owner, "VOLVO CE"),
+          fid: Number(toNumber(row.fid).toFixed(2)),
+        });
       }
-      const isVceSal =
-        sourceKey === "SAL" &&
-        (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
-      if (isVceSal) {
-        salByKey.set(groupKey, (salByKey.get(groupKey) ?? 0) + toNumber(row.fid));
-      }
+    } catch (err) {
+      setRestatementMessage(err instanceof Error ? err.message : "Failed to load latest Control TMA / Volvo SAL.");
+      return;
     }
 
     const groupOrder = Array.from(groupMetaByKey.entries())
@@ -769,14 +912,10 @@ function RestatementPage() {
         fid: Number((tmaByKey.get(groupKey) ?? 0).toFixed(2)),
       });
 
-      resultRows.push({
-        ...meta,
-        row_type: "SAL",
-        source: "SAL",
-        brand_code: "VCE",
-        brand_name: "VOLVO CE",
-        fid: Number((salByKey.get(groupKey) ?? 0).toFixed(2)),
+      const salRows = (salRowsByKey.get(groupKey) ?? []).sort((a, b) => {
+        return toKey(a.brand_code).localeCompare(toKey(b.brand_code)) || toKey(a.brand_name).localeCompare(toKey(b.brand_name));
       });
+      resultRows.push(...salRows);
 
       const brands = (restatedBrandRowsByKey.get(groupKey) ?? []).slice().sort((a, b) => {
         return (
@@ -800,13 +939,34 @@ function RestatementPage() {
 
     setFinalRestatementRows(resultRows);
     setShowFinalRestatementResult(true);
-    setRestatementMessage(`Final Restatement Result generated: ${groupOrder.length} groups, ${resultRows.length} rows.`);
+    setRestatementMessage(`Final Restatement Result generated from latest Control TMA / Control Volvo SAL: ${groupOrder.length} groups, ${resultRows.length} rows.`);
     window.setTimeout(() => {
       const section = document.getElementById("restatement-panel-top");
       if (section) {
         section.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 0);
+  }
+
+  function handleDownloadFinalRestatementResult() {
+    if (!showFinalRestatementResult || finalRestatementRows.length === 0) {
+      setRestatementMessage('No final restatement result rows to download. Click "Final Restatement Result" first.');
+      return;
+    }
+    setDownloadingFinalRestatement(true);
+    try {
+      downloadRowsAsExcel(
+        `final_restatement_result_${selectedPlanningYear || "latest"}.xls`,
+        "Final Restatement Result",
+        finalRestatementColumns,
+        finalRestatementRows.map((row) => ({ ...row }))
+      );
+      setRestatementMessage(`Downloaded Final Restatement Result: ${finalRestatementRows.length.toLocaleString()} rows.`);
+    } catch (err) {
+      setRestatementMessage(err instanceof Error ? err.message : "Failed to download Final Restatement Result.");
+    } finally {
+      setDownloadingFinalRestatement(false);
+    }
   }
 
   function handleReportCheckDoubleBrand() {
@@ -901,6 +1061,7 @@ function RestatementPage() {
     setRestatementRows([]);
     setRestatementApplied(false);
     setRestatementApplying(false);
+    setDownloadingFinalRestatement(false);
     setRestatementMessage("");
     setFinalRestatementRows([]);
     setShowFinalRestatementResult(false);
@@ -1645,7 +1806,17 @@ function RestatementPage() {
               </>
             ) : (
               <div id="final-restatement-result" className="section summary-card" style={{ marginTop: "14px" }}>
-                <strong>Final Restatement Result (TMA / SAL / Restated Non-VCE)</strong>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "8px", flexWrap: "wrap" }}>
+                  <strong>Final Restatement Result (TMA / SAL / Restated Non-VCE)</strong>
+                  <button
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={handleDownloadFinalRestatementResult}
+                    disabled={downloadingFinalRestatement || finalRestatementRows.length === 0}
+                  >
+                    {downloadingFinalRestatement ? "Downloading..." : "Download Excel"}
+                  </button>
+                </div>
                 <FilterableTable
                   columns={finalRestatementColumns}
                   rows={finalRestatementRows}

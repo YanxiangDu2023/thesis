@@ -123,6 +123,7 @@ export type CrpTmaReportRow = {
   country: string;
   machine_line: string;
   machine_line_code: string;
+  artificial_machine_line: string;
   size_class_mapping: string;
   fid_sum: number | null;
   source: string;
@@ -159,6 +160,7 @@ export type CrpSalReportRow = {
   country: string;
   machine: string;
   machine_line: string;
+  artificial_machine_line: string;
   size_class: string;
   brand_owner_code: string;
   brand_owner: string;

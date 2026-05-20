@@ -839,6 +839,15 @@ def run_crp_tma_report_clean_data():
             status_code=400,
             detail="Missing latest successful upload for: source_matrix"
         )
+    group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country", planning_year)
+    if group_country_upload_run_id is None and planning_year is not None:
+        group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
+    if group_country_upload_run_id is None:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail="Missing latest successful upload for: group_country"
+        )
 
     cursor.execute("""
         INSERT INTO crp_tma_report_runs (
@@ -858,14 +867,44 @@ def run_crp_tma_report_clean_data():
 
     try:
         cursor.execute("""
+            WITH group_country_by_name AS (
+                SELECT
+                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
+                    UPPER(TRIM(year)) AS year_key,
+                    MIN(TRIM(country_code)) AS country_code
+                FROM group_country_rows
+                WHERE upload_run_id = ?
+                GROUP BY
+                    REPLACE(UPPER(TRIM(country_name)), ' ', ''),
+                    UPPER(TRIM(year))
+            ),
+            source_keys AS (
+                SELECT
+                    UPPER(TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code))) AS country_code_key,
+                    TRIM(sm.country_name) AS country_name,
+                    UPPER(TRIM(sm.machine_line_name)) AS machine_line_key,
+                    COALESCE(NULLIF(TRIM(sm.artificial_machine_line), ''), TRIM(sm.machine_line_name)) AS artificial_machine_line
+                FROM source_matrix_rows sm
+                LEFT JOIN group_country_by_name gc
+                  ON gc.country_name_key = REPLACE(UPPER(TRIM(sm.country_name)), ' ', '')
+                WHERE sm.upload_run_id = ?
+                  AND TRIM(COALESCE(sm.crp_source, '')) <> ''
+                  AND TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code, '')) <> ''
+                GROUP BY
+                    UPPER(TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code))),
+                    TRIM(sm.country_name),
+                    UPPER(TRIM(sm.machine_line_name)),
+                    COALESCE(NULLIF(TRIM(sm.artificial_machine_line), ''), TRIM(sm.machine_line_name))
+            )
             SELECT
                 t.year AS year,
                 t.geographical_region AS geographical_region,
                 t.geographical_market_area AS geographical_market_area,
                 t.end_country_code AS end_country_code,
-                t.end_country AS country,
-                t.machine_line AS machine_line,
-                t.machine_line_code AS machine_line_code,
+                sk.country_name AS country,
+                GROUP_CONCAT(DISTINCT t.machine_line) AS machine_line,
+                GROUP_CONCAT(DISTINCT t.machine_line_code) AS machine_line_code,
+                sk.artificial_machine_line AS artificial_machine_line,
                 t.size_class_mapping AS size_class_mapping,
                 SUM(
                     CAST(
@@ -875,33 +914,27 @@ def run_crp_tma_report_clean_data():
                 ) AS fid_sum,
                 'TMA' AS source
             FROM tma_data_rows t
+            JOIN source_keys sk
+              ON sk.country_code_key = UPPER(TRIM(t.end_country_code))
+             AND sk.machine_line_key = UPPER(TRIM(t.machine_line))
             WHERE t.upload_run_id = ?
-              AND EXISTS (
-                SELECT 1
-                FROM source_matrix_rows sm
-                WHERE sm.upload_run_id = ?
-                  AND UPPER(TRIM(sm.country_name)) = UPPER(TRIM(t.end_country))
-                  AND UPPER(TRIM(sm.machine_line_name)) = UPPER(TRIM(t.machine_line))
-              )
             GROUP BY
                 t.year,
                 t.geographical_region,
                 t.geographical_market_area,
                 t.end_country_code,
-                t.end_country,
-                t.machine_line,
-                t.machine_line_code,
+                sk.country_name,
+                sk.artificial_machine_line,
                 t.size_class_mapping
             ORDER BY
                 t.year,
                 t.geographical_region,
                 t.geographical_market_area,
                 t.end_country_code,
-                t.end_country,
-                t.machine_line,
-                t.machine_line_code,
+                sk.country_name,
+                sk.artificial_machine_line,
                 t.size_class_mapping
-        """, (tma_upload_run_id, source_matrix_upload_run_id))
+        """, (group_country_upload_run_id, source_matrix_upload_run_id, tma_upload_run_id))
         rows = cursor.fetchall()
 
         for index, row in enumerate(rows, start=1):
@@ -916,10 +949,11 @@ def run_crp_tma_report_clean_data():
                     country,
                     machine_line,
                     machine_line_code,
+                    artificial_machine_line,
                     size_class_mapping,
                     fid_sum,
                     source
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 report_run_id,
                 index,
@@ -930,6 +964,7 @@ def run_crp_tma_report_clean_data():
                 row["country"],
                 row["machine_line"],
                 row["machine_line_code"],
+                row["artificial_machine_line"],
                 row["size_class_mapping"],
                 row["fid_sum"],
                 row["source"]
@@ -1043,39 +1078,63 @@ def run_crp_sal_report_clean_data():
 
     try:
         cursor.execute("""
+            WITH source_keys AS (
+                SELECT
+                    UPPER(TRIM(country_name)) AS country_key,
+                    UPPER(TRIM(machine_line_name)) AS machine_line_key,
+                    COALESCE(NULLIF(TRIM(artificial_machine_line), ''), TRIM(machine_line_name)) AS artificial_machine_line
+                FROM source_matrix_rows
+                WHERE upload_run_id = ?
+                  AND TRIM(COALESCE(crp_source, '')) <> ''
+                GROUP BY
+                    UPPER(TRIM(country_name)),
+                    UPPER(TRIM(machine_line_name)),
+                    COALESCE(NULLIF(TRIM(artificial_machine_line), ''), TRIM(machine_line_name))
+            )
             SELECT
                 v.calendar,
                 v.region,
                 v.market,
                 v.country,
-                v.machine,
-                v.machine_line,
-                v.size_class,
-                v.brand_owner_code,
-                v.brand_owner,
-                v.brand,
-                v.brand_nationality,
+                GROUP_CONCAT(DISTINCT v.machine) AS machine,
+                GROUP_CONCAT(DISTINCT v.machine_line) AS machine_line,
+                sk.artificial_machine_line AS artificial_machine_line,
+                CASE
+                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MINI' THEN '<6T'
+                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MIDI' THEN '6<10T'
+                    ELSE TRIM(v.size_class)
+                END AS size_class,
+                GROUP_CONCAT(DISTINCT v.brand_owner_code) AS brand_owner_code,
+                GROUP_CONCAT(DISTINCT v.brand_owner) AS brand_owner,
+                GROUP_CONCAT(DISTINCT v.brand) AS brand,
+                GROUP_CONCAT(DISTINCT v.brand_nationality) AS brand_nationality,
                 COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
-                CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL) AS fid
+                SUM(CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL)) AS fid
             FROM volvo_sale_data_rows v
+            JOIN source_keys sk
+              ON sk.country_key = UPPER(TRIM(v.country))
+             AND sk.machine_line_key = UPPER(TRIM(v.machine_line))
             WHERE v.upload_run_id = ?
-              AND EXISTS (
-                SELECT 1
-                FROM source_matrix_rows sm
-                WHERE sm.upload_run_id = ?
-                  AND UPPER(TRIM(sm.country_name)) = UPPER(TRIM(v.country))
-                  AND UPPER(TRIM(sm.machine_line_name)) = UPPER(TRIM(v.machine_line))
-              )
+            GROUP BY
+                v.calendar,
+                v.region,
+                v.market,
+                v.country,
+                sk.artificial_machine_line,
+                CASE
+                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MINI' THEN '<6T'
+                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MIDI' THEN '6<10T'
+                    ELSE TRIM(v.size_class)
+                END,
+                COALESCE(NULLIF(TRIM(v.source), ''), 'SAL')
             ORDER BY
                 v.calendar,
                 v.region,
                 v.market,
                 v.country,
-                v.machine,
-                v.machine_line,
-                v.size_class,
-                v.row_index
-        """, (volvo_upload_run_id, source_matrix_upload_run_id))
+                sk.artificial_machine_line,
+                v.size_class
+        """, (source_matrix_upload_run_id, volvo_upload_run_id))
         rows = cursor.fetchall()
 
         for index, row in enumerate(rows, start=1):
@@ -1089,6 +1148,7 @@ def run_crp_sal_report_clean_data():
                     country,
                     machine,
                     machine_line,
+                    artificial_machine_line,
                     size_class,
                     brand_owner_code,
                     brand_owner,
@@ -1096,7 +1156,7 @@ def run_crp_sal_report_clean_data():
                     brand_nationality,
                     source,
                     fid
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 report_run_id,
                 index,
@@ -1106,6 +1166,7 @@ def run_crp_sal_report_clean_data():
                 row["country"],
                 row["machine"],
                 row["machine_line"],
+                row["artificial_machine_line"],
                 row["size_class"],
                 row["brand_owner_code"],
                 row["brand_owner"],
@@ -1345,6 +1406,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
                   AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+                  AND TRIM(COALESCE(crp_source, '')) <> ''
                 GROUP BY
                     REPLACE(UPPER(TRIM(country_name)), ' ', ''),
                     UPPER(TRIM(artificial_machine_line))
@@ -1823,6 +1885,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
                   AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+                  AND TRIM(COALESCE(crp_source, '')) <> ''
                 GROUP BY
                     REPLACE(UPPER(TRIM(country_name)), ' ', ''),
                     UPPER(TRIM(artificial_machine_line))
@@ -3272,6 +3335,7 @@ def get_oth_deletion_flag_report(
                 WHERE upload_run_id = ?
                   AND TRIM(COALESCE(country_name, '')) <> ''
                   AND TRIM(COALESCE(artificial_machine_line, '')) <> ''
+                  AND TRIM(COALESCE(crp_source, '')) <> ''
             ),
             source_matrix_keys AS (
                 SELECT

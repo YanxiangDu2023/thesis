@@ -122,6 +122,12 @@ SOURCE_MATRIX_COUNTRY_NAME_ALIASES = [
     "Unnamed: 1",
     "country_name",
 ]
+SOURCE_MATRIX_COUNTRY_CODE_ALIASES = [
+    "Country Code",
+    "country_code",
+    "group_code",
+    "Unnamed: 2",
+]
 SOURCE_MATRIX_MACHINE_LINE_CODE_ALIASES = [
     "Machine Line",
     "Machine Line Code",
@@ -710,53 +716,60 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                         1,
                         source_matrix_columns,
                     ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_COUNTRY_CODE_ALIASES,
+                        2,
+                        source_matrix_columns,
+                    ),
                     _normalize_uploaded_value("machine_line_code", _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
                         SOURCE_MATRIX_MACHINE_LINE_CODE_ALIASES,
-                        2,
+                        3,
                         source_matrix_columns,
                     )),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
                         SOURCE_MATRIX_MACHINE_LINE_NAME_ALIASES,
-                        3,
-                        source_matrix_columns,
-                    ),
-                    _get_cell_by_header_aliases_or_index(
-                        row,
-                        source_matrix_column_lookup,
-                        SOURCE_MATRIX_ARTIFICIAL_MACHINE_LINE_ALIASES,
                         4,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES,
+                        SOURCE_MATRIX_ARTIFICIAL_MACHINE_LINE_ALIASES,
                         5,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES,
+                        SOURCE_MATRIX_PRIMARY_SOURCE_ALIASES,
                         6,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_CRP_SOURCE_ALIASES,
+                        SOURCE_MATRIX_SECONDARY_SOURCE_ALIASES,
                         7,
                         source_matrix_columns,
                     ),
                     _get_cell_by_header_aliases_or_index(
                         row,
                         source_matrix_column_lookup,
-                        SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES,
+                        SOURCE_MATRIX_CRP_SOURCE_ALIASES,
                         8,
+                        source_matrix_columns,
+                    ),
+                    _get_cell_by_header_aliases_or_index(
+                        row,
+                        source_matrix_column_lookup,
+                        SOURCE_MATRIX_CHANGE_INDICATOR_ALIASES,
+                        9,
                         source_matrix_columns,
                     ),
                 ))
@@ -766,6 +779,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     row_index,
                     country_grouping,
                     country_name,
+                    country_code,
                     machine_line_code,
                     machine_line_name,
                     artificial_machine_line,
@@ -773,7 +787,7 @@ async def handle_csv_upload(matrix_type: str, file: UploadFile, planning_year: i
                     secondary_source,
                     crp_source,
                     change_indicator
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, insert_values)
 
         elif matrix_type == "size_class":

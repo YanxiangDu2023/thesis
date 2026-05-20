@@ -20,6 +20,7 @@ const PREFERRED_COLUMN_ORDER: Record<string, string[]> = {
   source_matrix: [
     "country_grouping",
     "country_name",
+    "country_code",
     "machine_line_code",
     "machine_line_name",
     "artificial_machine_line",

@@ -174,6 +174,7 @@ def init_db():
       row_index INTEGER,
       country_grouping TEXT,
       country_name TEXT,
+      country_code TEXT,
       machine_line_code TEXT,
       machine_line_name TEXT,
       artificial_machine_line TEXT,
@@ -184,6 +185,7 @@ def init_db():
       FOREIGN KEY (upload_run_id) REFERENCES upload_runs(id)
 )
 """)
+    _ensure_column(cursor, "source_matrix_rows", "country_code", "TEXT")
     _ensure_column(cursor, "source_matrix_rows", "artificial_machine_line", "TEXT")
     
     cursor.execute("""
@@ -442,6 +444,7 @@ def init_db():
         country TEXT,
         machine_line TEXT,
         machine_line_code TEXT,
+        artificial_machine_line TEXT,
         size_class_mapping TEXT,
         fid_sum REAL,
         source TEXT,
@@ -453,6 +456,7 @@ def init_db():
     _ensure_column(cursor, "crp_tma_report_rows", "geographical_market_area", "TEXT")
     _ensure_column(cursor, "crp_tma_report_rows", "end_country_code", "TEXT")
     _ensure_column(cursor, "crp_tma_report_rows", "machine_line_code", "TEXT")
+    _ensure_column(cursor, "crp_tma_report_rows", "artificial_machine_line", "TEXT")
     _ensure_column(cursor, "crp_tma_report_rows", "source", "TEXT")
 
     cursor.execute("""
@@ -479,6 +483,7 @@ def init_db():
         country TEXT,
         machine TEXT,
         machine_line TEXT,
+        artificial_machine_line TEXT,
         size_class TEXT,
         brand_owner_code TEXT,
         brand_owner TEXT,
@@ -489,6 +494,7 @@ def init_db():
         FOREIGN KEY (report_run_id) REFERENCES crp_sal_report_runs(id)
 )
 """)
+    _ensure_column(cursor, "crp_sal_report_rows", "artificial_machine_line", "TEXT")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS report_run_history (
