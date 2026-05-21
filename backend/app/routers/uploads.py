@@ -1443,6 +1443,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     ) AS base_row_id,
                     a.year AS year,
                     COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
+                    COALESCE(g_code.country_code, g_name.country_code, a.end_country_code, '') AS country_code,
                     COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
                     COALESCE(g_code.country_name, g_name.country_name, a.country_raw) AS country,
                     COALESCE(g_code.region, g_name.region, a.region_raw) AS region,
@@ -1506,6 +1507,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                     frb.base_row_id AS base_row_id,
                     frb.year AS year,
                     frb.country_group_code AS country_group_code,
+                    frb.country_code AS country_code,
                     frb.country_grouping AS country_grouping,
                     frb.country AS country,
                     frb.region AS region,
@@ -1548,6 +1550,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 SELECT
                     year,
                     country_group_code,
+                    country_code,
                     country_grouping,
                     country,
                     region,
@@ -1574,6 +1577,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 GROUP BY
                     year,
                     country_group_code,
+                    country_code,
                     country_grouping,
                     country,
                     region,
@@ -1641,6 +1645,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
             SELECT
                 fr.year AS year,
                 fr.country_group_code AS country_group_code,
+                fr.country_code AS country_code,
                 fr.country_grouping AS country_grouping,
                 fr.country AS country,
                 fr.region AS region,
@@ -1922,6 +1927,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                     ) AS base_row_id,
                     a.year AS year,
                     COALESCE(g_code.group_code, g_name.group_code, '') AS country_group_code,
+                    COALESCE(g_code.country_code, g_name.country_code, a.end_country_code, '') AS country_code,
                     COALESCE(g_code.country_grouping, g_name.country_grouping, '') AS country_grouping,
                     COALESCE(g_code.country_name, g_name.country_name, a.country_raw) AS country,
                     COALESCE(g_code.region, g_name.region, a.region_raw) AS region,
@@ -1984,6 +1990,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 SELECT
                     frb.year AS year,
                     frb.country_group_code AS country_group_code,
+                    frb.country_code AS country_code,
                     frb.country_grouping AS country_grouping,
                     frb.country AS country,
                     frb.region AS region,
@@ -2043,6 +2050,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 SELECT
                     year,
                     country_group_code,
+                    country_code,
                     country_grouping,
                     country,
                     region,
@@ -2062,6 +2070,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 GROUP BY
                     year,
                     country_group_code,
+                    country_code,
                     country_grouping,
                     country,
                     region,
@@ -3905,7 +3914,7 @@ def _map_crp_combined_row_to_total_market_row(row: dict[str, Any]) -> dict[str, 
     return {
         "year": _to_text(row.get("year")),
         "source": source_text,
-        "country_code": _to_text(row.get("country_group_code")),
+        "country_code": _to_text(row.get("country_code")) or _to_text(row.get("country_group_code")),
         "country": _to_text(row.get("country")),
         "country_grouping": _to_text(row.get("country_grouping")),
         "region": _to_text(row.get("region")),

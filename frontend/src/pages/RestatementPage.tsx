@@ -644,11 +644,7 @@ function RestatementPage() {
         }
       }
 
-      const allGroupKeys = new Set<string>([
-        ...Array.from(controlTmaByGroup.keys()),
-        ...Array.from(controlSalByGroup.keys()),
-        ...Array.from(othByGroup.keys()),
-      ]);
+      const allGroupKeys = new Set<string>(Array.from(controlTmaByGroup.keys()));
       const groupMeta = new Map<
         string,
         {
@@ -673,7 +669,7 @@ function RestatementPage() {
         const othSum = meta?.othSum ?? 0;
 
         let after = before;
-        if (othSum > 0) {
+        if (meta && othSum > 0) {
           after = (before / othSum) * targetNonVce;
         }
 
@@ -790,23 +786,6 @@ function RestatementPage() {
     const tmaByKey = new Map<string, number>();
     const salRowsByKey = new Map<string, FinalRestatementResultRow[]>();
 
-    const ensureGroupMeta = (row: OthDeletionFlagRow) => {
-      const groupKey = getFinalRestatementGroupKey(row);
-      if (!groupMetaByKey.has(groupKey)) {
-        groupMetaByKey.set(groupKey, {
-          country_grouping: row.country_grouping,
-          country: row.country,
-          country_code: row.country_code,
-          region: row.region,
-          machine_line_code: row.machine_line_code,
-          machine_line_name: row.machine_line_name,
-          artificial_machine_line: row.artificial_machine_line,
-          size_class_flag: row.size_class_flag,
-        });
-      }
-      return groupKey;
-    };
-
     const ensureControlTmaMeta = (row: CrpTmaReportRow) => {
       const groupKey = getControlTmaGroupKey(row);
       if (!groupMetaByKey.has(groupKey)) {
@@ -826,28 +805,8 @@ function RestatementPage() {
 
     const ensureControlSalMeta = (row: CrpSalReportRow) => {
       const groupKey = getControlSalGroupKey(row);
-      if (!groupMetaByKey.has(groupKey)) {
-        groupMetaByKey.set(groupKey, {
-          country_grouping: "",
-          country: row.country,
-          country_code: "",
-          region: row.region,
-          machine_line_code: row.machine,
-          machine_line_name: row.machine_line,
-          artificial_machine_line: row.artificial_machine_line,
-          size_class_flag: row.size_class,
-        });
-      }
       return groupKey;
     };
-
-    for (const row of restatementRows) {
-      const groupKey = ensureGroupMeta(row);
-      if (!restatedBrandRowsByKey.has(groupKey)) {
-        restatedBrandRowsByKey.set(groupKey, []);
-      }
-      restatedBrandRowsByKey.get(groupKey)?.push(row);
-    }
 
     try {
       const [controlTmaResult, controlSalResult] = await Promise.all([
@@ -858,6 +817,17 @@ function RestatementPage() {
       for (const row of controlTmaResult.rows) {
         const groupKey = ensureControlTmaMeta(row);
         tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid_sum));
+      }
+
+      for (const row of restatementRows) {
+        const groupKey = getFinalRestatementGroupKey(row);
+        if (!groupMetaByKey.has(groupKey)) {
+          continue;
+        }
+        if (!restatedBrandRowsByKey.has(groupKey)) {
+          restatedBrandRowsByKey.set(groupKey, []);
+        }
+        restatedBrandRowsByKey.get(groupKey)?.push(row);
       }
 
       for (const row of controlSalResult.rows) {

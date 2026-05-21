@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import FilterableTable from "../components/table/FilterableTable";
 import {
   createPlanningYear,
+  getLatestCrpSalReportCleanData,
+  getLatestCrpTmaReportCleanData,
   getPlanningYears,
   getLatestTotalMarketCalculationCalculatedRows,
 } from "../api/uploads";
-import type { OthDeletionFlagRow } from "../types/upload";
+import type { CrpSalReportRow, CrpTmaReportRow, OthDeletionFlagRow } from "../types/upload";
 
 type RestatementPreviewRow = OthDeletionFlagRow & {
   before_restatement: number;
@@ -32,7 +34,8 @@ type FinalRestatementResultRow = {
 type ValidationSummaryRow = {
   country: string;
   country_code: string;
-  machine_line_name: string;
+  artificial_machine_line: string;
+  size_class_flag: string;
   restatement: number;
   tm_crp: number;
   volvo_sal: number;
@@ -58,6 +61,10 @@ function toNumber(value: string | number | null | undefined): number {
 function toDisplayText(value: string | number | null | undefined, fallback = ""): string {
   const text = String(value ?? "").trim();
   return text.length > 0 ? text : fallback;
+}
+
+function isTwoLetterCountryCode(value: string | number | null | undefined): boolean {
+  return /^[A-Z]{2}$/.test(String(value ?? "").trim().toUpperCase());
 }
 
 function isOthNonVceRow(row: OthDeletionFlagRow): boolean {
@@ -87,12 +94,16 @@ function getRestatementGroupKey(row: OthDeletionFlagRow): string {
   return [toKey(row.country), toKey(row.artificial_machine_line), toKey(row.size_class_flag)].join("||");
 }
 
-function getRestatementBaseKey(row: OthDeletionFlagRow): string {
-  return [toKey(row.country), toKey(row.artificial_machine_line)].join("||");
-}
-
 function getFinalRestatementGroupKey(row: OthDeletionFlagRow): string {
   return [toKey(row.country), toKey(row.artificial_machine_line), toKey(row.size_class_flag)].join("||");
+}
+
+function getControlTmaGroupKey(row: CrpTmaReportRow): string {
+  return [toKey(row.country), toKey(row.artificial_machine_line), toKey(row.size_class_mapping)].join("||");
+}
+
+function getControlSalGroupKey(row: CrpSalReportRow): string {
+  return [toKey(row.country), toKey(row.artificial_machine_line), toKey(row.size_class)].join("||");
 }
 
 function isReporterFlagY(row: OthDeletionFlagRow): boolean {
@@ -118,8 +129,9 @@ function TmcValidationReportPage() {
   const validationSummaryColumns = useMemo(
     () => [
       { key: "country", label: "Country" },
-      { key: "country_code", label: "" },
-      { key: "machine_line_name", label: "Machine Line" },
+      { key: "country_code", label: "Country Code" },
+      { key: "artificial_machine_line", label: "Artificial Machine Line" },
+      { key: "size_class_flag", label: "Size Class" },
       { key: "restatement", label: "Restatement" },
       { key: "tm_crp", label: "TM(CRP)" },
       { key: "volvo_sal", label: "VOLVO SAL" },
@@ -208,44 +220,80 @@ function TmcValidationReportPage() {
       }
 
       const fullRows = result.rows;
-      const rows = fullRows.filter((row) => {
-        if (!isOthNonVceNonZeroRow(row)) {
-          return false;
-        }
-        return cleanReporterOnly ? isReporterFlagY(row) : true;
-      });
+      const allOthRows = fullRows.filter((row) => isOthNonVceNonZeroRow(row));
+
+      const [controlTmaResult, controlSalResult] = await Promise.all([
+        getLatestCrpTmaReportCleanData(),
+        getLatestCrpSalReportCleanData(),
+      ]);
 
       const tmaByGroup = new Map<string, number>();
       const vceSalByGroup = new Map<string, number>();
       const othByGroup = new Map<string, number>();
-      const tmaByBase = new Map<string, number>();
-      const vceSalByBase = new Map<string, number>();
-      const othByBase = new Map<string, number>();
+      const groupTemplates = new Map<string, OthDeletionFlagRow>();
 
-      for (const row of fullRows) {
-        const groupKey = getRestatementGroupKey(row);
-        const baseKey = getRestatementBaseKey(row);
-        const source = toKey(row.source);
-        const fid = toNumber(row.fid);
-        if (source === "TMA") {
-          tmaByGroup.set(groupKey, (tmaByGroup.get(groupKey) ?? 0) + fid);
-          tmaByBase.set(baseKey, (tmaByBase.get(baseKey) ?? 0) + fid);
-          continue;
-        }
-        const isVceSal =
-          source === "SAL" &&
-          (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
-        if (isVceSal) {
-          vceSalByGroup.set(groupKey, (vceSalByGroup.get(groupKey) ?? 0) + fid);
-          vceSalByBase.set(baseKey, (vceSalByBase.get(baseKey) ?? 0) + fid);
+      for (const row of controlTmaResult.rows) {
+        const groupKey = getControlTmaGroupKey(row);
+        tmaByGroup.set(groupKey, (tmaByGroup.get(groupKey) ?? 0) + toNumber(row.fid_sum));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, {
+            year: row.year,
+            source: "OTH",
+            country_code: row.end_country_code,
+            country: row.country,
+            country_grouping: "",
+            region: row.geographical_region,
+            market_area: row.geographical_market_area,
+            machine_line_name: row.machine_line,
+            machine_line_code: row.machine_line_code,
+            artificial_machine_line: row.artificial_machine_line,
+            brand_name: "Other Reporting Brands",
+            brand_code: "Other Reporting Brands",
+            size_class_flag: row.size_class_mapping,
+            fid: 0,
+            ms_percent: "",
+            deletion_flag: "",
+            pri_sec: "",
+            reporter_flag: "Y",
+            source_flag: "OTH",
+          });
         }
       }
 
-      for (const row of rows) {
+      for (const row of controlSalResult.rows) {
+        const groupKey = getControlSalGroupKey(row);
+        vceSalByGroup.set(groupKey, (vceSalByGroup.get(groupKey) ?? 0) + toNumber(row.fid));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, {
+            year: row.calendar,
+            source: "OTH",
+            country_code: "",
+            country: row.country,
+            country_grouping: "",
+            region: row.region,
+            market_area: row.market,
+            machine_line_name: row.machine_line,
+            machine_line_code: row.machine,
+            artificial_machine_line: row.artificial_machine_line,
+            brand_name: "Other Reporting Brands",
+            brand_code: "Other Reporting Brands",
+            size_class_flag: row.size_class,
+            fid: 0,
+            ms_percent: "",
+            deletion_flag: "",
+            pri_sec: "",
+            reporter_flag: "Y",
+            source_flag: "OTH",
+          });
+        }
+      }
+
+      for (const row of allOthRows) {
         const groupKey = getRestatementGroupKey(row);
-        const baseKey = getRestatementBaseKey(row);
         othByGroup.set(groupKey, (othByGroup.get(groupKey) ?? 0) + toNumber(row.fid));
-        othByBase.set(baseKey, (othByBase.get(baseKey) ?? 0) + toNumber(row.fid));
+        if (!groupTemplates.has(groupKey)) {
+          groupTemplates.set(groupKey, row);
+        }
       }
 
       const groupMeta = new Map<
@@ -256,23 +304,15 @@ function TmcValidationReportPage() {
         }
       >();
 
-      for (const row of rows) {
-        const groupKey = getRestatementGroupKey(row);
-        if (groupMeta.has(groupKey)) {
-          continue;
-        }
-        const baseKey = getRestatementBaseKey(row);
-        const hasFullTma = tmaByGroup.has(groupKey);
-        const hasFullSal = vceSalByGroup.has(groupKey);
-        const useFallback = !hasFullTma && !hasFullSal;
-        const tma = useFallback ? (tmaByBase.get(baseKey) ?? 0) : (tmaByGroup.get(groupKey) ?? 0);
-        const vceSal = useFallback ? (vceSalByBase.get(baseKey) ?? 0) : (vceSalByGroup.get(groupKey) ?? 0);
-        const targetNonVce = Math.max(tma - vceSal, 0);
-        const othSum = useFallback ? (othByBase.get(baseKey) ?? 0) : (othByGroup.get(groupKey) ?? 0);
+      for (const groupKey of Array.from(tmaByGroup.keys())) {
+        const tma = tmaByGroup.get(groupKey) ?? 0;
+        const vceSal = vceSalByGroup.get(groupKey) ?? 0;
+        const targetNonVce = tma - vceSal;
+        const othSum = othByGroup.get(groupKey) ?? 0;
         groupMeta.set(groupKey, { targetNonVce, othSum });
       }
 
-      const nextRows: RestatementPreviewRow[] = rows.map((row) => {
+      const nextRows: RestatementPreviewRow[] = allOthRows.map((row) => {
         const groupKey = getRestatementGroupKey(row);
         const meta = groupMeta.get(groupKey);
         const before = toNumber(row.fid);
@@ -280,7 +320,7 @@ function TmcValidationReportPage() {
         const othSum = meta?.othSum ?? 0;
 
         let after = before;
-        if (othSum > 0 && othSum > targetNonVce) {
+        if (meta && othSum > 0) {
           after = (before / othSum) * targetNonVce;
         }
 
@@ -305,12 +345,12 @@ function TmcValidationReportPage() {
       for (const [groupKey, meta] of groupMeta.entries()) {
         const othSum = meta.othSum;
         const targetNonVce = meta.targetNonVce;
-        if (targetNonVce - othSum <= 0.0001) {
+        if (othSum > 0.0001 || Math.abs(targetNonVce) <= 0.0001) {
           continue;
         }
-        const gap = targetNonVce - othSum;
+        const gap = targetNonVce;
         const groupIndexes = rowsByGroup.get(groupKey) ?? [];
-        const template = groupIndexes.length > 0 ? nextRows[groupIndexes[0]] : undefined;
+        const template = groupIndexes.length > 0 ? nextRows[groupIndexes[0]] : groupTemplates.get(groupKey);
         if (!template) {
           continue;
         }
@@ -346,6 +386,12 @@ function TmcValidationReportPage() {
           }
         }
       });
+      for (const [groupKey, topUps] of topUpRowsByGroup.entries()) {
+        if (lastIndexByGroup.has(groupKey)) {
+          continue;
+        }
+        orderedNextRows.push(...topUps);
+      }
 
       const groupMetaByKey = new Map<
         string,
@@ -362,60 +408,48 @@ function TmcValidationReportPage() {
         >
       >();
       const restatedBrandRowsByKey = new Map<string, RestatementPreviewRow[]>();
+      const tmaByKey = new Map<string, number>();
+      const salByKey = new Map<string, number>();
 
-      const ensureGroupMeta = (row: OthDeletionFlagRow) => {
-        const groupKey = getFinalRestatementGroupKey(row);
+      const ensureControlTmaMeta = (row: CrpTmaReportRow) => {
+        const groupKey = getControlTmaGroupKey(row);
         if (!groupMetaByKey.has(groupKey)) {
           groupMetaByKey.set(groupKey, {
-            country_grouping: row.country_grouping,
+            country_grouping: "",
             country: row.country,
-            country_code: row.country_code,
-            region: row.region,
+            country_code: row.end_country_code,
+            region: row.geographical_region,
             machine_line_code: row.machine_line_code,
-            machine_line_name: row.machine_line_name,
+            machine_line_name: row.machine_line,
             artificial_machine_line: row.artificial_machine_line,
-            size_class_flag: row.size_class_flag,
+            size_class_flag: row.size_class_mapping,
           });
         }
         return groupKey;
       };
 
-      for (const row of fullRows) {
-        const sourceKey = toKey(row.source);
-        const isVceSal =
-          sourceKey === "SAL" &&
-          (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
-        if (sourceKey === "TMA" || isVceSal) {
-          ensureGroupMeta(row);
-        }
+      for (const row of controlTmaResult.rows) {
+        const groupKey = ensureControlTmaMeta(row);
+        tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid_sum));
       }
 
       for (const row of orderedNextRows) {
-        const groupKey = ensureGroupMeta(row);
+        const groupKey = getFinalRestatementGroupKey(row);
+        if (!groupMetaByKey.has(groupKey)) {
+          continue;
+        }
         if (!restatedBrandRowsByKey.has(groupKey)) {
           restatedBrandRowsByKey.set(groupKey, []);
         }
         restatedBrandRowsByKey.get(groupKey)?.push(row);
       }
 
-      const tmaByKey = new Map<string, number>();
-      const salByKey = new Map<string, number>();
-      for (const row of fullRows) {
-        const groupKey = getFinalRestatementGroupKey(row);
+      for (const row of controlSalResult.rows) {
+        const groupKey = getControlSalGroupKey(row);
         if (!groupMetaByKey.has(groupKey)) {
           continue;
         }
-        const sourceKey = toKey(row.source);
-        if (sourceKey === "TMA") {
-          tmaByKey.set(groupKey, (tmaByKey.get(groupKey) ?? 0) + toNumber(row.fid));
-          continue;
-        }
-        const isVceSal =
-          sourceKey === "SAL" &&
-          (toKey(row.brand_code) === "VCE" || toKey(row.brand_name).includes("VOLVO"));
-        if (isVceSal) {
-          salByKey.set(groupKey, (salByKey.get(groupKey) ?? 0) + toNumber(row.fid));
-        }
+        salByKey.set(groupKey, (salByKey.get(groupKey) ?? 0) + toNumber(row.fid));
       }
 
       const groupOrder = Array.from(groupMetaByKey.entries())
@@ -458,7 +492,10 @@ function TmcValidationReportPage() {
           fid: Number((salByKey.get(groupKey) ?? 0).toFixed(2)),
         });
 
-        const brands = (restatedBrandRowsByKey.get(groupKey) ?? []).slice().sort((a, b) => {
+        const brands = (restatedBrandRowsByKey.get(groupKey) ?? [])
+          .filter((row) => !cleanReporterOnly || isReporterFlagY(row))
+          .slice()
+          .sort((a, b) => {
           return (
             toKey(a.brand_code).localeCompare(toKey(b.brand_code)) ||
             toKey(a.brand_name).localeCompare(toKey(b.brand_name)) ||
@@ -484,7 +521,8 @@ function TmcValidationReportPage() {
         {
           country: string;
           country_code: string;
-          machine_line_name: string;
+          artificial_machine_line: string;
+          size_class_flag: string;
           restatement: number;
           tm_crp: number;
           volvo_sal: number;
@@ -493,12 +531,17 @@ function TmcValidationReportPage() {
       >();
 
       for (const row of resultRows) {
-        const summaryKey = [toKey(row.country), toKey(row.country_code), toKey(row.machine_line_name)].join("||");
+        const summaryKey = [
+          toKey(row.country),
+          toKey(row.artificial_machine_line),
+          toKey(row.size_class_flag),
+        ].join("||");
         if (!summaryByCountryMachine.has(summaryKey)) {
           summaryByCountryMachine.set(summaryKey, {
             country: row.country,
-            country_code: row.country_code,
-            machine_line_name: row.machine_line_name,
+            country_code: isTwoLetterCountryCode(row.country_code) ? row.country_code : "",
+            artificial_machine_line: row.artificial_machine_line,
+            size_class_flag: row.size_class_flag,
             restatement: 0,
             tm_crp: 0,
             volvo_sal: 0,
@@ -509,6 +552,10 @@ function TmcValidationReportPage() {
         const summaryRow = summaryByCountryMachine.get(summaryKey);
         if (!summaryRow) {
           continue;
+        }
+
+        if (!isTwoLetterCountryCode(summaryRow.country_code) && isTwoLetterCountryCode(row.country_code)) {
+          summaryRow.country_code = row.country_code;
         }
 
         if (row.row_type === "TMA") {
@@ -524,13 +571,12 @@ function TmcValidationReportPage() {
         return (
           a.country.localeCompare(b.country) ||
           a.country_code.localeCompare(b.country_code) ||
-          a.machine_line_name.localeCompare(b.machine_line_name)
+          a.artificial_machine_line.localeCompare(b.artificial_machine_line) ||
+          a.size_class_flag.localeCompare(b.size_class_flag)
         );
       });
 
-      const visibleSummaryRows = cleanReporterOnly
-        ? sortedSummaryRows.filter((row) => Math.abs(row.restatement) > 0.0001)
-        : sortedSummaryRows;
+      const visibleSummaryRows = sortedSummaryRows;
 
       const summaryRows = visibleSummaryRows.map((row, index) => {
         const previous = index > 0 ? visibleSummaryRows[index - 1] : undefined;
@@ -544,7 +590,8 @@ function TmcValidationReportPage() {
         return {
           country: sameCountryAsPrevious ? "" : row.country,
           country_code: sameCountryAsPrevious ? "" : row.country_code,
-          machine_line_name: row.machine_line_name,
+          artificial_machine_line: row.artificial_machine_line,
+          size_class_flag: row.size_class_flag,
           restatement: Number(row.restatement.toFixed(4)),
           tm_crp: Number(row.tm_crp.toFixed(4)),
           volvo_sal: Number(row.volvo_sal.toFixed(4)),
@@ -556,7 +603,7 @@ function TmcValidationReportPage() {
       setValidationSummaryRows(summaryRows);
       setMessage(
         cleanReporterOnly
-          ? `Clean validation report generated: ${summaryRows.length} rows from ${groupOrder.length} final restatement groups with Reporter Flag = Y.`
+          ? `Clean validation report generated: ${summaryRows.length} rows from ${groupOrder.length} final restatement groups, using after-restatement values for Reporter Flag = Y.`
           : `Validation report generated: ${summaryRows.length} rows from ${groupOrder.length} final restatement groups.`
       );
     } catch (err) {
@@ -647,7 +694,7 @@ function TmcValidationReportPage() {
             {error ? <p style={{ color: "#d62828", marginBottom: "12px" }}>{error}</p> : null}
 
             <div className="section summary-card" style={{ marginTop: "8px" }}>
-              <strong>TMC Validation Report (Country / Machine Line Summary)</strong>
+              <strong>TMC Validation Report (Country / Artificial Machine Line / Size Class Summary)</strong>
               <FilterableTable
                 columns={validationSummaryColumns}
                 rows={validationSummaryRows}
