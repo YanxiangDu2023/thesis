@@ -1297,6 +1297,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 SELECT
                     UPPER(TRIM(country_code)) AS country_code_key,
                     UPPER(TRIM(year)) AS year_key,
+                    MIN(country_code) AS country_code,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
                     MIN(country_name) AS country_name,
@@ -1309,6 +1310,7 @@ def _get_crp_d1_combined_report_data(include_all_sal: bool, planning_year: int |
                 SELECT
                     REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(year)) AS year_key,
+                    MIN(country_code) AS country_code,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
                     MIN(country_name) AS country_name,
@@ -1781,6 +1783,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 SELECT
                     UPPER(TRIM(country_code)) AS country_code_key,
                     UPPER(TRIM(year)) AS year_key,
+                    MIN(country_code) AS country_code,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
                     MIN(country_name) AS country_name,
@@ -1793,6 +1796,7 @@ def get_a10_adjustment_report(planning_year: int | None = Query(default=None)):
                 SELECT
                     REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
                     UPPER(TRIM(year)) AS year_key,
+                    MIN(country_code) AS country_code,
                     MIN(group_code) AS group_code,
                     MIN(country_grouping) AS country_grouping,
                     MIN(country_name) AS country_name,
