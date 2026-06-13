@@ -1,22 +1,22 @@
-# Zero-CLI Web Deployment (Vercel + Render)
+# Zero-CLI Web Deployment (Vercel + Google Cloud Run)
 
 This flow does not require Docker or Vercel CLI.
 
-## 1) Deploy backend first (Render)
+## 1) Deploy backend first (Google Cloud Run)
 
-1. Open Render dashboard and choose `New +` -> `Blueprint`.
-2. Connect your GitHub repo and select this project.
-3. Render will detect `render.yaml` at repo root.
+1. Open Google Cloud Console and go to `Cloud Run`.
+2. Choose `Create service` or open your existing backend service.
+3. Deploy the `backend` app as the service source or container image.
 4. In backend service env vars, set:
    - `DATABASE_URL` = your PostgreSQL URL
    - `CORS_ALLOW_ORIGINS` = your Vercel frontend URL (for example `https://your-app.vercel.app`)
    - `PASSWORD_GATE_ENABLED` = `true`
    - `PASSWORD_GATE_TOKEN` = a shared site password for testers
-   - Optional (if you upgrade to paid + persistent disk later):
+   - Optional persistent storage settings if your Cloud Run setup mounts a writable volume:
      - `UPLOAD_ROOT_DIR=/var/data/uploads`
      - `AUTH_DB_PATH=/var/data/auth.db`
-5. Deploy and wait until status is `Live`.
-6. Copy backend URL (for example `https://thesis-backend.onrender.com`).
+5. Deploy and wait until the revision becomes healthy.
+6. Copy backend URL (for example `https://your-service-xxxxx.europe-west1.run.app`).
 
 ## 2) Deploy frontend (Vercel)
 
@@ -27,7 +27,7 @@ This flow does not require Docker or Vercel CLI.
    - Build command = `npm run build`
    - Output directory = `dist`
 4. Add environment variables:
-   - `VITE_API_BASE_URL` = backend URL from Render
+   - `VITE_API_BASE_URL` = backend URL from Cloud Run
    - `VITE_DISABLE_AUTH` = `true` (for test mode)
    - `VITE_PASSWORD_GATE_ENABLED` = `true`
 5. Deploy.

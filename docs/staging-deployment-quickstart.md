@@ -51,7 +51,7 @@ python backend/scripts/migrate_sqlite_to_postgres.py \
 ## 5) Deploy
 
 - Frontend: Vercel/Netlify or your internal static hosting.
-- Backend: Render/Railway/Azure App Service (FastAPI service).
+- Backend: Google Cloud Run (FastAPI service).
 - Confirm CORS allows only the frontend staging origin.
 
 ## 6) Smoke test after deploy

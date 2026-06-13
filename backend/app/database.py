@@ -11,6 +11,14 @@ _AUTOINCREMENT_PATTERN = re.compile(
     r"\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b",
     flags=re.IGNORECASE,
 )
+_GROUP_CONCAT_DISTINCT_PATTERN = re.compile(
+    r"\bGROUP_CONCAT\s*\(\s*DISTINCT\s+([^)]+?)\s*\)",
+    flags=re.IGNORECASE,
+)
+_GROUP_CONCAT_PATTERN = re.compile(
+    r"\bGROUP_CONCAT\s*\(\s*([^)]+?)\s*\)",
+    flags=re.IGNORECASE,
+)
 
 
 def _database_backend_from_url(database_url: str) -> str:
@@ -53,6 +61,8 @@ def _adapt_sql_for_postgres(query: str) -> str:
     adapted = _AUTOINCREMENT_PATTERN.sub("BIGSERIAL PRIMARY KEY", query)
     adapted = re.sub(r"\bDATETIME\b", "TIMESTAMP", adapted, flags=re.IGNORECASE)
     adapted = re.sub(r"\bINSTR\s*\(", "STRPOS(", adapted, flags=re.IGNORECASE)
+    adapted = _GROUP_CONCAT_DISTINCT_PATTERN.sub(r"STRING_AGG(DISTINCT \1, ',')", adapted)
+    adapted = _GROUP_CONCAT_PATTERN.sub(r"STRING_AGG(\1, ',')", adapted)
     adapted = adapted.replace("?", "%s")
     return adapted
 

@@ -1133,7 +1133,7 @@ def run_crp_sal_report_clean_data():
                 v.market,
                 v.country,
                 sk.artificial_machine_line,
-                v.size_class
+                size_class
         """, (source_matrix_upload_run_id, volvo_upload_run_id))
         rows = cursor.fetchall()
 
@@ -1194,6 +1194,7 @@ def run_crp_sal_report_clean_data():
             "row_count": len(rows)
         }
     except Exception as e:
+        conn.rollback()
         cursor.execute("""
             UPDATE crp_sal_report_runs
             SET status = ?, message = ?
