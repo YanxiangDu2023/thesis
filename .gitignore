@@ -40,6 +40,23 @@ tmc_doc_tmp.odt
 tmp_tmc_*.odt
 ~$*
 
+# Presentation / spreadsheet / image assets
+*.ppt
+*.pptx
+*.odp
+*.xls
+*.xlsx
+*.csv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.svg
+
 # Generated images or archives if any
 *.zip
 *.sqlite
