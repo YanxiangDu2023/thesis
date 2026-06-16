@@ -306,7 +306,7 @@ function buildInitialSteps(): Step[] {
     }),
     buildStaticPendingStep({
       code: "P10",
-      name: "Prepared Layer",
+      name: "Market View",
       description: "Loading live prepared-layer status.",
       owner: "Core TMC logic",
       issueDetail: "Waiting for live pipeline status.",
@@ -647,7 +647,7 @@ function PipelineViewerPage() {
       const p10Issue = buildIssueSummary(p10Checks);
       builtSteps.push({
         code: "P10",
-        name: "Prepared Layer",
+        name: "Market View",
         description: "Inspect prepared output after core TMC calculations and confirm that totals reconcile cleanly.",
         owner: "Core TMC logic",
         executionStatus: resolveExecutionStatus(p10Missing.length > 0, Boolean(p10Result.data)),

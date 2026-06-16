@@ -669,42 +669,95 @@ def run_control_report_clean_data():
 
     try:
         cursor.execute("""
+            WITH brand_mapping_dedup AS (
+                SELECT
+                    UPPER(TRIM(COALESCE(brand_name, ''))) AS brand_name_key,
+                    TRIM(brand_name) AS brand_name,
+                    TRIM(brand_code) AS brand_code,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY UPPER(TRIM(COALESCE(brand_name, '')))
+                        ORDER BY row_index ASC, id ASC
+                    ) AS match_rank
+                FROM brand_mapping_rows
+                WHERE upload_run_id = ?
+                  AND TRIM(COALESCE(brand_name, '')) <> ''
+            ),
+            oth_base AS (
+                SELECT
+                    o.row_index AS oth_row_index,
+                    o.year AS year,
+                    o.source AS source,
+                    o.country AS country_code,
+                    COALESCE(g.country_name, o.country) AS country,
+                    g.country_grouping AS country_grouping,
+                    g.region AS region,
+                    g.market_area AS market_area,
+                    o.machine_line AS raw_machine_line_name,
+                    o.size_class AS size_class_flag,
+                    COALESCE(b.brand_name, o.brand_name) AS brand_name,
+                    b.brand_code AS brand_code,
+                    o.quantity AS fid
+                FROM oth_data_rows o
+                LEFT JOIN group_country_rows g
+                    ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
+                   AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
+                   AND g.upload_run_id = ?
+                LEFT JOIN brand_mapping_dedup b
+                    ON UPPER(TRIM(o.brand_name)) = b.brand_name_key
+                   AND b.match_rank = 1
+                WHERE o.upload_run_id = ?
+            ),
+            machine_line_code_matches AS (
+                SELECT
+                    ob.oth_row_index AS oth_row_index,
+                    TRIM(mlm.machine_line_name) AS machine_line_name,
+                    TRIM(mlm.machine_line_code) AS machine_line_code,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY ob.oth_row_index
+                        ORDER BY
+                            CASE
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, ''))) THEN 0
+                                WHEN UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) <> ''
+                                 AND UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, ''))) THEN 1
+                                ELSE 2
+                            END,
+                            mlm.row_index ASC,
+                            mlm.id ASC
+                    ) AS match_rank
+                FROM oth_base ob
+                JOIN machine_line_mapping_rows mlm
+                  ON mlm.upload_run_id = ?
+                 AND (
+                        UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_name, '')))
+                     OR UPPER(TRIM(COALESCE(ob.raw_machine_line_name, ''))) = UPPER(TRIM(COALESCE(mlm.machine_line_code, '')))
+                 )
+            )
             SELECT
-                o.year AS year,
-                o.source AS source,
-                o.country AS country_code,
-                COALESCE(g.country_name, o.country) AS country,
-                g.country_grouping AS country_grouping,
-                g.region AS region,
-                g.market_area AS market_area,
-                COALESCE(m.machine_line_name, o.machine_line) AS machine_line_name,
-                m.machine_line_code AS machine_line_code,
-                COALESCE(b.brand_name, o.brand_name) AS brand_name,
-                b.brand_code AS brand_code,
-                o.size_class AS size_class_flag,
-                o.quantity AS fid,
+                ob.year AS year,
+                ob.source AS source,
+                ob.country_code AS country_code,
+                ob.country AS country,
+                ob.country_grouping AS country_grouping,
+                ob.region AS region,
+                ob.market_area AS market_area,
+                COALESCE(mlcm.machine_line_name, ob.raw_machine_line_name) AS machine_line_name,
+                COALESCE(mlcm.machine_line_code, '') AS machine_line_code,
+                ob.brand_name AS brand_name,
+                ob.brand_code AS brand_code,
+                ob.size_class_flag AS size_class_flag,
+                ob.fid AS fid,
                 NULL AS ms_percent
-            FROM oth_data_rows o
-            LEFT JOIN group_country_rows g
-                ON UPPER(TRIM(o.country)) = UPPER(TRIM(g.country_code))
-               AND UPPER(TRIM(o.year)) = UPPER(TRIM(g.year))
-               AND g.upload_run_id = ?
-            LEFT JOIN machine_line_mapping_rows m
-                ON (
-                    UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_name))
-                    OR UPPER(TRIM(o.machine_line)) = UPPER(TRIM(m.machine_line_code))
-                )
-               AND m.upload_run_id = ?
-            LEFT JOIN brand_mapping_rows b
-                ON UPPER(TRIM(o.brand_name)) = UPPER(TRIM(b.brand_name))
-               AND b.upload_run_id = ?
-            WHERE o.upload_run_id = ?
-            ORDER BY o.row_index ASC
+            FROM oth_base ob
+            LEFT JOIN machine_line_code_matches mlcm
+              ON ob.oth_row_index = mlcm.oth_row_index
+             AND mlcm.match_rank = 1
+            ORDER BY ob.oth_row_index ASC
         """, (
-            group_country_upload_run_id,
-            machine_line_mapping_upload_run_id,
             brand_mapping_upload_run_id,
-            oth_upload_run_id
+            group_country_upload_run_id,
+            oth_upload_run_id,
+            machine_line_mapping_upload_run_id,
         ))
         rows = cursor.fetchall()
         insert_rows = [
@@ -830,24 +883,9 @@ def run_crp_tma_report_clean_data():
     cursor.execute("SELECT planning_year FROM upload_runs WHERE id = ?", (tma_upload_run_id,))
     tma_upload = cursor.fetchone()
     planning_year = tma_upload["planning_year"] if tma_upload else None
-    source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", planning_year)
-    if source_matrix_upload_run_id is None and planning_year is not None:
-        source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
-    if source_matrix_upload_run_id is None:
-        conn.close()
-        raise HTTPException(
-            status_code=400,
-            detail="Missing latest successful upload for: source_matrix"
-        )
     group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country", planning_year)
     if group_country_upload_run_id is None and planning_year is not None:
         group_country_upload_run_id = _get_latest_success_upload_id(cursor, "group_country")
-    if group_country_upload_run_id is None:
-        conn.close()
-        raise HTTPException(
-            status_code=400,
-            detail="Missing latest successful upload for: group_country"
-        )
 
     cursor.execute("""
         INSERT INTO crp_tma_report_runs (
@@ -858,7 +896,7 @@ def run_crp_tma_report_clean_data():
         ) VALUES (?, ?, ?, ?)
     """, (
         tma_upload_run_id,
-        source_matrix_upload_run_id,
+        None,
         "running",
         "Control TMA report run started"
     ))
@@ -867,74 +905,58 @@ def run_crp_tma_report_clean_data():
 
     try:
         cursor.execute("""
-            WITH group_country_by_name AS (
+            WITH tma_base AS (
                 SELECT
-                    REPLACE(UPPER(TRIM(country_name)), ' ', '') AS country_name_key,
-                    UPPER(TRIM(year)) AS year_key,
-                    MIN(TRIM(country_code)) AS country_code
-                FROM group_country_rows
-                WHERE upload_run_id = ?
-                GROUP BY
-                    REPLACE(UPPER(TRIM(country_name)), ' ', ''),
-                    UPPER(TRIM(year))
-            ),
-            source_keys AS (
-                SELECT
-                    UPPER(TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code))) AS country_code_key,
-                    TRIM(sm.country_name) AS country_name,
-                    UPPER(TRIM(sm.machine_line_name)) AS machine_line_key,
-                    COALESCE(NULLIF(TRIM(sm.artificial_machine_line), ''), TRIM(sm.machine_line_name)) AS artificial_machine_line
-                FROM source_matrix_rows sm
-                LEFT JOIN group_country_by_name gc
-                  ON gc.country_name_key = REPLACE(UPPER(TRIM(sm.country_name)), ' ', '')
-                WHERE sm.upload_run_id = ?
-                  AND TRIM(COALESCE(sm.crp_source, '')) <> ''
-                  AND TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code, '')) <> ''
-                GROUP BY
-                    UPPER(TRIM(COALESCE(NULLIF(TRIM(sm.country_code), ''), gc.country_code))),
-                    TRIM(sm.country_name),
-                    UPPER(TRIM(sm.machine_line_name)),
-                    COALESCE(NULLIF(TRIM(sm.artificial_machine_line), ''), TRIM(sm.machine_line_name))
-            )
-            SELECT
-                t.year AS year,
-                t.geographical_region AS geographical_region,
-                t.geographical_market_area AS geographical_market_area,
-                t.end_country_code AS end_country_code,
-                sk.country_name AS country,
-                GROUP_CONCAT(DISTINCT t.machine_line) AS machine_line,
-                GROUP_CONCAT(DISTINCT t.machine_line_code) AS machine_line_code,
-                sk.artificial_machine_line AS artificial_machine_line,
-                t.size_class_mapping AS size_class_mapping,
-                SUM(
+                    t.year AS year,
+                    t.geographical_region AS geographical_region,
+                    t.geographical_market_area AS geographical_market_area,
+                    t.end_country_code AS end_country_code,
+                    COALESCE(g.country_name, t.end_country, t.end_country_code) AS country,
+                    t.machine_line AS machine_line,
+                    t.machine_line_code AS machine_line_code,
+                    COALESCE(NULLIF(TRIM(t.machine_family), ''), TRIM(t.machine_line)) AS artificial_machine_line,
+                    t.size_class_mapping AS size_class_mapping,
                     CAST(
                         REPLACE(NULLIF(TRIM(t.total_market_fid_sales), ''), ',', '')
                         AS REAL
-                    )
-                ) AS fid_sum,
+                    ) AS fid_value
+                FROM tma_data_rows t
+                LEFT JOIN group_country_rows g
+                  ON g.upload_run_id = ?
+                 AND UPPER(TRIM(COALESCE(g.country_code, ''))) = UPPER(TRIM(COALESCE(t.end_country_code, '')))
+                 AND UPPER(TRIM(COALESCE(g.year, ''))) = UPPER(TRIM(COALESCE(t.year, '')))
+                WHERE t.upload_run_id = ?
+            )
+            SELECT
+                year,
+                geographical_region,
+                geographical_market_area,
+                end_country_code,
+                country,
+                GROUP_CONCAT(DISTINCT machine_line) AS machine_line,
+                GROUP_CONCAT(DISTINCT machine_line_code) AS machine_line_code,
+                artificial_machine_line,
+                size_class_mapping,
+                SUM(COALESCE(fid_value, 0)) AS fid_sum,
                 'TMA' AS source
-            FROM tma_data_rows t
-            JOIN source_keys sk
-              ON sk.country_code_key = UPPER(TRIM(t.end_country_code))
-             AND sk.machine_line_key = UPPER(TRIM(t.machine_line))
-            WHERE t.upload_run_id = ?
+            FROM tma_base
             GROUP BY
-                t.year,
-                t.geographical_region,
-                t.geographical_market_area,
-                t.end_country_code,
-                sk.country_name,
-                sk.artificial_machine_line,
-                t.size_class_mapping
+                year,
+                geographical_region,
+                geographical_market_area,
+                end_country_code,
+                country,
+                artificial_machine_line,
+                size_class_mapping
             ORDER BY
-                t.year,
-                t.geographical_region,
-                t.geographical_market_area,
-                t.end_country_code,
-                sk.country_name,
-                sk.artificial_machine_line,
-                t.size_class_mapping
-        """, (group_country_upload_run_id, source_matrix_upload_run_id, tma_upload_run_id))
+                year,
+                geographical_region,
+                geographical_market_area,
+                end_country_code,
+                country,
+                artificial_machine_line,
+                size_class_mapping
+        """, (group_country_upload_run_id, tma_upload_run_id))
         rows = cursor.fetchall()
 
         for index, row in enumerate(rows, start=1):
@@ -1050,15 +1072,6 @@ def run_crp_sal_report_clean_data():
     cursor.execute("SELECT planning_year FROM upload_runs WHERE id = ?", (volvo_upload_run_id,))
     volvo_upload = cursor.fetchone()
     planning_year = volvo_upload["planning_year"] if volvo_upload else None
-    source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix", planning_year)
-    if source_matrix_upload_run_id is None and planning_year is not None:
-        source_matrix_upload_run_id = _get_latest_success_upload_id(cursor, "source_matrix")
-    if source_matrix_upload_run_id is None:
-        conn.close()
-        raise HTTPException(
-            status_code=400,
-            detail="Missing latest successful upload for: source_matrix"
-        )
 
     cursor.execute("""
         INSERT INTO crp_sal_report_runs (
@@ -1069,7 +1082,7 @@ def run_crp_sal_report_clean_data():
         ) VALUES (?, ?, ?, ?)
     """, (
         volvo_upload_run_id,
-        source_matrix_upload_run_id,
+        None,
         "running",
         "Control Volvo SAL report run started"
     ))
@@ -1078,63 +1091,61 @@ def run_crp_sal_report_clean_data():
 
     try:
         cursor.execute("""
-            WITH source_keys AS (
+            WITH volvo_base AS (
                 SELECT
-                    UPPER(TRIM(country_name)) AS country_key,
-                    UPPER(TRIM(machine_line_name)) AS machine_line_key,
-                    COALESCE(NULLIF(TRIM(artificial_machine_line), ''), TRIM(machine_line_name)) AS artificial_machine_line
-                FROM source_matrix_rows
-                WHERE upload_run_id = ?
-                  AND TRIM(COALESCE(crp_source, '')) <> ''
-                GROUP BY
-                    UPPER(TRIM(country_name)),
-                    UPPER(TRIM(machine_line_name)),
-                    COALESCE(NULLIF(TRIM(artificial_machine_line), ''), TRIM(machine_line_name))
+                    v.calendar AS calendar,
+                    v.region AS region,
+                    v.market AS market,
+                    v.country AS country,
+                    v.machine AS machine,
+                    v.machine_line AS machine_line,
+                    TRIM(v.machine_line) AS artificial_machine_line,
+                    CASE
+                        WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MINI' THEN '<6T'
+                        WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MIDI' THEN '6<10T'
+                        ELSE TRIM(v.size_class)
+                    END AS size_class,
+                    v.brand_owner_code AS brand_owner_code,
+                    v.brand_owner AS brand_owner,
+                    v.brand AS brand,
+                    v.brand_nationality AS brand_nationality,
+                    COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
+                    CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL) AS fid_value
+                FROM volvo_sale_data_rows v
+                WHERE v.upload_run_id = ?
             )
             SELECT
-                v.calendar,
-                v.region,
-                v.market,
-                v.country,
-                GROUP_CONCAT(DISTINCT v.machine) AS machine,
-                GROUP_CONCAT(DISTINCT v.machine_line) AS machine_line,
-                sk.artificial_machine_line AS artificial_machine_line,
-                CASE
-                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MINI' THEN '<6T'
-                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MIDI' THEN '6<10T'
-                    ELSE TRIM(v.size_class)
-                END AS size_class,
-                GROUP_CONCAT(DISTINCT v.brand_owner_code) AS brand_owner_code,
-                GROUP_CONCAT(DISTINCT v.brand_owner) AS brand_owner,
-                GROUP_CONCAT(DISTINCT v.brand) AS brand,
-                GROUP_CONCAT(DISTINCT v.brand_nationality) AS brand_nationality,
-                COALESCE(NULLIF(TRIM(v.source), ''), 'SAL') AS source,
-                SUM(CAST(REPLACE(NULLIF(TRIM(v.fid), ''), ',', '') AS REAL)) AS fid
-            FROM volvo_sale_data_rows v
-            JOIN source_keys sk
-              ON sk.country_key = UPPER(TRIM(v.country))
-             AND sk.machine_line_key = UPPER(TRIM(v.machine_line))
-            WHERE v.upload_run_id = ?
+                calendar,
+                region,
+                market,
+                country,
+                GROUP_CONCAT(DISTINCT machine) AS machine,
+                GROUP_CONCAT(DISTINCT machine_line) AS machine_line,
+                artificial_machine_line,
+                size_class,
+                GROUP_CONCAT(DISTINCT brand_owner_code) AS brand_owner_code,
+                GROUP_CONCAT(DISTINCT brand_owner) AS brand_owner,
+                GROUP_CONCAT(DISTINCT brand) AS brand,
+                GROUP_CONCAT(DISTINCT brand_nationality) AS brand_nationality,
+                source,
+                SUM(COALESCE(fid_value, 0)) AS fid
+            FROM volvo_base
             GROUP BY
-                v.calendar,
-                v.region,
-                v.market,
-                v.country,
-                sk.artificial_machine_line,
-                CASE
-                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MINI' THEN '<6T'
-                    WHEN UPPER(TRIM(COALESCE(v.size_class, ''))) = 'MIDI' THEN '6<10T'
-                    ELSE TRIM(v.size_class)
-                END,
-                COALESCE(NULLIF(TRIM(v.source), ''), 'SAL')
+                calendar,
+                region,
+                market,
+                country,
+                artificial_machine_line,
+                size_class,
+                source
             ORDER BY
-                v.calendar,
-                v.region,
-                v.market,
-                v.country,
-                sk.artificial_machine_line,
+                calendar,
+                region,
+                market,
+                country,
+                artificial_machine_line,
                 size_class
-        """, (source_matrix_upload_run_id, volvo_upload_run_id))
+        """, (volvo_upload_run_id,))
         rows = cursor.fetchall()
 
         for index, row in enumerate(rows, start=1):

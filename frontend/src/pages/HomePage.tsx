@@ -24,7 +24,7 @@ const layers: LayerCard[] = [
   },
   {
     code: "P10",
-    title: "Prepared Layer",
+    title: "Market View",
     bullets: [
       "Show prepared TMA values.",
       "Calculate VCE from valid Volvo/SAL rows.",
@@ -88,7 +88,7 @@ const tmcTimeline: TimelineStep[] = [
   },
   {
     code: "P10",
-    title: "Prepared Output",
+    title: "Market View",
     description: "Calculate prepared market values, VCE, and non-Volvo CE.",
   },
   {

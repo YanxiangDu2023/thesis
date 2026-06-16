@@ -570,7 +570,7 @@ const LAYER_DETAILS: Record<string, LayerDetail> = {
   },
   P10: {
     code: "P10",
-    title: "Prepared Layer",
+    title: "Market View",
     description: "Compute and display TMA, Volvo CE (VCE), and Non-Volvo CE values.",
     highlights: [
       "TMA (Total Market) comes from TMA source records.",
