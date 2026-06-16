@@ -44,6 +44,7 @@ tmp_tmc_*.odt
 *.ppt
 *.pptx
 *.odp
+*.odt
 *.xls
 *.xlsx
 *.csv
@@ -56,6 +57,10 @@ tmp_tmc_*.odt
 *.tif
 *.tiff
 *.svg
+docs/
+.tmp_odp_*/
+generate_fancy_tmc_ppt.ps1
+test.js
 
 # Generated images or archives if any
 *.zip
