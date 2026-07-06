@@ -1,4 +1,4 @@
-# ERP-Based Market Reporting Workflow Visualizer
+# ERP-Based Market Reporting Workflow Visualizer 🚀
 
 A full-stack prototype for making complex ERP-based market reporting and calculation workflows more transparent, traceable, and reviewable for business users.
 
@@ -8,7 +8,7 @@ This project was developed as part of a master’s thesis in Information Systems
 
 ---
 
-## 1. Project Overview
+## 1. Project Overview 🔍
 
 Large enterprise reporting workflows often rely on ERP systems, spreadsheets, master-data matrices, and manually validated business rules. Although these workflows can be technically functional, their internal logic is often difficult for business users to inspect, validate, and explain.
 
@@ -26,7 +26,7 @@ The goal is not to replace the ERP or reporting system, but to provide a busines
 
 ---
 
-## 2. Core Use Case
+## 2. Core Use Case 🧩
 
 The prototype models a market reporting workflow based on multiple source files, mapping tables, and rule-based calculation steps.
 
@@ -58,7 +58,7 @@ The workflow includes stages such as:
 
 ---
 
-## 3. Main Features
+## 3. Main Features ✨
 
 ### Data Upload and Matrix Maintenance
 
@@ -116,7 +116,7 @@ The frontend provides filterable tables, workflow pages, upload result pages, to
 
 ---
 
-## 4. Tech Stack
+## 4. Tech Stack 🛠️
 
 ### Frontend
 
@@ -149,7 +149,21 @@ The frontend provides filterable tables, workflow pages, upload result pages, to
 
 ---
 
-## 5. Repository Structure
+## 5. AI-Assisted Development 🤖
+
+Claude Code was used as a development assistant during parts of the implementation process, mainly to support:
+
+* code navigation and understanding across frontend/backend files;
+* debugging and error analysis;
+* refactoring suggestions;
+* SQL and API logic review;
+* documentation and README drafting support.
+
+The system design, business logic interpretation, implementation decisions, validation work, and final review were carried out by the author. Claude Code was used as an assisting tool rather than as a replacement for engineering judgement or domain understanding.
+
+---
+
+## 6. Repository Structure
 
 ```text
 thesis/
@@ -189,9 +203,9 @@ thesis/
 
 ---
 
-## 6. Local Development Setup
+## 7. Local Development Setup 💻
 
-### 6.1 Backend
+### 7.1 Backend
 
 From the repository root:
 
@@ -229,7 +243,7 @@ Health check:
 http://127.0.0.1:8001/healthz
 ```
 
-### 6.2 Frontend
+### 7.2 Frontend
 
 Open a second terminal:
 
@@ -255,7 +269,7 @@ Then restart the frontend development server.
 
 ---
 
-## 7. Environment Variables
+## 8. Environment Variables
 
 ### Backend
 
@@ -277,7 +291,7 @@ Then restart the frontend development server.
 
 ---
 
-## 8. Key Frontend Routes
+## 9. Key Frontend Routes
 
 | Route                          | Purpose                                            |
 | ------------------------------ | -------------------------------------------------- |
@@ -295,7 +309,7 @@ Then restart the frontend development server.
 
 ---
 
-## 9. Example Workflow
+## 10. Example Workflow ✅
 
 A typical local workflow is:
 
@@ -325,7 +339,7 @@ A typical local workflow is:
 
 ---
 
-## 10. Design Motivation
+## 11. Design Motivation
 
 The project is motivated by a common enterprise problem: important business calculations are often embedded inside ERP systems, spreadsheet transformations, planning sequences, or legacy reporting processes. This makes the logic difficult to inspect and validate, especially for non-technical business users.
 
@@ -339,7 +353,7 @@ The prototype explores how a web-based inspection layer can improve:
 
 ---
 
-## 11. Current Scope
+## 12. Current Scope
 
 The current prototype focuses on selected parts of a complex market reporting workflow, especially:
 
@@ -354,7 +368,7 @@ It does not fully replace all ERP-side logic or downstream reporting processes. 
 
 ---
 
-## 12. Future Improvements
+## 13. Future Improvements
 
 Potential future work includes:
 
@@ -370,13 +384,13 @@ Potential future work includes:
 
 ---
 
-## 13. Thesis Context
+## 14. Thesis Context
 
 This project was built as part of a master’s thesis in Information Systems / Computer and Systems Sciences. The research contribution is not a new algorithm, but a design-oriented software artifact that demonstrates how complex ERP-based enterprise workflows can be made more transparent and reviewable through staged data processing, inspectable intermediate outputs, and business-facing validation interfaces.
 
 ---
 
-## 14. Disclaimer
+## 15. Disclaimer
 
 This repository is published for academic and portfolio demonstration purposes. It should not contain confidential business data, internal company documents, private credentials, or production system access details.
 
