@@ -1,10 +1,10 @@
 # ERP-Based Market Reporting Workflow Visualizer
 
-A full-stack thesis prototype for making complex ERP-based market reporting and calculation workflows more transparent, traceable, and reviewable for business users.
+A full-stack prototype for making complex ERP-based market reporting and calculation workflows more transparent, traceable, and reviewable for business users.
 
-This project was developed as part of a master’s thesis project using Volvo Construction Equipment’s Total Market Calculation (TMC) process as the case setting. The prototype focuses on exposing hidden calculation logic, intermediate workflow layers, matrix-based business rules, and validation outputs through a navigable web interface.
+This project was developed as part of a master’s thesis in Information Systems. It explores how complex enterprise reporting workflows can be transformed into a staged, inspectable web application where users can upload source data, maintain business-rule matrices, review intermediate outputs, and validate final calculation results.
 
-> This repository is a thesis and portfolio prototype. It is not an official Volvo product. Business data, company-specific details, and sensitive source materials should not be committed to this public repository.
+> This repository is a thesis and portfolio prototype. It is not connected to any official enterprise system or production environment. Sensitive business data, credentials, and confidential documents should not be committed to this public repository.
 
 ---
 
@@ -22,33 +22,33 @@ This prototype addresses that problem by turning a complex market reporting work
 * compare calculated outputs against control reports;
 * follow the workflow from raw preparation to validation and reporting.
 
-The goal is not to replace the ERP system, but to provide a business-facing inspection layer around ERP-related calculation logic.
+The goal is not to replace the ERP or reporting system, but to provide a business-facing inspection layer around complex calculation logic.
 
 ---
 
 ## 2. Core Use Case
 
-The case workflow is based on a Total Market Calculation process for construction equipment market reporting.
+The prototype models a market reporting workflow based on multiple source files, mapping tables, and rule-based calculation steps.
 
-The prototype models key stages such as:
+The workflow includes stages such as:
 
 1. **Input Setup**
    Upload and maintain source data and matrix files.
 
-2. **P00 – Raw Preparation**
+2. **Raw Preparation**
    Combine source data and prepare flags for downstream calculation.
 
-3. **P10 – Market View**
-   Prepare market-level views, including Volvo and non-Volvo CE logic.
+3. **Market View**
+   Prepare market-level views and calculate source-based market values.
 
-4. **A10 – Adjustment Layer**
+4. **Adjustment Layer**
    Aggregate and prepare adjustment-ready rows.
 
 5. **Machine Line Split**
    Apply selected split logic for machine-line-level outputs.
 
 6. **Total Market Calculation**
-   Handle double-brand and source-priority cases before calculating total market output.
+   Handle source-priority, duplicate-source, and double-brand cases before calculating total market output.
 
 7. **Restatement**
    Rebalance outputs to maintain reporting consistency.
@@ -70,9 +70,9 @@ The application supports CSV upload and review for several matrix and source-dat
 * Brand Mapping
 * Group Country Mapping
 * Machine Line Mapping
-* OTH Data
-* Volvo Sale Data
-* TMA Data
+* External Market Data
+* Internal Sales Data
+* Total Market Reference Data
 
 Uploaded rows are stored with upload-run metadata, planning year, upload status, row count, and original file information.
 
@@ -86,7 +86,7 @@ The prototype includes logic for business-review fields such as:
 
 * Deletion Flag
 * Reporter Flag
-* Pri/Sec source indicator
+* Primary/Secondary source indicator
 * Size Class Flag
 * Source Flag
 * Double-brand checks
@@ -283,10 +283,10 @@ Then restart the frontend development server.
 | ------------------------------ | -------------------------------------------------- |
 | `/`                            | Home and workflow overview                         |
 | `/auth`                        | Login and registration                             |
-| `/pipeline`                    | TMC workflow/pipeline viewer                       |
+| `/pipeline`                    | Market reporting workflow viewer                   |
 | `/matrix`                      | Matrix upload and maintenance                      |
-| `/upload/oth`                  | OTH data upload                                    |
-| `/upload/crp`                  | CRP/TMA/SAL-related upload entry                   |
+| `/upload/oth`                  | External market data upload                        |
+| `/upload/crp`                  | Reference and control data upload entry            |
 | `/layers/:layerCode`           | Detailed workflow-layer view                       |
 | `/total-market-calculation`    | Total market calculation and double-brand handling |
 | `/restatement`                 | Restatement logic and result preparation           |
@@ -312,12 +312,12 @@ A typical local workflow is:
    * Machine Line Mapping
 5. Upload source data:
 
-   * OTH data
-   * Volvo Sale data
-   * TMA data
+   * External market data
+   * Internal sales data
+   * Total market reference data
 6. Open the pipeline viewer to inspect the workflow.
 7. Run or review preparation-layer outputs.
-8. Review OTH deletion and reporter flags.
+8. Review deletion and reporter flags.
 9. Continue to Total Market Calculation.
 10. Review double-brand cases and save calculated snapshots.
 11. Open Restatement and Validation Report pages.
@@ -341,7 +341,7 @@ The prototype explores how a web-based inspection layer can improve:
 
 ## 11. Current Scope
 
-The current prototype focuses on selected parts of the TMC workflow, especially:
+The current prototype focuses on selected parts of a complex market reporting workflow, especially:
 
 * source and matrix upload;
 * preparation-layer review;
