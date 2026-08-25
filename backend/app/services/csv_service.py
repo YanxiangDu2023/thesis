@@ -87,6 +87,21 @@ VOLVO_SALE_COLUMN_NAMES = [
     "source",
     "fid",
 ]
+VOLVO_SALE_HEADER_ALIASES = {
+    "calendar": {"calendar", "calendar year", "year"},
+    "region": {"region"},
+    "market": {"market", "market area"},
+    "country": {"country", "country name"},
+    "machine": {"machine"},
+    "machine_line": {"machine line"},
+    "size_class": {"size class"},
+    "brand_owner_code": {"brand owner code"},
+    "brand_owner": {"brand owner"},
+    "brand": {"brand", "brand name"},
+    "brand_nationality": {"brand nationality"},
+    "source": {"source"},
+    "fid": {"fid", "fid sales", "sales"},
+}
 TMA_DATA_COLUMN_NAMES = [
     "year",
     "geographical_region",
@@ -492,24 +507,24 @@ def _load_group_country_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
     return normalized_data
 
 
-def _looks_like_volvo_sale_header(first_row) -> bool:
+def _get_volvo_sale_header_indexes(first_row) -> dict[str, int] | None:
     normalized_row = [_normalize_header(value) for value in first_row]
-    header_flags = [
-        len(normalized_row) > 0 and "calendar" in normalized_row[0],
-        len(normalized_row) > 1 and "region" in normalized_row[1],
-        len(normalized_row) > 2 and "market" in normalized_row[2],
-        len(normalized_row) > 3 and "country" in normalized_row[3],
-        len(normalized_row) > 4 and "machine" in normalized_row[4],
-        len(normalized_row) > 5 and "machine line" in normalized_row[5],
-        len(normalized_row) > 6 and "size class" in normalized_row[6],
-        len(normalized_row) > 7 and "brand owner" in normalized_row[7],
-        len(normalized_row) > 8 and "brand owner" in normalized_row[8],
-        len(normalized_row) > 9 and "brand" in normalized_row[9],
-        len(normalized_row) > 10 and "brand" in normalized_row[10],
-        len(normalized_row) > 11 and "source" in normalized_row[11],
-        len(normalized_row) > 12 and "fid" in normalized_row[12],
-    ]
-    return sum(1 for flag in header_flags if flag) >= 9
+    indexes: dict[str, int] = {}
+
+    for field_name, aliases in VOLVO_SALE_HEADER_ALIASES.items():
+        matching_index = next(
+            (index for index, header in enumerate(normalized_row) if header in aliases),
+            None,
+        )
+        if matching_index is None:
+            return None
+        indexes[field_name] = matching_index
+
+    return indexes
+
+
+def _looks_like_volvo_sale_header(first_row) -> bool:
+    return _get_volvo_sale_header_indexes(first_row) is not None
 
 
 def _load_volvo_sale_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
@@ -518,23 +533,61 @@ def _load_volvo_sale_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
     if volvo_sale_df.empty:
         return pd.DataFrame(columns=VOLVO_SALE_COLUMN_NAMES)
 
-    if _looks_like_volvo_sale_header(volvo_sale_df.iloc[0].tolist()):
-        volvo_sale_df = volvo_sale_df.iloc[1:].reset_index(drop=True)
+    # Header-based mapping supports both the original 13-column layout and
+    # exports that include an additional Country Code column. Country Code is
+    # intentionally ignored because the current Volvo Sale table/report does
+    # not consume it.
+    header_indexes = _get_volvo_sale_header_indexes(volvo_sale_df.iloc[0].tolist())
+    if header_indexes is not None:
+        data_rows = volvo_sale_df.iloc[1:].reset_index(drop=True)
+        normalized_data = pd.DataFrame({
+            field_name: data_rows.iloc[:, column_index]
+            for field_name, column_index in header_indexes.items()
+        })
+    else:
+        if volvo_sale_df.shape[1] < len(VOLVO_SALE_COLUMN_NAMES):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Volvo Sale Data CSV must include headers for: "
+                    "Calendar, Region, Market, Country, Machine, Machine Line, "
+                    "Size Class, Brand Owner code, Brand Owner, Brand, "
+                    "Brand Nationality, Source, and FID."
+                ),
+            )
 
-    if volvo_sale_df.shape[1] < len(VOLVO_SALE_COLUMN_NAMES):
+        # Preserve compatibility with legacy headerless 13-column files.
+        normalized_data = volvo_sale_df.iloc[:, :len(VOLVO_SALE_COLUMN_NAMES)].copy()
+        normalized_data.columns = VOLVO_SALE_COLUMN_NAMES
+
+    # Remove repeated header rows before validating data values.
+    header_like_mask = normalized_data.apply(
+        lambda row: _looks_like_volvo_sale_header(row.tolist()),
+        axis=1,
+    )
+    if header_like_mask.any():
+        normalized_data = normalized_data.loc[~header_like_mask].reset_index(drop=True)
+
+    fid_text = normalized_data["fid"].map(_clean_cell)
+    normalized_fid = fid_text.str.replace(",", "", regex=False)
+    invalid_fid_mask = normalized_fid.ne("") & pd.to_numeric(
+        normalized_fid,
+        errors="coerce",
+    ).isna()
+    if invalid_fid_mask.any():
+        invalid_examples = [
+            f"row {int(index) + 2}: {fid_text.loc[index]!r}"
+            for index in invalid_fid_mask[invalid_fid_mask].index[:5]
+        ]
         raise HTTPException(
             status_code=400,
             detail=(
-                "Volvo Sale Data CSV must include columns in this order: "
-                "Calendar, Region, Market, Country, Machine, Machine Line, "
-                "Size Class, Brand Owner code, Brand Owner, Brand, Brand Nationality, Source, FID."
+                "Volvo Sale Data FID must be numeric. Invalid values: "
+                + "; ".join(invalid_examples)
             ),
         )
 
-    volvo_sale_df = volvo_sale_df.iloc[:, :len(VOLVO_SALE_COLUMN_NAMES)].copy()
-    volvo_sale_df.columns = VOLVO_SALE_COLUMN_NAMES
-
-    return volvo_sale_df
+    return normalized_data
 
 
 def _looks_like_tma_data_header(first_row) -> bool:
