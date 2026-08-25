@@ -4,6 +4,7 @@ import {
   createPlanningYear,
   getLatestCrpSalReportCleanData,
   getLatestCrpTmaReportCleanData,
+  getLatestUploadByMatrixType,
   getPlanningYears,
   getLatestTotalMarketCalculationCalculatedRows,
   saveTotalMarketCalculationCalculatedSnapshot,
@@ -777,6 +778,11 @@ function RestatementPage() {
       return;
     }
 
+    const planningYear = requirePlanningYear();
+    if (planningYear === null) {
+      return;
+    }
+
     type GroupMeta = Pick<
       FinalRestatementResultRow,
       "country_grouping" | "country" | "country_code" | "region" | "machine_line_code" | "machine_line_name" | "artificial_machine_line" | "size_class_flag"
@@ -786,11 +792,29 @@ function RestatementPage() {
     const tmaByKey = new Map<string, number>();
     const salRowsByKey = new Map<string, FinalRestatementResultRow[]>();
 
+    const countryGroupingByCodeAndYear = new Map<string, string>();
+    const countryGroupingByNameAndYear = new Map<string, string>();
+    const countryGroupingByCode = new Map<string, string>();
+    const countryGroupingByName = new Map<string, string>();
+
+    const getCountryGrouping = (row: CrpTmaReportRow): string => {
+      const yearKey = toKey(row.year);
+      const codeKey = toKey(row.end_country_code);
+      const nameKey = toKey(row.country);
+      return (
+        countryGroupingByCodeAndYear.get(`${codeKey}||${yearKey}`) ??
+        countryGroupingByNameAndYear.get(`${nameKey}||${yearKey}`) ??
+        countryGroupingByCode.get(codeKey) ??
+        countryGroupingByName.get(nameKey) ??
+        ""
+      );
+    };
+
     const ensureControlTmaMeta = (row: CrpTmaReportRow) => {
       const groupKey = getControlTmaGroupKey(row);
       if (!groupMetaByKey.has(groupKey)) {
         groupMetaByKey.set(groupKey, {
-          country_grouping: "",
+          country_grouping: getCountryGrouping(row),
           country: row.country,
           country_code: row.end_country_code,
           region: row.geographical_region,
@@ -809,10 +833,33 @@ function RestatementPage() {
     };
 
     try {
-      const [controlTmaResult, controlSalResult] = await Promise.all([
+      const [controlTmaResult, controlSalResult, groupCountryResult] = await Promise.all([
         getLatestCrpTmaReportCleanData(),
         getLatestCrpSalReportCleanData(),
+        getLatestUploadByMatrixType("group_country", planningYear).catch(() => null),
       ]);
+
+      for (const row of groupCountryResult?.rows ?? []) {
+        const grouping = toDisplayText(row.country_grouping);
+        if (!grouping) {
+          continue;
+        }
+        const yearKey = toKey(row.year);
+        const codeKey = toKey(row.country_code);
+        const nameKey = toKey(row.country_name);
+        if (codeKey) {
+          countryGroupingByCode.set(codeKey, grouping);
+          if (yearKey) {
+            countryGroupingByCodeAndYear.set(`${codeKey}||${yearKey}`, grouping);
+          }
+        }
+        if (nameKey) {
+          countryGroupingByName.set(nameKey, grouping);
+          if (yearKey) {
+            countryGroupingByNameAndYear.set(`${nameKey}||${yearKey}`, grouping);
+          }
+        }
+      }
 
       for (const row of controlTmaResult.rows) {
         const groupKey = ensureControlTmaMeta(row);
@@ -821,9 +868,13 @@ function RestatementPage() {
 
       for (const row of restatementRows) {
         const groupKey = getFinalRestatementGroupKey(row);
-        if (!groupMetaByKey.has(groupKey)) {
+        const meta = groupMetaByKey.get(groupKey);
+        if (!meta) {
           continue;
         }
+        meta.country_grouping = toDisplayText(row.country_grouping, meta.country_grouping);
+        meta.country_code = toDisplayText(row.country_code, meta.country_code);
+        meta.region = toDisplayText(row.region, meta.region);
         if (!restatedBrandRowsByKey.has(groupKey)) {
           restatedBrandRowsByKey.set(groupKey, []);
         }
